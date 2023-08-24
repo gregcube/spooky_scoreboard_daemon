@@ -1,0 +1,215 @@
+// Spooky Scoreboard Monitoring Daemon
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <errno.h>
+#include <sys/inotify.h>
+#include <curl/curl.h>
+
+#define EVENT_SIZE (sizeof(struct inotify_event))
+#define BUF_LEN (1024 * (EVENT_SIZE + 16))
+#define MAX_MACHINE_ID_LEN 36
+
+#ifndef DEV
+#define GAME_PATH "/game"
+#else
+#define GAME_PATH "/home/greg/Devel/scratch/hwn"
+#endif
+
+static CURL *curl;
+static volatile sig_atomic_t run = 0;
+static char mid[MAX_MACHINE_ID_LEN + 1];
+static const char *score_endpoint = "https://hwn.local:8443/spooky/score";
+
+static void cleanup(int rc)
+{
+  run = 0;
+
+  if (curl) {
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+  }
+
+  exit(rc);
+}
+
+static void score_send()
+{
+  CURLcode rc;
+  FILE *fp;
+  long fsize;
+  char *post, *buf;
+  struct curl_slist *hdr = NULL;
+
+  curl_global_init(CURL_GLOBAL_DEFAULT);
+  if (!(curl = curl_easy_init())) {
+    fprintf(stderr, "Failed to init curl\n");
+    cleanup(1);
+  }
+
+  if (!(fp = fopen("/game/highscores.config", "r"))) {
+    fprintf(stderr, "Failed to open highscores file.\n");
+    cleanup(1);
+  }
+
+  fseek(fp, 0, SEEK_END);
+  fsize = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  if (!(buf = (char *)malloc(fsize + 1))) {
+    fprintf(stderr, "Failed to allocate buffer memory.\n");
+    cleanup(1);
+  }
+
+  fread(buf, 1, fsize, fp);
+  buf[fsize] = '\0';
+  fclose(fp);
+
+  size_t p_len = sizeof(mid) + fsize + 2;
+  if (!(post = (char *)malloc(p_len))) {
+    fprintf(stderr, "Failed to allocate memory for post data.\n");
+    free(buf);
+    cleanup(1);
+  }
+
+  snprintf(post, p_len, "%s\n%s", mid, buf);
+
+  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
+
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr); 
+  curl_easy_setopt(curl, CURLOPT_URL, score_endpoint);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+
+  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
+    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
+
+  free(post);
+  free(buf);
+}
+
+static void process_event(char *buf, ssize_t bytes)
+{
+  char *ptr = buf;
+  while (ptr < buf + bytes) {
+    struct inotify_event *evt = (struct inotify_event *)ptr;
+
+    if (evt->len > 0 && strcmp(evt->name, "highscores.config") == 0) {
+      score_send(); 
+      break;
+    }
+
+    ptr += sizeof(struct inotify_event) + evt->len;
+  }
+}
+
+static void score_watch()
+{
+  int fd, wd;
+  char buf[BUF_LEN];
+
+  if ((fd = inotify_init()) == -1) {
+    fprintf(stderr, "Failed inotify_init()\n");
+    cleanup(1);
+  }
+
+  if ((wd = inotify_add_watch(fd, GAME_PATH, IN_CLOSE_WRITE)) == -1) {
+    fprintf(stderr, "Failed inotify_add_watch()\n");
+    cleanup(1);
+  }
+
+  while (run) {
+    ssize_t bytes = read(fd, buf, sizeof(buf));
+
+    if (bytes == -1) {
+      fprintf(stderr, "Failed reading event.\n");
+      cleanup(1);
+    }
+
+    if (bytes > 0)
+      process_event(buf, bytes);
+  }
+}
+
+static void load_machine_id()
+{
+  FILE *fp;
+
+  if (!(fp = fopen(".ssbd_mid", "r"))) {
+    fprintf(stderr, "Failed to load machine id\n");
+    cleanup(1);
+  }
+
+  int rc = fread(mid, MAX_MACHINE_ID_LEN, 1, fp);
+  if (!rc) {
+    fprintf(stderr, "Failed to read machine id file\n");
+    fclose(fp);
+    cleanup(1);
+  }
+
+  fclose(fp);
+  mid[36] = '\0';
+}
+
+static void print_usage()
+{
+  printf("Implement help\n");
+}
+
+static void sig_handler(int signo)
+{
+  cleanup(0);
+}
+
+int main(int argc, char **argv)
+{
+  int opt;
+  struct sigaction sa;
+  pid_t pid;
+
+  sa.sa_handler = sig_handler;
+  sa.sa_flags = 0;
+  sigaction(SIGINT, &sa, NULL);
+  sigaction(SIGTERM, &sa, NULL);
+
+  for (optind = 1;;) {
+    if ((opt = getopt(argc, argv, "R:wfh")) == -1) break;
+
+    switch (opt) {
+    case 'h':
+      print_usage();
+      break;
+
+    case 'R':
+      printf("todo: Implement registering machine\n");
+      break;
+
+    case 'f':
+      pid = fork();
+
+      if (pid < 0) {
+        fprintf(stderr, "Failed to fork: %s\n", strerror(errno));
+        exit(1);
+      }
+
+      if (pid > 0) exit(0);
+      break;
+
+    case 'w':
+      run = 1;
+      break;
+    }
+  }
+
+  if (run) {
+    load_machine_id();
+    score_watch();
+  }
+
+  return 0;
+}
+
+// vi: expandtab shiftwidth=2 softtabstop=2 tabstop=2
