@@ -89,7 +89,6 @@ static void score_send()
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr); 
   curl_easy_setopt(curl, CURLOPT_URL, score_endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-  //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
   if ((rc = curl_easy_perform(curl)) != CURLE_OK)
     fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
