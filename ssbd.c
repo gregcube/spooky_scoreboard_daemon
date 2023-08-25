@@ -13,11 +13,11 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 #define MAX_MACHINE_ID_LEN 36
+#define GAME_PATH "/game"
 
 static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
-static const char *score_endpoint = "https://scoreboard.web.net/spooky/score";
 
 static void cleanup(int rc)
 {
@@ -38,10 +38,11 @@ static void score_send()
   long fsize;
   char *post, *buf;
   struct curl_slist *hdr = NULL;
+  const char *endpoint = "https://scoreboard.web.net/spooky/score";
 
   curl_global_init(CURL_GLOBAL_DEFAULT);
   if (!(curl = curl_easy_init())) {
-    fprintf(stderr, "Failed to init curl: %s\n", strerror(errno));
+    fprintf(stderr, "Failed to init curl: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
     cleanup(1);
   }
 
@@ -81,7 +82,7 @@ static void score_send()
   hdr = curl_slist_append(hdr, "Content-Type: text/plain");
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr); 
-  curl_easy_setopt(curl, CURLOPT_URL, score_endpoint);
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
 
   if ((rc = curl_easy_perform(curl)) != CURLE_OK)
@@ -151,7 +152,7 @@ static void load_machine_id()
   }
 
   fclose(fp);
-  mid[36] = '\0';
+  mid[MAX_MACHINE_ID_LEN] = '\0';
 }
 
 static void print_usage()
@@ -176,7 +177,7 @@ int main(int argc, char **argv)
   pid_t pid;
 
   if (argc < 2) {
-    fprintf(stderr, "A parameter is required.\n\n");
+    fprintf(stderr, "Missing parameter:\n-r or -m is required.\n\n");
     print_usage();
     return 1;
   }
