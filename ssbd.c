@@ -14,12 +14,6 @@
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 #define MAX_MACHINE_ID_LEN 36
 
-#ifndef DEV
-#define GAME_PATH "/game"
-#else
-#define GAME_PATH "/home/greg/Devel/scratch/hwn"
-#endif
-
 static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
