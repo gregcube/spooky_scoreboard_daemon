@@ -9,6 +9,7 @@
 #include <sys/inotify.h>
 #include <curl/curl.h>
 
+#define VERSION "0.1"
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 #define MAX_MACHINE_ID_LEN 36
@@ -64,9 +65,15 @@ static void score_send()
     cleanup(1);
   }
 
-  fread(buf, 1, fsize, fp);
-  buf[fsize] = '\0';
+  size_t bytes = fread(buf, 1, fsize, fp);
+  if (bytes != fsize) {
+    fprintf(stderr, "Failed to read highscores: %s\n", strerror(errno));
+    fclose(fp);
+    cleanup(1);
+  }
+
   fclose(fp);
+  buf[fsize] = '\0';
 
   size_t p_len = sizeof(mid) + fsize + 2;
   if (!(post = (char *)malloc(p_len))) {
@@ -143,8 +150,8 @@ static void load_machine_id()
     cleanup(1);
   }
 
-  int rc = fread(mid, MAX_MACHINE_ID_LEN, 1, fp);
-  if (!rc) {
+  size_t bytes = fread(mid, MAX_MACHINE_ID_LEN, 1, fp);
+  if (bytes < 1) {
     fprintf(stderr, "Failed to read machine id: %s\n", strerror(errno));
     fclose(fp);
     cleanup(1);
@@ -156,7 +163,12 @@ static void load_machine_id()
 
 static void print_usage()
 {
-  printf("Implement help\n");
+  fprintf(stderr, "Spooky Scoreboard Daemon (ssbd) v%s\n\n", VERSION);
+  fprintf(stderr, " -m Monitor highscores & send to server\n");
+  fprintf(stderr, " -d Run in background (daemon mode)\n");
+  fprintf(stderr, " -r <code> Register your pinball machine\n");
+  fprintf(stderr, " -h Displays this\n\n");
+  exit(0);
 }
 
 static void sig_handler(int signo)
@@ -170,24 +182,30 @@ int main(int argc, char **argv)
   struct sigaction sa;
   pid_t pid;
 
+  if (argc < 2) {
+    fprintf(stderr, "A parameter is required.\n\n");
+    print_usage();
+    return 1;
+  }
+
   sa.sa_handler = sig_handler;
   sa.sa_flags = 0;
   sigaction(SIGINT, &sa, NULL);
   sigaction(SIGTERM, &sa, NULL);
 
   for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "R:wfh")) == -1) break;
+    if ((opt = getopt(argc, argv, "r:mdh")) == -1) break;
 
     switch (opt) {
     case 'h':
       print_usage();
       break;
 
-    case 'R':
-      printf("todo: Implement registering machine\n");
+    case 'r':
+      printf("todo: Implement this.\n");
       break;
 
-    case 'f':
+    case 'd':
       pid = fork();
 
       if (pid < 0) {
@@ -198,7 +216,7 @@ int main(int argc, char **argv)
       if (pid > 0) exit(0);
       break;
 
-    case 'w':
+    case 'm':
       run = 1;
       break;
     }
