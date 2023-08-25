@@ -22,7 +22,7 @@
 static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
-static const char *score_endpoint = "https://hwn.local:8443/spooky/score";
+static const char *score_endpoint = "https://scoreboard.web.net/spooky/score";
 
 static void cleanup(int rc)
 {
@@ -46,12 +46,12 @@ static void score_send()
 
   curl_global_init(CURL_GLOBAL_DEFAULT);
   if (!(curl = curl_easy_init())) {
-    fprintf(stderr, "Failed to init curl\n");
+    fprintf(stderr, "Failed to init curl: %s\n", strerror(errno));
     cleanup(1);
   }
 
   if (!(fp = fopen("/game/highscores.config", "r"))) {
-    fprintf(stderr, "Failed to open highscores file.\n");
+    fprintf(stderr, "Failed to open highscores file: %s\n", strerror(errno));
     cleanup(1);
   }
 
@@ -60,7 +60,7 @@ static void score_send()
   fseek(fp, 0, SEEK_SET);
 
   if (!(buf = (char *)malloc(fsize + 1))) {
-    fprintf(stderr, "Failed to allocate buffer memory.\n");
+    fprintf(stderr, "Cannot allocate buffer memory: %s\n", strerror(errno));
     cleanup(1);
   }
 
@@ -70,7 +70,7 @@ static void score_send()
 
   size_t p_len = sizeof(mid) + fsize + 2;
   if (!(post = (char *)malloc(p_len))) {
-    fprintf(stderr, "Failed to allocate memory for post data.\n");
+    fprintf(stderr, "Cannot allocate memory for post data: %s\n", strerror(errno));
     free(buf);
     cleanup(1);
   }
@@ -82,7 +82,7 @@ static void score_send()
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr); 
   curl_easy_setopt(curl, CURLOPT_URL, score_endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+  //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 
   if ((rc = curl_easy_perform(curl)) != CURLE_OK)
     fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
@@ -112,12 +112,12 @@ static void score_watch()
   char buf[BUF_LEN];
 
   if ((fd = inotify_init()) == -1) {
-    fprintf(stderr, "Failed inotify_init()\n");
+    fprintf(stderr, "Failed inotify_init(): %s\n", strerror(errno));
     cleanup(1);
   }
 
   if ((wd = inotify_add_watch(fd, GAME_PATH, IN_CLOSE_WRITE)) == -1) {
-    fprintf(stderr, "Failed inotify_add_watch()\n");
+    fprintf(stderr, "Failed inotify_add_watch(): %s\n", strerror(errno));
     cleanup(1);
   }
 
@@ -125,7 +125,7 @@ static void score_watch()
     ssize_t bytes = read(fd, buf, sizeof(buf));
 
     if (bytes == -1) {
-      fprintf(stderr, "Failed reading event.\n");
+      fprintf(stderr, "Failed reading event: %s\n", strerror(errno));
       cleanup(1);
     }
 
@@ -138,14 +138,14 @@ static void load_machine_id()
 {
   FILE *fp;
 
-  if (!(fp = fopen(".ssbd_mid", "r"))) {
-    fprintf(stderr, "Failed to load machine id\n");
+  if (!(fp = fopen("/.ssbd_mid", "r"))) {
+    fprintf(stderr, "Failed to load machine id file: %s\n", strerror(errno));
     cleanup(1);
   }
 
   int rc = fread(mid, MAX_MACHINE_ID_LEN, 1, fp);
   if (!rc) {
-    fprintf(stderr, "Failed to read machine id file\n");
+    fprintf(stderr, "Failed to read machine id: %s\n", strerror(errno));
     fclose(fp);
     cleanup(1);
   }
