@@ -1,4 +1,7 @@
-// Spooky Scoreboard Monitoring Daemon
+// Spooky Scoreboard Daemon (ssbd)
+// Monitor highscores & uploads to scoreboard server.
+// https://scoreboard.web.net
+// Greg MacKenzie (greg@web.net)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,8 +13,6 @@
 #include <curl/curl.h>
 
 #define VERSION "0.1"
-#define EVENT_SIZE (sizeof(struct inotify_event))
-#define BUF_LEN (1024 * (EVENT_SIZE + 16))
 #define MAX_MACHINE_ID_LEN 36
 #define GAME_PATH "/game"
 
@@ -33,18 +34,11 @@ static void cleanup(int rc)
 
 static void score_send()
 {
-  CURLcode rc;
   FILE *fp;
   long fsize;
   char *post, *buf;
   struct curl_slist *hdr = NULL;
   const char *endpoint = "https://scoreboard.web.net/spooky/score";
-
-  curl_global_init(CURL_GLOBAL_DEFAULT);
-  if (!(curl = curl_easy_init())) {
-    fprintf(stderr, "Failed to init curl: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
-    cleanup(1);
-  }
 
   if (!(fp = fopen("/game/highscores.config", "r"))) {
     fprintf(stderr, "Failed to open highscores file: %s\n", strerror(errno));
@@ -81,10 +75,11 @@ static void score_send()
 
   hdr = curl_slist_append(hdr, "Content-Type: text/plain");
 
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr); 
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
 
+  CURLcode rc;
   if ((rc = curl_easy_perform(curl)) != CURLE_OK)
     fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
 
@@ -110,7 +105,7 @@ static void process_event(char *buf, ssize_t bytes)
 static void score_watch()
 {
   int fd, wd;
-  char buf[BUF_LEN];
+  char buf[sizeof(struct inotify_event)];
 
   if ((fd = inotify_init()) == -1) {
     fprintf(stderr, "Failed inotify_init(): %s\n", strerror(errno));
@@ -130,8 +125,7 @@ static void score_watch()
       cleanup(1);
     }
 
-    if (bytes > 0)
-      process_event(buf, bytes);
+    process_event(buf, bytes);
   }
 }
 
@@ -155,6 +149,43 @@ static void load_machine_id()
   mid[MAX_MACHINE_ID_LEN] = '\0';
 }
 
+size_t register_callback(void *ptr, size_t size, size_t nmemb, void *data)
+{
+  size_t bytes = size * nmemb;
+  if (bytes != MAX_MACHINE_ID_LEN) {
+    fprintf(stderr, "Failed to register machine.\n");
+    cleanup(1);
+  }
+
+  strncpy((char *)data, (char *)ptr, bytes);
+  return bytes;
+}
+
+static void register_machine(const char *code)
+{
+  struct curl_slist *hdr = NULL;
+  const char *endpoint = "https://scoreboard.web.net/spooky/register";
+
+  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
+
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, code);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, register_callback);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, mid);
+
+  CURLcode rc;
+  if ((rc = curl_easy_perform(curl)) != CURLE_OK) {
+    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
+    cleanup(1);
+  }
+  else {
+    printf("%s\n", mid);
+  }
+
+  cleanup(0);
+}
+
 static void print_usage()
 {
   fprintf(stderr, "Spooky Scoreboard Daemon (ssbd) v%s\n\n", VERSION);
@@ -172,7 +203,7 @@ static void sig_handler(int signo)
 
 int main(int argc, char **argv)
 {
-  int opt;
+  int opt, reg = 0;
   struct sigaction sa;
   pid_t pid;
 
@@ -196,7 +227,7 @@ int main(int argc, char **argv)
       break;
 
     case 'r':
-      printf("todo: Implement this.\n");
+      if (argv[2] != NULL && strlen(argv[2]) == 4) reg = 1;
       break;
 
     case 'd':
@@ -216,6 +247,23 @@ int main(int argc, char **argv)
     }
   }
 
+  if (run && reg) {
+    fprintf(stderr, "Cannot use -r and -m together.\n");
+    return 1;
+  }
+
+  if (run || reg) {
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    if (!(curl = curl_easy_init())) {
+      fprintf(stderr, "Failed to init curl: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
+      cleanup(1);
+    }
+  }
+
+  if (reg) {
+    register_machine(argv[2]);
+  }
+
   if (run) {
     load_machine_id();
     score_watch();
@@ -225,3 +273,4 @@ int main(int argc, char **argv)
 }
 
 // vi: expandtab shiftwidth=2 softtabstop=2 tabstop=2
+
