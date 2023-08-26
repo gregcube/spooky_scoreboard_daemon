@@ -105,7 +105,7 @@ static void process_event(char *buf, ssize_t bytes)
 static void score_watch()
 {
   int fd, wd;
-  char buf[sizeof(struct inotify_event)];
+  char buf[1024];
 
   if ((fd = inotify_init()) == -1) {
     fprintf(stderr, "Failed inotify_init(): %s\n", strerror(errno));
@@ -119,13 +119,10 @@ static void score_watch()
 
   while (run) {
     ssize_t bytes = read(fd, buf, sizeof(buf));
-
-    if (bytes == -1) {
+    if (bytes == -1)
       fprintf(stderr, "Failed reading event: %s\n", strerror(errno));
-      cleanup(1);
-    }
-
-    process_event(buf, bytes);
+    else
+      process_event(buf, bytes);
   }
 }
 
