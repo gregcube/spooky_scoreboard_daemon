@@ -66,12 +66,18 @@ Installation
     /ssb.sh  
     ./main.x86_64
     ```
+11. Edit **/game3/etc/resolv.conf** to look like the following:
 
-11. Back to the terminal:
+    ```
+    nameserver 8.8.8.8
+    nameserver 8.8.4.4
+    ```
+
+12. Back to the terminal:
 
     9. `shutdown -h now`
 
-12. Turn off your machine.  Unplug USB drive/ stick.  Disconnect keyboard.
+13. Turn off your machine.  Unplug USB drive/ stick.  Disconnect keyboard.
 
-13. Start your machine, play a game, and hope for the best.  Once you finish
+14. Start your machine, play a game, and hope for the best.  Once you finish
     a game the scores should be uploaded to the server.
