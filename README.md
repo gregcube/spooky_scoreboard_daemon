@@ -9,8 +9,9 @@ Before we begin
 I have only tested this on a Spooky Halloween CE pinball machine with the "UP"
 computer board.  It has not been tested on the mini-PC that was used in later
 Halloween builds.  Though it is likely to work the installation instructions
-may slightly differ.  If other Spooky games follow the same software
-architecture then this should work as well.
+or install script may differ slightly.  If other Spooky games follow the same
+software architecture then this should work as well.  Please open an issue
+thread if you have a Spooky game and would like to test.
 
 What you'll need
 ----------------
