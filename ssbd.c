@@ -22,18 +22,23 @@ static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
 static pthread_t ping_tid;
-static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t ping_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t ping_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cleanup(int rc)
 {
   printf("Exiting...\n");
 
-  pthread_mutex_lock(&mutex);
+  if (ping_tid)
+    pthread_mutex_lock(&ping_mutex);
+
   run = 0;
-  pthread_cond_signal(&cond);
-  pthread_mutex_unlock(&mutex);
-  pthread_join(ping_tid, NULL);
+
+  if (ping_tid) {
+    pthread_cond_signal(&ping_cond);
+    pthread_mutex_unlock(&ping_mutex);
+    pthread_join(ping_tid, NULL);
+  }
 
   if (curl) {
     curl_easy_cleanup(curl);
@@ -169,7 +174,7 @@ size_t register_callback(void *ptr, size_t size, size_t nmemb, void *data)
   return bytes;
 }
 
-static void register_machine(const char *code)
+static CURLcode register_machine(const char *code)
 {
   struct curl_slist *hdr = NULL;
   const char *endpoint = "https://scoreboard.web.net/spooky/register";
@@ -185,13 +190,15 @@ static void register_machine(const char *code)
   CURLcode rc;
   if ((rc = curl_easy_perform(curl)) != CURLE_OK) {
     fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
-    cleanup(1);
   }
   else {
     printf("%s\n", mid);
   }
 
-  cleanup(0);
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
+
+  return rc;
 }
 
 static void *ping_send()
@@ -218,16 +225,15 @@ static void *ping_send()
 
     if ((cc = curl_easy_perform(cp)) != CURLE_OK) {
       fprintf(stderr, "CURL ping failed: %s\n", curl_easy_strerror(cc));
-      cleanup(1);
     }
 
     gettimeofday(&now, NULL);
     timeout.tv_sec = now.tv_sec + 60;
     timeout.tv_nsec = now.tv_usec * 1000;
 
-    pthread_mutex_lock(&mutex);
-    rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
-    pthread_mutex_unlock(&mutex);
+    pthread_mutex_lock(&ping_mutex);
+    rc = pthread_cond_timedwait(&ping_cond, &ping_mutex, &timeout);
+    pthread_mutex_unlock(&ping_mutex);
     if (rc == ETIMEDOUT) continue;
   }
 
@@ -319,7 +325,7 @@ int main(int argc, char **argv)
   }
 
   if (reg) {
-    register_machine(argv[2]);
+    return register_machine(argv[2]);
   }
 
   if (run) {

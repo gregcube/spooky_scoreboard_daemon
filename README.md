@@ -2,7 +2,7 @@ Spooky Scoreboard Daemon
 ========================
 
 Connect your Spooky Pinball machine to the Internet and join the
-online leaderboards.
+[online leaderboards](https://scoreboard.web.net)
 
 Before we begin
 ---------------
