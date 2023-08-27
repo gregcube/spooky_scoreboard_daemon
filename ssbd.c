@@ -9,7 +9,9 @@
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
+#include <pthread.h>
 #include <sys/inotify.h>
+#include <sys/time.h>
 #include <curl/curl.h>
 
 #define VERSION "0.1"
@@ -19,10 +21,19 @@
 static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
+static pthread_t ping_tid;
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void cleanup(int rc)
 {
+  printf("Exiting...\n");
+
+  pthread_mutex_lock(&mutex);
   run = 0;
+  pthread_cond_signal(&cond);
+  pthread_mutex_unlock(&mutex);
+  pthread_join(ping_tid, NULL);
 
   if (curl) {
     curl_easy_cleanup(curl);
@@ -183,6 +194,56 @@ static void register_machine(const char *code)
   cleanup(0);
 }
 
+static void *ping_send()
+{
+  CURLcode cc;
+  CURL *cp;
+  struct curl_slist *hdr = NULL;
+  struct timeval now;
+  struct timespec timeout;
+  const char *endpoint = "https://scoreboard.web.net/spooky/ping";
+
+  if (!(cp = curl_easy_init())) {
+    fprintf(stderr, "Failed to init ping: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
+    cleanup(1);
+  }
+
+  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
+  curl_easy_setopt(cp, CURLOPT_HTTPHEADER, hdr);
+  curl_easy_setopt(cp, CURLOPT_URL, endpoint);
+  curl_easy_setopt(cp, CURLOPT_POSTFIELDS, mid);
+
+  while (run) {
+    int rc;
+
+    if ((cc = curl_easy_perform(cp)) != CURLE_OK) {
+      fprintf(stderr, "CURL ping failed: %s\n", curl_easy_strerror(cc));
+      cleanup(1);
+    }
+
+    gettimeofday(&now, NULL);
+    timeout.tv_sec = now.tv_sec + 60;
+    timeout.tv_nsec = now.tv_usec * 1000;
+
+    pthread_mutex_lock(&mutex);
+    rc = pthread_cond_timedwait(&cond, &mutex, &timeout);
+    pthread_mutex_unlock(&mutex);
+    if (rc == ETIMEDOUT) continue;
+  }
+
+  curl_easy_cleanup(cp);
+  return NULL;
+}
+
+static void ping_setup()
+{
+  int tr = pthread_create(&ping_tid, NULL, ping_send, NULL);
+  if (tr != 0) {
+    fprintf(stderr, "Failed to start ping thread.\n");
+    cleanup(1);
+  }
+}
+
 static void print_usage()
 {
   fprintf(stderr, "Spooky Scoreboard Daemon (ssbd) v%s\n\n", VERSION);
@@ -263,6 +324,7 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
+    ping_setup();
     score_watch();
   }
 
