@@ -31,6 +31,6 @@ sed -i '/\.\/main\.x86_64$/i/ssb.sh' /game3/etc/X11/xinit/xinitrc
 
 # Download and compile ssbd.c
 curl -O --output-dir /game3 https://scoreboard.web.net/ssbd.c
-chroot /game3 gcc -O3 -o ssbd ssbd.c -lcurl
+chroot /game3 gcc -O3 -o ssbd ssbd.c -lcurl -lpthread
 
 echo "Installation completed successfully."
