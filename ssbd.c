@@ -88,9 +88,7 @@ static void score_send()
   }
 
   snprintf(post, p_len, "%s\n%s", mid, buf);
-
   hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
@@ -180,7 +178,6 @@ static CURLcode register_machine(const char *code)
   const char *endpoint = "https://scoreboard.web.net/spooky/register";
 
   hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, code);
@@ -188,12 +185,10 @@ static CURLcode register_machine(const char *code)
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, mid);
 
   CURLcode rc;
-  if ((rc = curl_easy_perform(curl)) != CURLE_OK) {
+  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
     fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
-  }
-  else {
+  else
     printf("%s\n", mid);
-  }
 
   curl_easy_cleanup(curl);
   curl_global_cleanup();
@@ -223,9 +218,8 @@ static void *ping_send()
   while (run) {
     int rc;
 
-    if ((cc = curl_easy_perform(cp)) != CURLE_OK) {
+    if ((cc = curl_easy_perform(cp)) != CURLE_OK)
       fprintf(stderr, "CURL ping failed: %s\n", curl_easy_strerror(cc));
-    }
 
     gettimeofday(&now, NULL);
     timeout.tv_sec = now.tv_sec + 60;
@@ -239,15 +233,6 @@ static void *ping_send()
 
   curl_easy_cleanup(cp);
   return NULL;
-}
-
-static void ping_setup()
-{
-  int tr = pthread_create(&ping_tid, NULL, ping_send, NULL);
-  if (tr != 0) {
-    fprintf(stderr, "Failed to start ping thread.\n");
-    cleanup(1);
-  }
 }
 
 static void print_usage()
@@ -324,13 +309,17 @@ int main(int argc, char **argv)
     }
   }
 
-  if (reg) {
+  if (reg)
     return register_machine(argv[2]);
-  }
 
   if (run) {
     load_machine_id();
-    ping_setup();
+
+    if (pthread_create(&ping_tid, NULL, ping_send, NULL) != 0) {
+      fprintf(stderr, "Failed to create ping thread.\n");
+      cleanup(1);
+    }
+
     score_watch();
   }
 
