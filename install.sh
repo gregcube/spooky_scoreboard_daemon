@@ -29,8 +29,24 @@ EOF
 # Modify /game3/etc/X11/xinit/xinitrc
 sed -i '/\.\/main\.x86_64$/i/ssb.sh' /game3/etc/X11/xinit/xinitrc
 
+# Download and compile cJSON library
+# It's needed for ssbd to parse the game audit file.
+curl -L -o /game3/cjson.tar.gz https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.16.tar.gz
+if [ $? -ne 0 ]; then
+  echo "Failed to download cJSON"
+  exit 1
+fi
+
+tar -xzf /game3/cjson.tar.gz -C /game3
+chroot /game3 /bin/bash -c "mount -t proc none /proc && cd /cJSON-1.7.16 && make && umount /proc"
+
 # Download and compile ssbd.c
 curl -O --output-dir /game3 https://scoreboard.web.net/ssbd.c
-chroot /game3 gcc -O3 -o ssbd ssbd.c -lcurl -lpthread
+chroot /game3 gcc -O3 -I/cJSON-1.7.16 -o ssbd ssbd.c /cJSON-1.7.16/libcjson.a -lcurl -lpthread
+
+# Cleanup
+rm -rf /game3/cJSON-1.7.16
+rm /game3/cjson.tar.gz
+rm /game3/ssbd.c
 
 echo "Installation completed successfully."
