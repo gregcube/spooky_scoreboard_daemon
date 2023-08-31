@@ -6,19 +6,21 @@ Connect your Spooky Pinball machine to the Internet and join the
 
 Before we begin
 ---------------
+
 I have only tested this on a Spooky Halloween CE pinball machine with the "UP"
 computer board.  It has not been tested on the mini-PC that was used in later
 Halloween builds.  Though it is likely to work the installation instructions
-or install script may differ slightly.  If other Spooky games follow the same
-software architecture then this should work as well.  Please open an issue
-thread if you have a Spooky game and would like to test.
+or install script may need to differ slightly.  I'm not sure how other Spooky
+games work, but please open an issue thread if you own one and would like
+to test.
 
 What you'll need
 ----------------
+
 1. USB drive/ stick
 2. USB keyboard
 3. Ethernet cable
-4. Some Linux know-how
+4. Basic Linux know-how
 
 Installation
 ------------
@@ -45,7 +47,7 @@ Installation
 
 6. Back to the terminal:
 
-    6. `/game3/ssbd -r <CODE> > /game3/.ssbd_mid`
+    6. `/game3/ssbd -r <CODE> >/game3/.ssbd_mid`
 
 7. If no errors are reported you should be good.  Verify **/game3/.ssbd_mid**
    has your unique machine ID.  It's a 36-digit alphanumeric string.
@@ -62,3 +64,8 @@ Installation
 
 10. Start your machine, play a game, and hope for the best.  Once you finish
     a game the scores should be uploaded to the server.
+
+Note
+----
+https://scoreboard.web.net is currently invite only.  Send me a message or
+create an issue thread and I'll get you setup.
