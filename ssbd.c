@@ -5,11 +5,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <signal.h>
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
+#include <cJSON.h>
 #include <sys/inotify.h>
 #include <sys/time.h>
 #include <curl/curl.h>
@@ -21,6 +23,7 @@
 static CURL *curl;
 static volatile sig_atomic_t run = 0;
 static char mid[MAX_MACHINE_ID_LEN + 1];
+static uint32_t games_played = 0;
 static pthread_t ping_tid;
 static pthread_cond_t ping_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t ping_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -63,7 +66,7 @@ static void score_send()
 
   fseek(fp, 0, SEEK_END);
   fsize = ftell(fp);
-  fseek(fp, 0, SEEK_SET);
+  rewind(fp);
 
   if (!(buf = (char *)malloc(fsize + 1))) {
     fprintf(stderr, "Cannot allocate buffer memory: %s\n", strerror(errno));
@@ -101,15 +104,109 @@ static void score_send()
   free(buf);
 }
 
+static void set_games_played(uint32_t *gp_ptr)
+{
+  FILE *fp;
+  char *buf;
+  long fsize;
+
+  if (!(fp = fopen("/game/_game_audits.json", "r"))) {
+    fprintf(stderr, "Failed to open game audits: %s\n", strerror(errno));
+    cleanup(1);
+  }
+
+  fseek(fp, 0, SEEK_END);
+  fsize = ftell(fp);
+  rewind(fp);
+
+  if (!(buf = (char *)malloc(fsize + 1))) {
+    fprintf(stderr, "Failed to allocate memory for buffer: %s\n", strerror(errno));
+    fclose(fp);
+    cleanup(1);
+  }
+
+  size_t bytes = fread(buf, 1, fsize, fp);
+  if (bytes != fsize) {
+    fprintf(stderr, "Failed reading game audits: %s\n", strerror(errno));
+    free(buf);
+    fclose(fp);
+    cleanup(1);
+  }
+
+  fclose(fp);
+  buf[fsize] = '\0';
+
+  cJSON *root = cJSON_Parse(buf);
+  free(buf);
+
+  if (!root) {
+    const char *errptr = cJSON_GetErrorPtr();
+
+    if (errptr != NULL)
+      fprintf(stderr, "JSON error: %s\n", errptr);
+
+    cleanup(1);
+  }
+
+  cJSON *gp = cJSON_GetObjectItem(root, "games_played");
+  cJSON *gpv = cJSON_GetObjectItem(gp, "value");
+
+  if (gpv && cJSON_IsNumber(gpv))
+    *gp_ptr = gpv->valueint;
+
+  cJSON_Delete(root);
+}
+
+static void open_player_spot()
+{
+  uint32_t now_played;
+  uint8_t gamediff = 0;
+  char *post;
+  struct curl_slist *hdr = NULL;
+  const char *endpoint = "https://scoreboard.web.net/spooky/spot";
+
+  set_games_played(&now_played);
+  gamediff = now_played - games_played;
+
+  if (gamediff == 0 || gamediff > 4)
+    return;
+
+  size_t p_len = MAX_MACHINE_ID_LEN + 4;
+  if (!(post = (char *)malloc(p_len))) {
+    fprintf(stderr, "Cannot allocate memory for post: %s\n", strerror(errno));
+    cleanup(1);
+  }
+
+  snprintf(post, p_len, "%s%d", mid, gamediff);
+  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
+  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
+
+  CURLcode rc;
+  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
+    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
+
+  free(post);
+}
+
 static void process_event(char *buf, ssize_t bytes)
 {
   char *ptr = buf;
   while (ptr < buf + bytes) {
     struct inotify_event *evt = (struct inotify_event *)ptr;
 
-    if (evt->len > 0 && strcmp(evt->name, "highscores.config") == 0) {
-      score_send(); 
-      break;
+    if (evt->len > 0) {
+      if (strcmp(evt->name, "highscores.config") == 0) {
+        score_send();
+        set_games_played(&games_played);
+        break;
+      }
+
+      if (strcmp(evt->name, "_game_audits.json") == 0) {
+        open_player_spot();
+        break;
+      }
     }
 
     ptr += sizeof(struct inotify_event) + evt->len;
@@ -314,6 +411,7 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
+    set_games_played(&games_played);
 
     if (pthread_create(&ping_tid, NULL, ping_send, NULL) != 0) {
       fprintf(stderr, "Failed to create ping thread.\n");
