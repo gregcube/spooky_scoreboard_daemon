@@ -112,7 +112,8 @@ static void set_games_played(uint32_t *gp_ptr)
 
   if (!(fp = fopen("/game/_game_audits.json", "r"))) {
     fprintf(stderr, "Failed to open game audits: %s\n", strerror(errno));
-    cleanup(1);
+    *gp_ptr = 0;
+    return;
   }
 
   fseek(fp, 0, SEEK_END);
@@ -122,7 +123,8 @@ static void set_games_played(uint32_t *gp_ptr)
   if (!(buf = (char *)malloc(fsize + 1))) {
     fprintf(stderr, "Failed to allocate memory for buffer: %s\n", strerror(errno));
     fclose(fp);
-    cleanup(1);
+    *gp_ptr = 0;
+    return;
   }
 
   size_t bytes = fread(buf, 1, fsize, fp);
@@ -130,7 +132,8 @@ static void set_games_played(uint32_t *gp_ptr)
     fprintf(stderr, "Failed reading game audits: %s\n", strerror(errno));
     free(buf);
     fclose(fp);
-    cleanup(1);
+    *gp_ptr = 0;
+    return;
   }
 
   fclose(fp);
@@ -145,7 +148,8 @@ static void set_games_played(uint32_t *gp_ptr)
     if (errptr != NULL)
       fprintf(stderr, "JSON error: %s\n", errptr);
 
-    cleanup(1);
+    *gp_ptr = 0;
+    return;
   }
 
   cJSON *gp = cJSON_GetObjectItem(root, "games_played");
