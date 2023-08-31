@@ -44,6 +44,7 @@ Installation
 
 5. Sign-up at https://scoreboard.web.net and follow the instructions to
    register your machine.  You will be given a 4-digit alphanumeric code.
+   See Note below.
 
 6. Back to the terminal:
 
