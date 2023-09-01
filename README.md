@@ -4,6 +4,37 @@ Spooky Scoreboard Daemon
 Connect your Spooky Pinball machine to the Internet and join the
 [online leaderboards](https://scoreboard.web.net).
 
+What is it?
+-----------
+
+Spooky Scoreboard consists of both a web platform and this daemon.
+
+The daemon runs in the background on your Spooky pinball machine, periodically
+sending data to the web server. This data includes highscores and game audit
+information. The server processes this data to display in a variety of formats.
+This includes showcasing top scores specific to each machine and leaderboards
+spanning all supported games. *Only Halloween is supported at this moment. More
+on that below.*
+
+On the website you can register as a Player or an Operator or both.
+
+Operators can register and administer their respective machines. They have the
+option to make their machines publicly visible, thereby showcasing highscores
+and participating in leaderboards, or a private setting where only
+the operator has access to top scores. To enhance user convenience, I recommend
+generating a QR code and affixing it to your machine. This enables players to
+effortlessly log in and engage with the system.
+
+Players have the privilege to log in to a machine and track their highscores.
+Players may scan a QR code or manually access the machine's login page. It's
+important to note that a game must be initiated before players can log in.
+That means press start (for 1-4 players), then login through the website to
+claim your spot.  Player scores are recorded and displayed, with the exception
+being if a player profile is set to private.  All players are automatically
+logged out after each game.
+
+See Note below regarding website access.
+
 Before we begin
 ---------------
 

@@ -51,12 +51,27 @@ static void cleanup(int rc)
   exit(rc);
 }
 
+static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
+{
+  CURLcode rc;
+  struct curl_slist *hdrs = NULL;
+
+  hdrs = curl_slist_append(hdrs, "Content-Type: text/plain");
+  curl_easy_setopt(cp, CURLOPT_HTTPHEADER, hdrs);
+  curl_easy_setopt(cp, CURLOPT_URL, endpoint);
+  curl_easy_setopt(cp, CURLOPT_POSTFIELDS, data);
+
+  if ((rc = curl_easy_perform(cp)) != CURLE_OK)
+    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
+
+  return rc;
+}
+
 static void score_send()
 {
   FILE *fp;
   long fsize;
-  char *post, *buf;
-  struct curl_slist *hdr = NULL;
+  char *post = NULL;
   const char *endpoint = "https://scoreboard.web.net/spooky/score";
 
   if (!(fp = fopen("/game/highscores.config", "r"))) {
@@ -68,51 +83,36 @@ static void score_send()
   fsize = ftell(fp);
   rewind(fp);
 
-  if (!(buf = (char *)malloc(fsize + 1))) {
-    fprintf(stderr, "Cannot allocate buffer memory: %s\n", strerror(errno));
+  if (!(post = (char *)malloc(MAX_MACHINE_ID_LEN + fsize + 1))) {
+    perror("Cannot allocate post buffer memory");
     cleanup(1);
   }
 
-  size_t bytes = fread(buf, 1, fsize, fp);
-  if (bytes != fsize) {
-    fprintf(stderr, "Failed to read highscores: %s\n", strerror(errno));
-    fclose(fp);
-    cleanup(1);
-  }
-
+  memset(post, 0, MAX_MACHINE_ID_LEN + fsize + 1);
+  memcpy(post, mid, MAX_MACHINE_ID_LEN);
+  size_t bytes = fread(&post[MAX_MACHINE_ID_LEN], 1, fsize, fp);
   fclose(fp);
-  buf[fsize] = '\0';
 
-  size_t p_len = sizeof(mid) + fsize + 2;
-  if (!(post = (char *)malloc(p_len))) {
-    fprintf(stderr, "Cannot allocate memory for post data: %s\n", strerror(errno));
-    free(buf);
+  if (bytes != fsize) {
+    perror("Failed to read highscores");
+    free(post);
     cleanup(1);
   }
 
-  snprintf(post, p_len, "%s\n%s", mid, buf);
-  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-
-  CURLcode rc;
-  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
-    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
-
+  curl_post(curl, endpoint, post);
   free(post);
-  free(buf);
 }
 
 static void set_games_played(uint32_t *gp_ptr)
 {
   FILE *fp;
-  char *buf;
   long fsize;
+  char *buf = NULL;
+
+  *gp_ptr = 0;
 
   if (!(fp = fopen("/game/_game_audits.json", "r"))) {
-    fprintf(stderr, "Failed to open game audits: %s\n", strerror(errno));
-    *gp_ptr = 0;
+    perror("Unable to open game audits file");
     return;
   }
 
@@ -120,24 +120,20 @@ static void set_games_played(uint32_t *gp_ptr)
   fsize = ftell(fp);
   rewind(fp);
 
-  if (!(buf = (char *)malloc(fsize + 1))) {
-    fprintf(stderr, "Failed to allocate memory for buffer: %s\n", strerror(errno));
+  if (!(buf = (char *)malloc(fsize))) {
+    perror("Failed to allocate memory for game audits buffer");
     fclose(fp);
-    *gp_ptr = 0;
     return;
   }
 
   size_t bytes = fread(buf, 1, fsize, fp);
+  fclose(fp);
+
   if (bytes != fsize) {
-    fprintf(stderr, "Failed reading game audits: %s\n", strerror(errno));
+    perror("Failed reading game audit file");
     free(buf);
-    fclose(fp);
-    *gp_ptr = 0;
     return;
   }
-
-  fclose(fp);
-  buf[fsize] = '\0';
 
   cJSON *root = cJSON_Parse(buf);
   free(buf);
@@ -148,7 +144,6 @@ static void set_games_played(uint32_t *gp_ptr)
     if (errptr != NULL)
       fprintf(stderr, "JSON error: %s\n", errptr);
 
-    *gp_ptr = 0;
     return;
   }
 
@@ -164,10 +159,9 @@ static void set_games_played(uint32_t *gp_ptr)
 static void open_player_spot()
 {
   uint32_t now_played;
-  uint8_t gamediff = 0;
-  char *post;
-  struct curl_slist *hdr = NULL;
+  uint8_t gamediff;
   const char *endpoint = "https://scoreboard.web.net/spooky/spot";
+  char *post = NULL;
 
   set_games_played(&now_played);
   gamediff = now_played - games_played;
@@ -177,20 +171,12 @@ static void open_player_spot()
 
   size_t p_len = MAX_MACHINE_ID_LEN + 4;
   if (!(post = (char *)malloc(p_len))) {
-    fprintf(stderr, "Cannot allocate memory for post: %s\n", strerror(errno));
-    cleanup(1);
+    perror("Cannot allocate memory for post");
+    return;
   }
 
   snprintf(post, p_len, "%s%d", mid, gamediff);
-  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post);
-
-  CURLcode rc;
-  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
-    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
-
+  curl_post(curl, endpoint, post);
   free(post);
 }
 
@@ -223,19 +209,19 @@ static void score_watch()
   char buf[1024];
 
   if ((fd = inotify_init()) == -1) {
-    fprintf(stderr, "Failed inotify_init(): %s\n", strerror(errno));
+    perror("Failed inotify_init()");
     cleanup(1);
   }
 
   if ((wd = inotify_add_watch(fd, GAME_PATH, IN_CLOSE_WRITE)) == -1) {
-    fprintf(stderr, "Failed inotify_add_watch(): %s\n", strerror(errno));
+    perror("Failed inotify_add_watch()");
     cleanup(1);
   }
 
   while (run) {
     ssize_t bytes = read(fd, buf, sizeof(buf));
     if (bytes == -1)
-      fprintf(stderr, "Failed reading event: %s\n", strerror(errno));
+      perror("Failed reading event");
     else
       process_event(buf, bytes);
   }
@@ -246,13 +232,13 @@ static void load_machine_id()
   FILE *fp;
 
   if (!(fp = fopen("/.ssbd_mid", "r"))) {
-    fprintf(stderr, "Failed to load machine id file: %s\n", strerror(errno));
+    perror("Failed to load machine id file");
     cleanup(1);
   }
 
-  size_t bytes = fread(mid, MAX_MACHINE_ID_LEN, 1, fp);
-  if (bytes < 1) {
-    fprintf(stderr, "Failed to read machine id: %s\n", strerror(errno));
+  size_t bytes = fread(mid, 1, MAX_MACHINE_ID_LEN, fp);
+  if (bytes != MAX_MACHINE_ID_LEN) {
+    perror("Failed to read machine id");
     fclose(fp);
     cleanup(1);
   }
@@ -264,8 +250,9 @@ static void load_machine_id()
 size_t register_callback(void *ptr, size_t size, size_t nmemb, void *data)
 {
   size_t bytes = size * nmemb;
+
   if (bytes != MAX_MACHINE_ID_LEN) {
-    fprintf(stderr, "Failed to register machine.\n");
+    fprintf(stderr, "Failed to register machine\n");
     cleanup(1);
   }
 
@@ -273,67 +260,55 @@ size_t register_callback(void *ptr, size_t size, size_t nmemb, void *data)
   return bytes;
 }
 
-static CURLcode register_machine(const char *code)
+static void register_machine(const char *code)
 {
-  struct curl_slist *hdr = NULL;
   const char *endpoint = "https://scoreboard.web.net/spooky/register";
 
-  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdr);
-  curl_easy_setopt(curl, CURLOPT_URL, endpoint);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, code);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, register_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, mid);
+  CURLcode rc = curl_post(curl, endpoint, code);
 
-  CURLcode rc;
-  if ((rc = curl_easy_perform(curl)) != CURLE_OK)
-    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
-  else
-    printf("%s\n", mid);
+  if (rc != CURLE_OK) {
+    fprintf(stderr, "CURL failed to register machine\n");
+    cleanup(1);
+  }
 
+  printf("%s\n", mid);
   curl_easy_cleanup(curl);
   curl_global_cleanup();
-
-  return rc;
 }
 
 static void *ping_send()
 {
-  CURLcode cc;
   CURL *cp;
-  struct curl_slist *hdr = NULL;
   struct timeval now;
   struct timespec timeout;
   const char *endpoint = "https://scoreboard.web.net/spooky/ping";
 
   if (!(cp = curl_easy_init())) {
-    fprintf(stderr, "Failed to init ping: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
+    perror("Failed to init curl");
     cleanup(1);
   }
 
-  hdr = curl_slist_append(hdr, "Content-Type: text/plain");
-  curl_easy_setopt(cp, CURLOPT_HTTPHEADER, hdr);
-  curl_easy_setopt(cp, CURLOPT_URL, endpoint);
-  curl_easy_setopt(cp, CURLOPT_POSTFIELDS, mid);
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   while (run) {
-    int rc;
-
-    if ((cc = curl_easy_perform(cp)) != CURLE_OK)
-      fprintf(stderr, "CURL ping failed: %s\n", curl_easy_strerror(cc));
+    curl_post(cp, endpoint, mid);
 
     gettimeofday(&now, NULL);
     timeout.tv_sec = now.tv_sec + 60;
     timeout.tv_nsec = now.tv_usec * 1000;
 
     pthread_mutex_lock(&ping_mutex);
-    rc = pthread_cond_timedwait(&ping_cond, &ping_mutex, &timeout);
+    int rc = pthread_cond_timedwait(&ping_cond, &ping_mutex, &timeout);
     pthread_mutex_unlock(&ping_mutex);
     if (rc == ETIMEDOUT) continue;
+    if (rc == 0) pthread_exit(NULL);
   }
 
   curl_easy_cleanup(cp);
-  return NULL;
+  pthread_exit(NULL);
 }
 
 static void print_usage()
@@ -384,7 +359,7 @@ int main(int argc, char **argv)
       pid = fork();
 
       if (pid < 0) {
-        fprintf(stderr, "Failed to fork: %s\n", strerror(errno));
+        perror("Failed to fork");
         exit(1);
       }
 
@@ -398,12 +373,13 @@ int main(int argc, char **argv)
   }
 
   if (run && reg) {
-    fprintf(stderr, "Cannot use -r and -m together.\n");
+    perror("Cannot use -m and -r together");
     return 1;
   }
 
   if (run || reg) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
     if (!(curl = curl_easy_init())) {
       fprintf(stderr, "Failed to init curl: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
       cleanup(1);
@@ -411,14 +387,14 @@ int main(int argc, char **argv)
   }
 
   if (reg)
-    return register_machine(argv[2]);
+    register_machine(argv[2]);
 
   if (run) {
     load_machine_id();
     set_games_played(&games_played);
 
     if (pthread_create(&ping_tid, NULL, ping_send, NULL) != 0) {
-      fprintf(stderr, "Failed to create ping thread.\n");
+      perror("Failed to create ping thread");
       cleanup(1);
     }
 
