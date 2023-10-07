@@ -83,7 +83,7 @@ Installation
       ```
       \`heredoc> network={
       \`heredoc>   ssid="<SSID>"
-      \`heredoc>   psk="<PASSWORD>"
+      \`heredoc>   psk="<PASS>"
       \`heredoc> }
       \'heredoc> EOF
       ```
