@@ -19,7 +19,7 @@ generate_ssb_script() {
 ip link set $1 up
 ip addr add $2 dev $1
 ip route add default via $3 dev $1
-/ssbd -md
+/ssbd -md 2>&1 >/game/tmp/ssbd.log
 exit 0
 EOF
 }

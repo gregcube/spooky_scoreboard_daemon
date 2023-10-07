@@ -1,5 +1,4 @@
 // Spooky Scoreboard Daemon (ssbd)
-// Monitor highscores & uploads to scoreboard server.
 // https://scoreboard.web.net
 // Greg MacKenzie (greg@web.net)
 
@@ -62,12 +61,12 @@ static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
   curl_easy_setopt(cp, CURLOPT_POSTFIELDS, data);
 
   if ((rc = curl_easy_perform(cp)) != CURLE_OK)
-    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(rc));
+    fprintf(stderr, "CURL post failed: %s\n", curl_easy_strerror(rc));
 
   return rc;
 }
 
-static void score_send()
+static void send_score()
 {
   FILE *fp;
   long fsize;
@@ -75,7 +74,7 @@ static void score_send()
   const char *endpoint = "https://scoreboard.web.net/spooky/score";
 
   if (!(fp = fopen("/game/highscores.config", "r"))) {
-    fprintf(stderr, "Failed to open highscores file: %s\n", strerror(errno));
+    perror("Failed to open highscores file");
     cleanup(1);
   }
 
@@ -99,7 +98,12 @@ static void score_send()
     cleanup(1);
   }
 
-  curl_post(curl, endpoint, post);
+  CURLcode rc = curl_post(curl, endpoint, post);
+  if (rc == CURLE_OK)
+    printf("Uploaded highscores.\n");
+  else
+    fprintf(stderr, "Failed to upload highscores: %s\n", curl_easy_strerror(rc));
+
   free(post);
 }
 
@@ -108,11 +112,10 @@ static void set_games_played(uint32_t *gp_ptr)
   FILE *fp;
   long fsize;
   char *buf = NULL;
-
   *gp_ptr = 0;
 
   if (!(fp = fopen("/game/_game_audits.json", "r"))) {
-    perror("Unable to open game audits file");
+    perror("Failed to open game audits file");
     return;
   }
 
@@ -140,10 +143,7 @@ static void set_games_played(uint32_t *gp_ptr)
 
   if (!root) {
     const char *errptr = cJSON_GetErrorPtr();
-
-    if (errptr != NULL)
-      fprintf(stderr, "JSON error: %s\n", errptr);
-
+    if (errptr != NULL) fprintf(stderr, "JSON error: %s\n", errptr);
     return;
   }
 
@@ -153,6 +153,7 @@ static void set_games_played(uint32_t *gp_ptr)
   if (gpv && cJSON_IsNumber(gpv))
     *gp_ptr = gpv->valueint;
 
+  printf("Set games played: %u\n", *gp_ptr);
   cJSON_Delete(root);
 }
 
@@ -176,7 +177,13 @@ static void open_player_spot()
   }
 
   snprintf(post, p_len, "%s%d", mid, gamediff);
-  curl_post(curl, endpoint, post);
+  CURLcode rc = curl_post(curl, endpoint, post);
+
+  if (rc == CURLE_OK)
+    printf("Player spots open: %u\n", gamediff);
+  else
+    fprintf(stderr, "Failed to open player spot: %s\n", curl_easy_strerror(rc));
+
   free(post);
 }
 
@@ -187,8 +194,10 @@ static void process_event(char *buf, ssize_t bytes)
     struct inotify_event *evt = (struct inotify_event *)ptr;
 
     if (evt->len > 0) {
+      printf("Event: %s\n", evt->name);
+
       if (strcmp(evt->name, "highscores.config") == 0) {
-        score_send();
+        send_score();
         set_games_played(&games_played);
         break;
       }
@@ -203,7 +212,7 @@ static void process_event(char *buf, ssize_t bytes)
   }
 }
 
-static void score_watch()
+static void watch()
 {
   int fd, wd;
   char buf[1024];
@@ -220,10 +229,16 @@ static void score_watch()
 
   while (run) {
     ssize_t bytes = read(fd, buf, sizeof(buf));
+
     if (bytes == -1)
       perror("Failed reading event");
-    else
+    else {
+      printf("Processing event...\n");
       process_event(buf, bytes);
+    }
+
+    fflush(stderr);
+    fflush(stdout);
   }
 }
 
@@ -252,7 +267,7 @@ size_t register_callback(void *ptr, size_t size, size_t nmemb, void *data)
   size_t bytes = size * nmemb;
 
   if (bytes != MAX_MACHINE_ID_LEN) {
-    fprintf(stderr, "Failed to register machine\n");
+    perror("Failed to register machine");
     cleanup(1);
   }
 
@@ -269,7 +284,7 @@ static void register_machine(const char *code)
   CURLcode rc = curl_post(curl, endpoint, code);
 
   if (rc != CURLE_OK) {
-    fprintf(stderr, "CURL failed to register machine\n");
+    fprintf(stderr, "CURL failed to register machine: %s\n", curl_easy_strerror(rc));
     cleanup(1);
   }
 
@@ -278,7 +293,7 @@ static void register_machine(const char *code)
   curl_global_cleanup();
 }
 
-static void *ping_send()
+static void *send_ping()
 {
   CURL *cp;
   struct timeval now;
@@ -286,7 +301,7 @@ static void *ping_send()
   const char *endpoint = "https://scoreboard.web.net/spooky/ping";
 
   if (!(cp = curl_easy_init())) {
-    perror("Failed to init curl");
+    fprintf(stderr, "Failed to initialize curl ping handler: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
     cleanup(1);
   }
 
@@ -294,7 +309,12 @@ static void *ping_send()
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   while (run) {
-    curl_post(cp, endpoint, mid);
+    CURLcode cc = curl_post(cp, endpoint, mid);
+
+    if (cc != CURLE_OK) {
+      fprintf(stderr, "Failed to send ping: %s\n", curl_easy_strerror(cc));
+      fflush(stderr);
+    }
 
     gettimeofday(&now, NULL);
     timeout.tv_sec = now.tv_sec + 60;
@@ -303,6 +323,7 @@ static void *ping_send()
     pthread_mutex_lock(&ping_mutex);
     int rc = pthread_cond_timedwait(&ping_cond, &ping_mutex, &timeout);
     pthread_mutex_unlock(&ping_mutex);
+
     if (rc == ETIMEDOUT) continue;
     if (rc == 0) pthread_exit(NULL);
   }
@@ -379,9 +400,8 @@ int main(int argc, char **argv)
 
   if (run || reg) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
-
     if (!(curl = curl_easy_init())) {
-      fprintf(stderr, "Failed to init curl: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
+      fprintf(stderr, "Failed to initialize curl handler: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
       cleanup(1);
     }
   }
@@ -393,12 +413,16 @@ int main(int argc, char **argv)
     load_machine_id();
     set_games_played(&games_played);
 
-    if (pthread_create(&ping_tid, NULL, ping_send, NULL) != 0) {
+    if (pthread_create(&ping_tid, NULL, send_ping, NULL) != 0) {
       perror("Failed to create ping thread");
       cleanup(1);
     }
+    else {
+      printf("Ping thread created.\n");
+      fflush(stdout);
+    }
 
-    score_watch();
+    watch();
   }
 
   return 0;
