@@ -62,10 +62,10 @@ Installation
 1. Download [Arch Linux](https://archlinux.org/download/) and flash the ISO to
    a USB drive/ stick.
 
-2. At your pinball machine.  Open speaker panel to gain access to the computer.
+2. At your pinball machine.  Open the speaker panel to gain access to the computer.
    Connect ethernet or WiFi adapter and USB drive.  Plug keyboard into the
-   USB port near the coin door.  The following assumes your Internet connection
-   works and is DHCP-enabled.  Close speaker panel so you can see the screen.
+   USB port inside the coin door.  The following assumes your Internet connection
+   works and is DHCP-enabled.  Close the speaker panel so you can see the screen.
 
 3. Turn your machine on.  It should auto boot from the USB drive.  Proceed
    once fully booted and you're at the `root@archiso ~ #` prompt.
@@ -99,7 +99,7 @@ Installation
     2. `mount /dev/mmcblk0p3 /game3`
     3. `curl -o /game3/install.sh https://scoreboard.web.net/install.sh`
     4. `chmod +x /game3/install.sh`
-    5. `/game3/install.sh`
+    5. `/game3/install.sh -w` for WiFi, or `/game3/install.sh -e` for ethernet
 
 6. Sign-up at https://scoreboard.web.net and follow the instructions to
    register your machine.  You will be given a 4-digit alphanumeric code.
