@@ -54,6 +54,10 @@ static void cleanup(int rc)
     pthread_join(ping_tid, NULL);
   }
 
+  if (login_codes_tid) {
+    pthread_join(login_codes_tid, NULL);
+  }
+
   if (curl) {
     curl_easy_cleanup(curl);
     curl_global_cleanup();
@@ -71,6 +75,7 @@ static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
   curl_easy_setopt(cp, CURLOPT_HTTPHEADER, hdrs);
   curl_easy_setopt(cp, CURLOPT_URL, endpoint);
   curl_easy_setopt(cp, CURLOPT_POSTFIELDS, data);
+  curl_easy_setopt(cp, CURLOPT_TIMEOUT, 10L);
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
 
@@ -214,7 +219,7 @@ static void *show_login_code(void *arg)
 
   FcBool result = FcConfigAppFontAddFile(
     FcConfigGetCurrent(),
-    (const FcChar8 *)"/home/greg/Downloads/tmp/fonts/Spooky_Comic.ttf"
+    (const FcChar8 *)"/game/code/assets/fonts/Spooky_Comic.ttf"
   );
 
   if (!result) {
@@ -245,6 +250,14 @@ static void *show_login_code(void *arg)
   gettimeofday(&start_time, NULL);
   update_time = start_time;
 
+  int ty = 10;
+  for (int i = 0; i < login_code->num_players; i++) {
+    char code[15];
+    snprintf(code, sizeof(code), "Player %d: %s", i + 1, login_code->code[i]);
+    XftDrawString8(xft_draw, &xft_color, xft_font, 10, ty + 20, (XftChar8 *)code, strlen(code));
+    ty += 30;
+  }
+
   while (1) {
     if (XPending(display) > 0) {
       XEvent event;
@@ -274,7 +287,7 @@ static void *show_login_code(void *arg)
       update_time = current_time;
       snprintf(countdown, sizeof(countdown), "%d", (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, ww - 50, wh - 30, 0, 0, False);
+      XClearArea(display, window, ww - 50, wh - 50, 0, 0, False);
       XftDrawString8(xft_draw, &xft_color, xft_font, ww - 30, wh - 10, (XftChar8 *)countdown, strlen(countdown));
     }
 
@@ -341,19 +354,16 @@ static void open_player_spot()
     }
     else {
       XEvent event;
-      XWindowAttributes attr;
 
       memset(&event, 0, sizeof(event));
-      XGetWindowAttributes(display, window, &attr);
-
       event.type = Expose;
       event.xexpose.count = 0;
       event.xexpose.display = display;
       event.xexpose.window = window;
       event.xexpose.x = 0;
       event.xexpose.y = 0;
-      event.xexpose.width = attr.width;
-      event.xexpose.height = attr.height;
+      event.xexpose.width = 0;
+      event.xexpose.height = 0;
       event.xexpose.count = 0;
 
       XSendEvent(display, window, False, ExposureMask, &event);
