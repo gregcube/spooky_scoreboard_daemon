@@ -36,7 +36,6 @@ static pthread_t ping_tid, login_codes_tid;
 static pthread_cond_t ping_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t ping_mutex = PTHREAD_MUTEX_INITIALIZER;
 static Display *display;
-static Window window;
 static login_codes_t login_codes;
 
 static void cleanup(int rc)
@@ -56,6 +55,9 @@ static void cleanup(int rc)
 
   if (login_codes_tid)
     pthread_join(login_codes_tid, NULL);
+
+  if (display)
+    XCloseDisplay(display);
 
   if (curl) {
     curl_easy_cleanup(curl);
@@ -175,22 +177,25 @@ static void set_games_played(uint32_t *gp_ptr)
   cJSON_Delete(root);
 }
 
+static void open_display()
+{
+  if ((display = XOpenDisplay(NULL)) == NULL) {
+    fprintf(stderr, "Unable to open X display\n");
+    cleanup(1);
+  }
+}
+
 static void *show_login_code(void *arg)
 {
-  uint8_t display_secs = 20;
+  uint8_t display_secs = 15;
   struct timeval start_time, current_time, update_time;
   login_codes_t *login_code = (login_codes_t *)arg;
-  Window root_window;
+  Window window;
   XftDraw *xft_draw;
-  XftColor xft_color;
   XftFont *xft_font;
+  XftColor xft_color;
 
-  display = XOpenDisplay(NULL);
-  if (display == NULL) {
-    fprintf(stderr, "Unable to open X display\n");
-  }
-
-  root_window = DefaultRootWindow(display);
+  int screen = DefaultScreen(display);
 
   int w = DisplayWidth(display, DefaultScreen(display));
   int h = DisplayHeight(display, DefaultScreen(display));
@@ -203,7 +208,7 @@ static void *show_login_code(void *arg)
 
   window = XCreateSimpleWindow(
     display,
-    root_window,
+    RootWindow(display, screen),
     x,
     y,
     ww,
@@ -285,7 +290,19 @@ static void *show_login_code(void *arg)
     usleep(50000);
   }
 
-  XCloseDisplay(display);
+  XftDrawDestroy(xft_draw);
+
+  XftColorFree(
+    display,
+    DefaultVisual(display, DefaultScreen(display)),
+    DefaultColormap(display, DefaultScreen(display)),
+    &xft_color
+  );
+
+  XftFontClose(display, xft_font);
+  XDestroyWindow(display, window);
+  XFlush(display);
+
   login_code->shown = 0;
   pthread_detach(login_codes_tid);
 }
@@ -574,6 +591,7 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
+    open_display();
     set_games_played(&games_played);
 
     if (pthread_create(&ping_tid, NULL, send_ping, NULL) != 0) {
