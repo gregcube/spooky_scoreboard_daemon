@@ -54,9 +54,8 @@ static void cleanup(int rc)
     pthread_join(ping_tid, NULL);
   }
 
-  if (login_codes_tid) {
+  if (login_codes_tid)
     pthread_join(login_codes_tid, NULL);
-  }
 
   if (curl) {
     curl_easy_cleanup(curl);
@@ -250,14 +249,6 @@ static void *show_login_code(void *arg)
   gettimeofday(&start_time, NULL);
   update_time = start_time;
 
-  int ty = 10;
-  for (int i = 0; i < login_code->num_players; i++) {
-    char code[15];
-    snprintf(code, sizeof(code), "Player %d: %s", i + 1, login_code->code[i]);
-    XftDrawString8(xft_draw, &xft_color, xft_font, 10, ty + 20, (XftChar8 *)code, strlen(code));
-    ty += 30;
-  }
-
   while (1) {
     if (XPending(display) > 0) {
       XEvent event;
@@ -287,7 +278,7 @@ static void *show_login_code(void *arg)
       update_time = current_time;
       snprintf(countdown, sizeof(countdown), "%d", (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, ww - 50, wh - 50, 0, 0, False);
+      XClearArea(display, window, ww - 50, wh - 50, 0, 0, 1);
       XftDrawString8(xft_draw, &xft_color, xft_font, ww - 30, wh - 10, (XftChar8 *)countdown, strlen(countdown));
     }
 
@@ -351,22 +342,6 @@ static void open_player_spot()
     if (login_codes.shown == 0) {
       pthread_create(&login_codes_tid, NULL, show_login_code, &login_codes);
       login_codes.shown = 1;
-    }
-    else {
-      XEvent event;
-
-      memset(&event, 0, sizeof(event));
-      event.type = Expose;
-      event.xexpose.count = 0;
-      event.xexpose.display = display;
-      event.xexpose.window = window;
-      event.xexpose.x = 0;
-      event.xexpose.y = 0;
-      event.xexpose.width = 0;
-      event.xexpose.height = 0;
-      event.xexpose.count = 0;
-
-      XSendEvent(display, window, False, ExposureMask, &event);
     }
   }
   else
