@@ -1,5 +1,5 @@
 // Spooky Scoreboard Daemon (ssbd)
-// https://hwn.local:8443
+// https://scoreboard.web.net
 // Greg MacKenzie (greg@web.net)
 
 #include <stdio.h>
@@ -79,8 +79,10 @@ static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
   curl_easy_setopt(cp, CURLOPT_URL, endpoint);
   curl_easy_setopt(cp, CURLOPT_POSTFIELDS, data);
   curl_easy_setopt(cp, CURLOPT_TIMEOUT, 10L);
+  /*
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
+  */
 
   if ((rc = curl_easy_perform(cp)) != CURLE_OK)
     fprintf(stderr, "CURL post failed: %s\n", curl_easy_strerror(rc));
@@ -93,7 +95,7 @@ static void send_score()
   FILE *fp;
   long fsize;
   char *post = NULL;
-  const char *endpoint = "https://hwn.local:8443/spooky/score";
+  const char *endpoint = "https://scoreboard.web.net/spooky/score";
 
   if (!(fp = fopen("/game/highscores.config", "r"))) {
     perror("Failed to open highscores file");
@@ -330,7 +332,7 @@ static void open_player_spot()
   uint32_t now_played;
   uint8_t gamediff;
   char *post = NULL;
-  const char *endpoint = "https://hwn.local:8443/spooky/spot";
+  const char *endpoint = "https://scoreboard.web.net/spooky/spot";
 
   set_games_played(&now_played);
   gamediff = now_played - games_played;
@@ -436,7 +438,7 @@ static void get_qrcode()
 {
   FILE *fp;
   char *post = NULL;
-  const char *endpoint = "https://hwn.local:8443/spooky/qr";
+  const char *endpoint = "https://scoreboard.web.net/spooky/qr";
 
   if (!(post = (char *)malloc(MAX_MACHINE_ID_LEN + 1))) {
     perror("Cannot allocate memory for post");
@@ -498,7 +500,7 @@ size_t register_callback(const char *ptr, size_t size, size_t nmemb, char *data)
 
 static void register_machine(const char *code)
 {
-  const char *endpoint = "https://hwn.local:8443/spooky/register";
+  const char *endpoint = "https://scoreboard.web.net/spooky/register";
 
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, register_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, mid);
@@ -519,7 +521,7 @@ static void *send_ping()
   CURL *cp;
   struct timeval now;
   struct timespec timeout;
-  const char *endpoint = "https://hwn.local:8443/spooky/ping";
+  const char *endpoint = "https://scoreboard.web.net/spooky/ping";
 
   if (!(cp = curl_easy_init())) {
     fprintf(stderr, "Failed to initialize curl ping handler: %s\n", curl_easy_strerror(CURLE_FAILED_INIT));
