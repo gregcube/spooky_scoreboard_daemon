@@ -15,6 +15,8 @@
 #include <sys/time.h>
 #include <curl/curl.h>
 #include <X11/Xlib.h>
+#include <X11/xpm.h>
+#include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 #include <fontconfig/fontconfig.h>
 
@@ -177,31 +179,25 @@ static void set_games_played(uint32_t *gp_ptr)
   cJSON_Delete(root);
 }
 
-static void open_display()
-{
-  if ((display = XOpenDisplay(NULL)) == NULL) {
-    fprintf(stderr, "Unable to open X display\n");
-    cleanup(1);
-  }
-}
-
 static void *show_login_code(void *arg)
 {
-  uint8_t display_secs = 15;
+  uint8_t display_secs = 20;
   struct timeval start_time, current_time, update_time;
   login_codes_t *login_code = (login_codes_t *)arg;
   Window window;
   XftDraw *xft_draw;
   XftFont *xft_font;
   XftColor xft_color;
+  Pixmap qr_pixmap;
+  XpmAttributes xpm_attr;
 
   int screen = DefaultScreen(display);
 
   int w = DisplayWidth(display, DefaultScreen(display));
   int h = DisplayHeight(display, DefaultScreen(display));
 
-  int ww = 400;
-  int wh = 200;
+  int ww = 500;
+  int wh = 230;
 
   int x = (w - ww) / 2;
   int y = (h - wh) / 2;
@@ -221,18 +217,27 @@ static void *show_login_code(void *arg)
   XMapWindow(display, window);
   XRaiseWindow(display, window);
 
+  int rc = XpmReadFileToPixmap(display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, &xpm_attr);
+  if (rc != XpmSuccess) {
+    fprintf(stderr, "Failed to create pixmap: %s\n", XpmGetErrorString(rc));
+  }
+
+  GC gc = XCreateGC(display, window, 0, NULL);
+
   FcBool result = FcConfigAppFontAddFile(
     FcConfigGetCurrent(),
-    (const FcChar8 *)"/game/code/assets/fonts/Spooky_Comic.ttf"
+    (const FcChar8 *)"/game/code/assets/fonts/Atari_Hanzel.ttf"
   );
 
   if (!result) {
     fprintf(stderr, "FontConfig: Failed to load font.\n");
+    cleanup(1);
   }
 
-  xft_font = XftFontOpenName(display, DefaultScreen(display), "Spooky");
+  xft_font = XftFontOpenName(display, DefaultScreen(display), "Hanzel:size=21");
   if (!xft_font) {
     fprintf(stderr, "Xft: Unable to open TTF font.\n");
+    cleanup(1);
   }
 
   XftColorAllocName(
@@ -260,15 +265,13 @@ static void *show_login_code(void *arg)
       XNextEvent(display, &event);
 
       if (event.type == Expose && event.xexpose.count == 0) {
-        int ty = 10;
+        XCopyArea(display, qr_pixmap, window, gc, 0, 0, xpm_attr.width, xpm_attr.height, ww - 210, 10);
+        XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
 
-        for (int i = 0; i < login_code->num_players; i++) {
+        for (int i = 0, ty = 40; i < login_code->num_players; i++, ty += 40) {
           char code[15];
-
           snprintf(code, sizeof(code), "Player %d: %s", i + 1, login_code->code[i]);
-          XftDrawString8(xft_draw, &xft_color, xft_font, 10, ty + 20, (XftChar8 *)code, strlen(code));
-
-          ty += 30;
+          XftDrawString8(xft_draw, &xft_color, xft_font, 10, ty, (XftChar8 *)code, strlen(code));
         }
       }
     }
@@ -283,13 +286,14 @@ static void *show_login_code(void *arg)
       update_time = current_time;
       snprintf(countdown, sizeof(countdown), "%d", (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, ww - 50, wh - 50, 0, 0, 1);
-      XftDrawString8(xft_draw, &xft_color, xft_font, ww - 30, wh - 10, (XftChar8 *)countdown, strlen(countdown));
+      XClearArea(display, window, 0, wh - 30, 40, 40, 1);
+      XftDrawString8(xft_draw, &xft_color, xft_font, 5, wh - 10, (XftChar8 *)countdown, strlen(countdown));
     }
 
     usleep(50000);
   }
 
+  XFreePixmap(display, qr_pixmap);
   XftDrawDestroy(xft_draw);
 
   XftColorFree(
@@ -420,6 +424,43 @@ static void watch()
     fflush(stderr);
     fflush(stdout);
   }
+}
+
+size_t write_qr_code(void *ptr, size_t size, size_t nmemb, FILE *fp)
+{
+  size_t bytes = fwrite(ptr, size, nmemb, fp);
+  return bytes;
+}
+
+static void get_qrcode()
+{
+  FILE *fp;
+  char *post = NULL;
+  const char *endpoint = "https://hwn.local:8443/spooky/qr";
+
+  if (!(post = (char *)malloc(MAX_MACHINE_ID_LEN + 1))) {
+    perror("Cannot allocate memory for post");
+    cleanup(1);
+  }
+
+  if (!(fp = fopen("/game/tmp/qrcode.xpm", "wb"))) {
+    perror("Unable to open qrcode.xpm");
+    cleanup(1);
+  }
+
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_qr_code);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+
+  snprintf(post, MAX_MACHINE_ID_LEN + 1, "%s", mid);
+  CURLcode rc = curl_post(curl, endpoint, post);
+
+  if (rc == CURLE_OK)
+    printf("Downloaded QR Code\n");
+  else
+    fprintf(stderr, "Failed to download QR Code: %s\n", curl_easy_strerror(rc));
+
+  fclose(fp);
+  free(post);
 }
 
 static void load_machine_id()
@@ -591,8 +632,11 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
-    open_display();
-    set_games_played(&games_played);
+
+    if ((display = XOpenDisplay(NULL)) == NULL) {
+      fprintf(stderr, "Unable to open X display\n");
+      cleanup(1);
+    }
 
     if (pthread_create(&ping_tid, NULL, send_ping, NULL) != 0) {
       perror("Failed to create ping thread");
@@ -603,6 +647,8 @@ int main(int argc, char **argv)
       fflush(stdout);
     }
 
+    get_qrcode();
+    set_games_played(&games_played);
     watch();
   }
 
