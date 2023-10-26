@@ -16,6 +16,7 @@ done
 generate_ssb_script() {
   cat <<EOF
 #!/bin/bash
+find /tmp -name 'serverauth.*' -exec cp {} /game/.Xauthority \;
 ip link set $1 up
 ip addr add $2 dev $1
 ip route add default via $3 dev $1
@@ -69,6 +70,11 @@ if [ "$connect" = "wifi" ]; then
   chroot /game3 pacman -U --noconfirm /wpa.tar.xz
 fi
 
+# Install libxpm for displaying QR code.
+curl -L -o /game3/libxpm.tar.xz https://archive.archlinux.org/packages/l/libxpm/libxpm-3.5.12-2-x86_64.pkg.tar.xz
+[ $? -ne 0 ] && { echo "Failed to download libxpm." >&2; exit 1; }
+chroot /game3 pacman -U --noconfirm /libxpm.tar.xz
+
 # Download and compile cJSON library.
 # Needed for ssbd to parse game audit file.
 curl -L -o /game3/cjson.tar.gz https://github.com/DaveGamble/cJSON/archive/refs/tags/v1.7.16.tar.gz
@@ -79,12 +85,13 @@ chroot /game3 /bin/bash -c "cd /cJSON-1.7.16 && make && exit"
 
 # Download and compile ssbd.c
 curl -O --output-dir /game3 https://scoreboard.web.net/ssbd.c
-chroot /game3 gcc -O3 -I/cJSON-1.7.16 -o ssbd ssbd.c /cJSON-1.7.16/libcjson.a -lcurl -lpthread
+chroot /game3 gcc -O3 -o ssbd ssbd.c /cJSON-1.7.16/libcjson.a -I/usr/include/freetype2 -I/cJSON-1.7.16 -lcurl -lpthread -lX11 -lXft -lXpm -lfontconfig
 
 # Cleanup
 rm -rf /game3/cJSON-1.7.16
 rm /game3/cjson.tar.gz
 rm /game3/ssbd.c
+rm /game3/libxpm.tar.xz
 [ "$connect" = "wifi" ] && rm /game3/wpa.tar.xz
 
 umount /game3/sys

@@ -288,8 +288,6 @@ static void *show_login_code(void *arg)
       XClearArea(display, window, 0, wh - 30, 40, 40, 1);
       XftDrawString8(xft_draw, &xft_color, xft_font, 5, wh - 10, (XftChar8 *)countdown, strlen(countdown));
     }
-
-    usleep(50000);
   }
 
   XFreePixmap(display, qr_pixmap);
@@ -456,9 +454,11 @@ static void get_qrcode()
   CURLcode rc = curl_post(curl, endpoint, post);
 
   if (rc == CURLE_OK)
-    printf("Downloaded QR Code\n");
-  else
+    printf("Downloaded QR Code.\n");
+  else {
     fprintf(stderr, "Failed to download QR Code: %s\n", curl_easy_strerror(rc));
+    cleanup(1);
+  }
 
   fclose(fp);
   free(post);
@@ -633,11 +633,7 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
-
-    if ((display = XOpenDisplay(NULL)) == NULL) {
-      fprintf(stderr, "Unable to open X display\n");
-      cleanup(1);
-    }
+    sleep(10);
 
     if (pthread_create(&ping_tid, NULL, send_ping, NULL) != 0) {
       perror("Failed to create ping thread");
@@ -645,11 +641,19 @@ int main(int argc, char **argv)
     }
     else {
       printf("Ping thread created.\n");
-      fflush(stdout);
     }
 
-    get_qrcode();
+    setenv("DISPLAY", ":0", 1);
+    if ((display = XOpenDisplay(NULL)) == NULL) {
+      fprintf(stderr, "Unable to open X display.\n");
+      cleanup(1);
+    }
+    else
+      printf("X11 display connection opened.\n");
+
     set_games_played(&games_played);
+    get_qrcode();
+    fflush(stdout);
     watch();
   }
 
