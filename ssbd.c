@@ -79,10 +79,10 @@ static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
   curl_easy_setopt(cp, CURLOPT_URL, endpoint);
   curl_easy_setopt(cp, CURLOPT_POSTFIELDS, data);
   curl_easy_setopt(cp, CURLOPT_TIMEOUT, 10L);
-  /*
+#ifdef DEBUG
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
-  */
+#endif
 
   if ((rc = curl_easy_perform(cp)) != CURLE_OK)
     fprintf(stderr, "CURL post failed: %s\n", curl_easy_strerror(rc));
@@ -201,14 +201,11 @@ static void *show_login_code(void *arg)
   int ww = 500;
   int wh = 230;
 
-  int x = (w - ww) / 2;
-  int y = (h - wh) / 2;
-
   window = XCreateSimpleWindow(
     display,
     RootWindow(display, screen),
-    x,
-    y,
+    (w - ww) / 2,
+    (h - wh) / 2,
     ww,
     wh,
     1,
@@ -330,6 +327,7 @@ static size_t set_login_code(const char *buf, size_t size, size_t nmemb, login_c
 static void open_player_spot()
 {
   uint32_t now_played;
+  static uint32_t last_played = 0;
   uint8_t gamediff;
   char *post = NULL;
   const char *endpoint = "https://scoreboard.web.net/spooky/spot";
@@ -337,7 +335,7 @@ static void open_player_spot()
   set_games_played(&now_played);
   gamediff = now_played - games_played;
 
-  if (gamediff == 0 || gamediff > 4)
+  if (gamediff == 0 || gamediff > 4 || now_played == last_played)
     return;
 
   size_t p_len = MAX_MACHINE_ID_LEN + 4;
@@ -371,6 +369,7 @@ static void open_player_spot()
     fprintf(stderr, "Failed to open player spot: %s\n", curl_easy_strerror(rc));
 
   free(post);
+  last_played = now_played;
 }
 
 static void process_event(char *buf, ssize_t bytes)
