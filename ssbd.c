@@ -195,8 +195,8 @@ static void *show_login_code(void *arg)
 
   int screen = DefaultScreen(display);
 
-  int w = DisplayWidth(display, DefaultScreen(display));
-  int h = DisplayHeight(display, DefaultScreen(display));
+  int w = DisplayWidth(display, screen);
+  int h = DisplayHeight(display, screen);
 
   int ww = 500;
   int wh = 230;
@@ -209,8 +209,8 @@ static void *show_login_code(void *arg)
     ww,
     wh,
     1,
-    BlackPixel(display, DefaultScreen(display)),
-    WhitePixel(display, DefaultScreen(display))
+    BlackPixel(display, screen),
+    WhitePixel(display, screen)
   );
 
   XMapWindow(display, window);
@@ -219,6 +219,7 @@ static void *show_login_code(void *arg)
   int rc = XpmReadFileToPixmap(display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, &xpm_attr);
   if (rc != XpmSuccess) {
     fprintf(stderr, "Failed to create pixmap: %s\n", XpmGetErrorString(rc));
+    cleanup(1);
   }
 
   GC gc = XCreateGC(display, window, 0, NULL);
@@ -233,7 +234,7 @@ static void *show_login_code(void *arg)
     cleanup(1);
   }
 
-  xft_font = XftFontOpenName(display, DefaultScreen(display), "Hanzel:size=21");
+  xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
   if (!xft_font) {
     fprintf(stderr, "Xft: Unable to open TTF font.\n");
     cleanup(1);
@@ -241,8 +242,8 @@ static void *show_login_code(void *arg)
 
   XftColorAllocName(
     display,
-    DefaultVisual(display, DefaultScreen(display)),
-    DefaultColormap(display, DefaultScreen(display)),
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen),
     "black",
     &xft_color
   );
@@ -250,8 +251,8 @@ static void *show_login_code(void *arg)
   xft_draw = XftDrawCreate(
     display,
     window,
-    DefaultVisual(display, DefaultScreen(display)),
-    DefaultColormap(display, DefaultScreen(display))
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen)
   );
 
   XSelectInput(display, window, ExposureMask);
@@ -295,8 +296,8 @@ static void *show_login_code(void *arg)
 
   XftColorFree(
     display,
-    DefaultVisual(display, DefaultScreen(display)),
-    DefaultColormap(display, DefaultScreen(display)),
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen),
     &xft_color
   );
 
