@@ -84,6 +84,7 @@ tar -xzf /game3/cjson.tar.gz -C /game3
 chroot /game3 /bin/bash -c "cd /cJSON-1.7.16 && make && exit"
 
 # Download and compile ssbd.c
+pacman -S --noconfirm libxft libxpm glibc
 curl -O --output-dir /game3 https://scoreboard.web.net/ssbd.c
 chroot /game3 gcc -O3 -o ssbd ssbd.c /cJSON-1.7.16/libcjson.a -I/usr/include/freetype2 -I/cJSON-1.7.16 -lcurl -lpthread -lX11 -lXft -lXpm -lfontconfig
 
