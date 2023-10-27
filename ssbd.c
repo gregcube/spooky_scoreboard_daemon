@@ -69,9 +69,10 @@ static void cleanup(int rc)
   exit(rc);
 }
 
-static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
+static long curl_post(CURL *cp, const char *endpoint, const char *data)
 {
-  CURLcode rc;
+  CURLcode cc;
+  long rc = 0;
   struct curl_slist *hdrs = NULL;
 
   hdrs = curl_slist_append(hdrs, "Content-Type: text/plain");
@@ -84,9 +85,12 @@ static CURLcode curl_post(CURL *cp, const char *endpoint, const char *data)
   curl_easy_setopt(cp, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
 
-  if ((rc = curl_easy_perform(cp)) != CURLE_OK)
-    fprintf(stderr, "CURL post failed: %s\n", curl_easy_strerror(rc));
+  if ((cc = curl_easy_perform(cp)) != CURLE_OK) {
+    fprintf(stderr, "CURL failed: %s\n", curl_easy_strerror(cc));
+    return -1;
+  }
 
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &rc);
   return rc;
 }
 
@@ -122,11 +126,11 @@ static void send_score()
     cleanup(1);
   }
 
-  CURLcode rc = curl_post(curl, endpoint, post);
-  if (rc == CURLE_OK)
+  long rc = curl_post(curl, endpoint, post);
+  if (rc == 200)
     printf("Uploaded highscores.\n");
   else
-    fprintf(stderr, "Failed to upload highscores: %s\n", curl_easy_strerror(rc));
+    fprintf(stderr, "Failed to upload highscores: %ld\n", rc);
 
   free(post);
 }
@@ -347,15 +351,9 @@ static void open_player_spot()
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &login_codes);
 
   snprintf(post, p_len, "%s%d", mid, gamediff);
-  CURLcode rc = curl_post(curl, endpoint, post);
+  long rc = curl_post(curl, endpoint, post);
 
-  if (rc == CURLE_OK) {
-    /*
-    long rescode;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &rescode);
-    printf("Response code: %ld\n", rescode);
-    */
-
+  if (rc == 200) {
     printf("Number of players: %u\n", gamediff);
     login_codes.num_players = gamediff;
 
@@ -365,7 +363,7 @@ static void open_player_spot()
     }
   }
   else
-    fprintf(stderr, "Failed to open player spot: %s\n", curl_easy_strerror(rc));
+    fprintf(stderr, "Failed to open player spot: %ld\n", rc);
 
   free(post);
   last_played = now_played;
@@ -426,7 +424,7 @@ static void watch()
   }
 }
 
-size_t write_qr_code(void *ptr, size_t size, size_t nmemb, FILE *fp)
+size_t write_qrcode(void *ptr, size_t size, size_t nmemb, FILE *fp)
 {
   size_t bytes = fwrite(ptr, size, nmemb, fp);
   return bytes;
@@ -448,16 +446,16 @@ static void get_qrcode()
     cleanup(1);
   }
 
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_qr_code);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_qrcode);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
 
   snprintf(post, MAX_MACHINE_ID_LEN + 1, "%s", mid);
-  CURLcode rc = curl_post(curl, endpoint, post);
+  long rc = curl_post(curl, endpoint, post);
 
-  if (rc == CURLE_OK)
+  if (rc == 200)
     printf("Downloaded QR Code.\n");
   else {
-    fprintf(stderr, "Failed to download QR Code: %s\n", curl_easy_strerror(rc));
+    fprintf(stderr, "Failed to download QR Code: %ld\n", rc);
     cleanup(1);
   }
 
@@ -504,10 +502,10 @@ static void register_machine(const char *code)
 
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, register_callback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, mid);
-  CURLcode rc = curl_post(curl, endpoint, code);
+  long rc = curl_post(curl, endpoint, code);
 
-  if (rc != CURLE_OK) {
-    fprintf(stderr, "CURL failed to register machine: %s\n", curl_easy_strerror(rc));
+  if (rc != 200) {
+    fprintf(stderr, "Failed to register machine: %ld\n", rc);
     cleanup(1);
   }
 
@@ -532,10 +530,10 @@ static void *send_ping()
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL);
 
   while (run) {
-    CURLcode cc = curl_post(cp, endpoint, mid);
+    long rescode = curl_post(cp, endpoint, mid);
 
-    if (cc != CURLE_OK) {
-      fprintf(stderr, "Failed to send ping: %s\n", curl_easy_strerror(cc));
+    if (rescode != 200) {
+      fprintf(stderr, "Failed to send ping: %ld\n", rescode);
       fflush(stderr);
     }
 
@@ -634,27 +632,29 @@ int main(int argc, char **argv)
 
   if (run) {
     load_machine_id();
+
+    // Wait a bit for the internet to come up.
+    // Otherwise get_qrcode() will fail.
+    // @todo Should probs implement something better.
     sleep(10);
 
     if (pthread_create(&ping_tid, NULL, send_ping, NULL) != 0) {
       perror("Failed to create ping thread");
       cleanup(1);
     }
-    else {
+    else
       printf("Ping thread created.\n");
-    }
 
-    setenv("DISPLAY", ":0", 1);
+    setenv("DISPLAY", ":0", 0);
     if ((display = XOpenDisplay(NULL)) == NULL) {
       fprintf(stderr, "Unable to open X display.\n");
       cleanup(1);
     }
     else
-      printf("X11 display connection opened.\n");
+      printf("X11 display opened.\n");
 
     set_games_played(&games_played);
     get_qrcode();
-    fflush(stdout);
     watch();
   }
 
