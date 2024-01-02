@@ -141,6 +141,7 @@ static void processEvent(char *buf, ssize_t bytes)
 
           writerBuilder["indentation"] = "";
           std::string jsonStr = Json::writeString(writerBuilder, json);
+          std::cout << jsonStr << std::endl;
           curlHandle->post("/spooky/score", mid + jsonStr);
 
           setGamesPlayed(&gamesPlayed);

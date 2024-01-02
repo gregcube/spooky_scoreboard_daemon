@@ -68,8 +68,7 @@ const Json::Value HWN::processHighScores()
 
   // TODO: Implement mode scores.
 
-  root.append(classicScores);
-  root.append(lastScores);
+  root.append(classicScores).append(lastScores);
   ifs.close();
 
   return root;
