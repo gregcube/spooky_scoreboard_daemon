@@ -37,7 +37,7 @@ long CurlHandler::execute(const std::string& endpoint)
 
   std::cout << "Calling " << endpoint << std::endl;
 
-  hdrs = curl_slist_append(hdrs, "Content-Type: text/plain");
+  hdrs = curl_slist_append(hdrs, "Content-Type: text/plain; charset=utf-8");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
@@ -56,9 +56,13 @@ long CurlHandler::execute(const std::string& endpoint)
   return responseCode;
 }
 
-size_t CurlHandler::writeCallback(const char *ptr, size_t size, size_t nmemb, std::string *output)
-{
+size_t CurlHandler::writeCallback(
+  const char *ptr,
+  size_t size,
+  size_t nmemb,
+  std::string *output
+) {
   size_t total = size * nmemb;
-  output->append(ptr, total);
+  output->erase(0, std::string::npos).insert(0, ptr, total);
   return total;
 }

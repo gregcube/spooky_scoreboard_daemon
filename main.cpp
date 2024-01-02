@@ -26,6 +26,7 @@ typedef struct {
 
 static char mid[MAX_MACHINE_ID_LEN + 1];
 static uint32_t gamesPlayed = 0;
+static login_codes_t loginCodes;
 
 std::atomic<bool> isRunning(false);
 std::unique_ptr<GameBase> game;
@@ -79,6 +80,23 @@ static void setGamesPlayed(uint32_t *ptr)
   }
 }
 
+static void setLoginCodes(login_codes_t *ptr)
+{
+  size_t bytes = curlHandle->responseData.size();
+
+  if (bytes % 4 != 0 || bytes > (4 * 4))
+    return;
+
+  const char *response = curlHandle->responseData.c_str();
+
+  for (size_t i = 0; i < bytes / 4; i++) {
+    memcpy(ptr->code[i], response, 4);
+    ptr->code[i][4] = '\0';
+    std::cout << "Code " << i << ": " << ptr->code[i] << std::endl;
+    response++;
+  }
+}
+
 static void setPlayerSpot()
 {
   static uint32_t lastPlayed = 0;
@@ -96,8 +114,12 @@ static void setPlayerSpot()
   long rc = curlHandle->post("/spooky/spot", post);
 
   if (rc == 200) {
-    // TODO Set number of players in our struct.
-    // TODO Display codes if not already displayed.
+    std::cout << "Players: " << playedDiff << std::endl;
+    loginCodes.n_players = playedDiff;
+    if (loginCodes.shown == 0) {
+      setLoginCodes(&loginCodes);
+      // TODO: Show codes in X11 window.
+    }
   }
 
   lastPlayed = nowPlayed;
@@ -115,11 +137,12 @@ static void processEvent(char *buf, ssize_t bytes)
       if (strcmp(evt->name, game->highScoresFile().c_str()) == 0) {
         try {
           Json::StreamWriterBuilder writerBuilder;
-
           Json::Value json = game->processHighScores();
-          std::string jsonString = Json::writeString(writerBuilder, json);
 
-          curlHandle->post("/spooky/score", mid + jsonString);
+          writerBuilder["indentation"] = "";
+          std::string jsonStr = Json::writeString(writerBuilder, json);
+          curlHandle->post("/spooky/score", mid + jsonStr);
+
           setGamesPlayed(&gamesPlayed);
         }
         catch (const std::runtime_error& e) {
