@@ -48,6 +48,8 @@ long CurlHandler::execute(const std::string& endpoint)
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
 
+  responseData.erase();
+
   if ((cc = curl_easy_perform(curl)) != CURLE_OK) {
     std::cerr << "CURL failed: " << curl_easy_strerror(cc) << std::endl;
   }
@@ -63,6 +65,6 @@ size_t CurlHandler::writeCallback(
   std::string *output
 ) {
   size_t total = size * nmemb;
-  output->erase(0, std::string::npos).insert(0, ptr, total);
+  output->append(ptr, total);
   return total;
 }

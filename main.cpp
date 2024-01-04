@@ -1,4 +1,3 @@
-#include <string>
 #include <cstdint>
 #include <cstring>
 #include <csignal>
@@ -12,7 +11,14 @@
 #include <sys/inotify.h>
 #include <curl/curl.h>
 
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xft/Xft.h>
+#include <X11/xpm.h>
+#include <fontconfig/fontconfig.h>
+
 #include "src/CurlHandler.h"
+#include "src/QrCode.h"
 #include "src/GameBase.h"
 
 #define VERSION "0.0.2"
@@ -26,12 +32,13 @@ typedef struct {
 
 static char mid[MAX_MACHINE_ID_LEN + 1];
 static uint32_t gamesPlayed = 0;
+static Display *display;
 static login_codes_t loginCodes;
 
 std::atomic<bool> isRunning(false);
 std::unique_ptr<GameBase> game;
-std::unique_ptr<CurlHandler> curlHandle;
-std::thread ping;
+std::shared_ptr<CurlHandler> curlHandle;
+std::thread ping, codeWindow;
 
 static void loadMachineId()
 {
@@ -97,6 +104,146 @@ static void setLoginCodes(login_codes_t *ptr)
   }
 }
 
+static void showLoginCodes(void *arg)
+{
+  uint8_t display_secs = 20;
+  struct timeval start_time, current_time, update_time;
+  login_codes_t *login_code = (login_codes_t *)arg;
+  Window window;
+  XftDraw *xft_draw;
+  XftFont *xft_font;
+  XftColor xft_color;
+  Pixmap qr_pixmap;
+  XpmAttributes xpm_attr;
+
+  int screen = DefaultScreen(display);
+
+  int w = DisplayWidth(display, screen);
+  int h = DisplayHeight(display, screen);
+
+  int ww = 500;
+  int wh = 230;
+
+  window = XCreateSimpleWindow(
+    display,
+    RootWindow(display, screen),
+    (w - ww) / 2,
+    (h - wh) / 2,
+    ww,
+    wh,
+    1,
+    BlackPixel(display, screen),
+    WhitePixel(display, screen)
+  );
+
+  XMapWindow(display, window);
+  XRaiseWindow(display, window);
+
+  int rc = XpmReadFileToPixmap(
+    display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, &xpm_attr);
+
+  if (rc != XpmSuccess) {
+    fprintf(stderr, "Failed to create pixmap: %s\n", XpmGetErrorString(rc));
+    //cleanup(1);
+  }
+
+  GC gc = XCreateGC(display, window, 0, NULL);
+
+  FcBool result = FcConfigAppFontAddFile(
+    FcConfigGetCurrent(),
+    (const FcChar8 *)"/game/code/assets/fonts/Atari_Hanzel.ttf"
+  );
+
+  if (!result) {
+    fprintf(stderr, "FontConfig: Failed to load font.\n");
+    //cleanup(1);
+  }
+
+  xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
+  if (!xft_font) {
+    fprintf(stderr, "Xft: Unable to open TTF font.\n");
+    //cleanup(1);
+  }
+
+  XftColorAllocName(
+    display,
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen),
+    "black",
+    &xft_color
+  );
+
+  xft_draw = XftDrawCreate(
+    display,
+    window,
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen)
+  );
+
+  XSelectInput(display, window, ExposureMask);
+  gettimeofday(&start_time, NULL);
+  update_time = start_time;
+
+  while (1) {
+    if (XPending(display) > 0) {
+      XEvent event;
+      XNextEvent(display, &event);
+
+      if (event.type == Expose && event.xexpose.count == 0) {
+        XCopyArea(
+          display, qr_pixmap, window, gc, 0, 0,
+          xpm_attr.width, xpm_attr.height, ww - 210, 10);
+
+        XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
+
+        for (int i = 0, ty = 40; i < login_code->n_players; i++, ty += 40) {
+          char code[15];
+
+          snprintf(code, sizeof(code),
+            "Player %d: %s", i + 1, login_code->code[i]);
+
+          XftDrawString8(
+            xft_draw, &xft_color, xft_font, 10, ty,
+            (XftChar8 *)code, strlen(code));
+        }
+      }
+    }
+
+    gettimeofday(&current_time, NULL);
+    if (current_time.tv_sec - start_time.tv_sec >= display_secs)
+      break;
+
+    if (current_time.tv_sec - update_time.tv_sec >= 1) {
+      char countdown[3];
+
+      update_time = current_time;
+      snprintf(countdown, sizeof(countdown), "%d",
+        (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
+
+      XClearArea(display, window, 0, wh - 30, 40, 40, 1);
+      XftDrawString8(
+        xft_draw, &xft_color, xft_font, 5, wh - 10,
+        (XftChar8 *)countdown, strlen(countdown));
+    }
+  }
+
+  XFreePixmap(display, qr_pixmap);
+  XftDrawDestroy(xft_draw);
+
+  XftColorFree(
+    display,
+    DefaultVisual(display, screen),
+    DefaultColormap(display, screen),
+    &xft_color
+  );
+
+  XftFontClose(display, xft_font);
+  XDestroyWindow(display, window);
+  XFlush(display);
+
+  login_code->shown = 0;
+}
+
 static void setPlayerSpot()
 {
   static uint32_t lastPlayed = 0;
@@ -114,11 +261,13 @@ static void setPlayerSpot()
   long rc = curlHandle->post("/spooky/spot", post);
 
   if (rc == 200) {
-    std::cout << "Players: " << playedDiff << std::endl;
     loginCodes.n_players = playedDiff;
+    setLoginCodes(&loginCodes);
+
     if (loginCodes.shown == 0) {
-      setLoginCodes(&loginCodes);
-      // TODO: Show codes in X11 window.
+      std::thread codeWindow(showLoginCodes, &loginCodes);
+      codeWindow.detach();
+      loginCodes.shown = 1;
     }
   }
 
@@ -204,8 +353,14 @@ void signalHandler(int signal)
 {
   if (signal == SIGINT || signal == SIGTERM) {
     std::cout << "Cleaning up..." << std::endl;
+
     isRunning.store(false);
     curl_global_cleanup();
+
+    if (display) {
+      XCloseDisplay(display);
+    }
+
     std::exit(0);
   } 
 }
@@ -213,7 +368,7 @@ void signalHandler(int signal)
 int main(int argc, char **argv)
 {
   int opt, reg = 0;
-  std::string game_name;
+  std::string gameName;
   pid_t pid;
 
   if (argc < 2) {
@@ -238,7 +393,7 @@ int main(int argc, char **argv)
       break;
 
     case 'g':
-      game_name = argv[2];
+      gameName = argv[2];
       break;
 
     case 'd':
@@ -268,12 +423,12 @@ int main(int argc, char **argv)
   }
 
   if (isRunning.load()) {
-    if (game_name.empty()) {
-      std::cerr << "Missing -g <game_name>" << std::endl;
+    if (gameName.empty()) {
+      std::cerr << "Missing -g <gameName>" << std::endl;
     }
     else {
-      game = GameBase::create(game_name);
-      curlHandle = std::make_unique<CurlHandler>("https://hwn.local:8443");
+      game = GameBase::create(gameName);
+      curlHandle = std::make_shared<CurlHandler>("https://hwn.local:8443");
 
       if (game) {
         std::cout << game->name() << std::endl;
@@ -286,6 +441,16 @@ int main(int argc, char **argv)
         ping = std::thread(sendPing);
         ping.detach();
 
+        XInitThreads();
+        setenv("DISPLAY", ":0", 0);
+        if ((display = XOpenDisplay(NULL)) == NULL) {
+          std::cerr << "Unable to open X display" << std::endl;
+        }
+        else {
+          std::cout << "X display opened" << std::endl;
+        }
+
+        std::make_unique<QrCode>(curlHandle)->get(mid)->write();
         setGamesPlayed(&gamesPlayed);
         watch(); 
       }

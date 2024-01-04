@@ -6,6 +6,8 @@
 class HWN : public GameBase
 {
 public:
+  const std::string tmpDir = "/game/tmp";
+
   const std::string name() override;
   const std::string highScoresFile() override;
   const std::string getGamePath() override;

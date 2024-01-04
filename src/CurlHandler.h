@@ -1,6 +1,7 @@
 #ifndef _CURL_HANDLER_H
 #define _CURL_HANDLER_H
 
+#include <string>
 #include <curl/curl.h>
 
 class CurlHandler
@@ -16,10 +17,10 @@ public:
 
 private:
   CURL *curl;
-  std::string baseUrl;
+  const std::string baseUrl;
 
   long execute(const std::string& url);
-  static size_t writeCallback(const char *ptr, size_t size, size_t nmemb, std::string *output);
+  static size_t writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output);
 };
 
 #endif
