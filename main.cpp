@@ -283,14 +283,13 @@ static void processEvent(char *buf, ssize_t bytes)
     if (evt->len > 0) {
       std::cout << "Event: " << evt->name << std::endl;
 
-      if (strcmp(evt->name, game->highScoresFile().c_str()) == 0) {
+      if (strcmp(evt->name, game->getScoresFile().c_str()) == 0) {
         try {
           Json::StreamWriterBuilder writerBuilder;
           Json::Value json = game->processHighScores();
 
           writerBuilder["indentation"] = "";
           std::string jsonStr = Json::writeString(writerBuilder, json);
-          std::cout << jsonStr << std::endl;
           curlHandle->post("/spooky/score", mid + jsonStr);
 
           setGamesPlayed(&gamesPlayed);
@@ -301,8 +300,7 @@ static void processEvent(char *buf, ssize_t bytes)
         break;
       }
 
-      // TODO: Implement audits file in gamebase.
-      if (strcmp(evt->name, "_game_audits.json") == 0) {
+      if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
         setPlayerSpot();
         break;
       }
@@ -339,6 +337,21 @@ static void watch()
     }
   }
 }
+
+static int registerMachine(const char *code)
+{
+  long rc = curlHandle->post("/spooky/register", code);
+
+  if (rc != 200 || curlHandle->responseData.size() != MAX_MACHINE_ID_LEN) {
+    return 1;
+  }
+
+  strncpy(mid, curlHandle->responseData.c_str(), MAX_MACHINE_ID_LEN);
+  std::cout << mid << std::endl;
+
+  return 0;
+}
+
 static void print_usage()
 {
   std::cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
@@ -367,7 +380,7 @@ void signalHandler(int signal)
 
 int main(int argc, char **argv)
 {
-  int opt, reg = 0;
+  int opt, reg = 0, run = 0;
   std::string gameName;
   pid_t pid;
 
@@ -408,34 +421,39 @@ int main(int argc, char **argv)
       break;
 
     case 'm':
-      isRunning.store(true);
+      run = 1;
       break;
     }
   }
 
-  if (isRunning.load() && reg) {
-    perror("Cannot use -m and -r together");
+  if (run && reg) {
+    std::cerr << "Cannot use -m and -r together" << std::endl;
     return 1;
   }
 
-  if (isRunning.load() || reg) {
+  if (run || reg) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    curlHandle = std::make_shared<CurlHandler>("https://hwn.local:8443");
   }
 
-  if (isRunning.load()) {
+  if (reg) {
+    registerMachine(argv[2]);
+  }
+
+  if (run) {
     if (gameName.empty()) {
       std::cerr << "Missing -g <gameName>" << std::endl;
+      return 1;
     }
     else {
       game = GameBase::create(gameName);
-      curlHandle = std::make_shared<CurlHandler>("https://hwn.local:8443");
-
       if (game) {
-        std::cout << game->name() << std::endl;
+        std::cout << game->getGameName() << std::endl;
 
         std::signal(SIGINT, signalHandler);
         std::signal(SIGTERM, signalHandler);
 
+        isRunning.store(true);
         loadMachineId();
 
         ping = std::thread(sendPing);
@@ -445,6 +463,7 @@ int main(int argc, char **argv)
         setenv("DISPLAY", ":0", 0);
         if ((display = XOpenDisplay(NULL)) == NULL) {
           std::cerr << "Unable to open X display" << std::endl;
+          return 1;
         }
         else {
           std::cout << "X display opened" << std::endl;
@@ -456,11 +475,11 @@ int main(int argc, char **argv)
       }
       else {
         std::cerr << "Invalid game. Supported games:<list here>\n";
+        return 1;
       }
     }
   }
 
-  std::cout << "Shutting down" << std::endl;
   curl_global_cleanup();
   return 0;
 }

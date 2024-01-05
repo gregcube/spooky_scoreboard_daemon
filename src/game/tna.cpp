@@ -3,16 +3,6 @@
 #include "yaml-cpp/yaml.h"
 #include "tna.h"
 
-const std::string TNA::name()
-{
-  return "Total Nuclear Annihilation";
-}
-
-const std::string TNA::highScoresFile()
-{
-  return "tna.yaml";
-}
-
 const Json::Value TNA::processHighScores()
 {
   Json::Value root, classic, last;
@@ -38,11 +28,6 @@ const Json::Value TNA::processHighScores()
 
   root.append(classic).append(last);
   return root;
-}
-
-const std::string TNA::getGamePath()
-{
-  return "/tna/game/config";
 }
 
 uint32_t TNA::getGamesPlayed()

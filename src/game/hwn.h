@@ -3,16 +3,24 @@
 
 #include "../GameBase.h"
 
-class HWN : public GameBase
+class HWN: public GameBase
 {
-public:
-  const std::string tmpDir = "/game/tmp";
+private:
+  const std::string gameName = "Halloween";
+  const std::string gamePath = "/game";
+  const std::string tmpPath = "/game/tmp";
+  const std::string scoresFile = "highscores.config";
+  const std::string auditsFile = "_game_audits.json";
 
-  const std::string name() override;
-  const std::string highScoresFile() override;
-  const std::string getGamePath() override;
+public:
   const Json::Value processHighScores() override;
   uint32_t getGamesPlayed() override;
+
+  const std::string& getGameName() override { return gameName; }
+  const std::string& getGamePath() override { return gamePath; }
+  const std::string& getTmpPath() override { return tmpPath; }
+  const std::string& getScoresFile() override { return scoresFile; }
+  const std::string& getAuditsFile() override { return auditsFile; }
 };
 
 #endif

@@ -10,12 +10,16 @@ class GameBase
 {
 public:
   virtual ~GameBase() = default;
-  virtual const std::string name() = 0;
-  virtual const std::string getGamePath() = 0;
-  virtual const std::string highScoresFile() = 0;
   virtual const Json::Value processHighScores() = 0;
   virtual uint32_t getGamesPlayed() = 0;
+
   static std::unique_ptr<GameBase> create(const std::string& gameName);
+
+  virtual const std::string& getGameName() = 0;
+  virtual const std::string& getGamePath() = 0;
+  virtual const std::string& getTmpPath() = 0;
+  virtual const std::string& getScoresFile() = 0;
+  virtual const std::string& getAuditsFile() = 0;
 };
 
 #endif
