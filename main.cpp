@@ -244,24 +244,13 @@ static void showLoginCodes(void *arg)
   login_code->shown = 0;
 }
 
-static void setPlayerSpot()
+static void openPlayerSpot(uint32_t nPlayers)
 {
-  static uint32_t lastPlayed = 0;
-  uint32_t nowPlayed;
-  uint32_t playedDiff;
-
-  setGamesPlayed(&nowPlayed);
-  playedDiff = nowPlayed - gamesPlayed;
-
-  if (playedDiff == 0 || playedDiff > 4 || playedDiff == lastPlayed) {
-    return;
-  }
-
-  std::string post = mid + std::to_string(playedDiff);
-  long rc = curlHandle->post("/spooky/spot", post);
+  long rc = curlHandle
+    ->post("/spooky/spot", mid + std::to_string(nPlayers));
 
   if (rc == 200) {
-    loginCodes.n_players = playedDiff;
+    loginCodes.n_players = nPlayers;
     setLoginCodes(&loginCodes);
 
     if (loginCodes.shown == 0) {
@@ -270,19 +259,70 @@ static void setPlayerSpot()
       loginCodes.shown = 1;
     }
   }
+}
 
-  lastPlayed = nowPlayed;
+static void uploadScores()
+{
+  std::cout << "Uploading scores" << std::endl;
+  try {
+    Json::StreamWriterBuilder writerBuilder;
+    writerBuilder["indentation"] = "";
+
+    Json::Value json = game->processHighScores();
+
+    curlHandle
+      ->post("/spooky/score", mid + Json::writeString(writerBuilder, json));
+
+    setGamesPlayed(&gamesPlayed);
+  }
+  catch (const std::runtime_error& e) {
+    std::cerr << "Exception: " << e.what() << std::endl;
+  }
 }
 
 static void processEvent(char *buf, ssize_t bytes)
 {
   char *ptr = buf;
+  static uint32_t lastGameCheck;
+
   while (ptr < buf + bytes) {
     struct inotify_event *evt = (struct inotify_event *)ptr;
 
     if (evt->len > 0) {
       std::cout << "Event: " << evt->name << std::endl;
 
+      if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
+        uint32_t gameCheck, nPlayers;
+        setGamesPlayed(&gameCheck);
+
+        std::cout << "gamesPlayed: " << gamesPlayed << std::endl;
+        std::cout << "gameCheck: " << gameCheck << std::endl;
+        std::cout << "lastGameCheck: " << lastGameCheck << std::endl;
+
+        if (gameCheck > gamesPlayed) {
+          nPlayers = gameCheck - gamesPlayed;
+          std::cout << "nPlayers: " << nPlayers << std::endl;
+
+          if (nPlayers == 0 || nPlayers > 4) {
+            break;
+          }
+
+          if (gameCheck == lastGameCheck) {
+            uploadScores();
+            lastGameCheck = 0;
+            break;
+          }
+
+          openPlayerSpot(nPlayers);
+          lastGameCheck = gameCheck;
+        }
+        else {
+          uploadScores();
+          break;
+        }
+      }
+
+      /*
       if (strcmp(evt->name, game->getScoresFile().c_str()) == 0) {
         try {
           Json::StreamWriterBuilder writerBuilder;
@@ -304,6 +344,7 @@ static void processEvent(char *buf, ssize_t bytes)
         setPlayerSpot();
         break;
       }
+      */
     }
 
     ptr += sizeof(struct inotify_event) + evt->len;
@@ -338,7 +379,7 @@ static void watch()
   }
 }
 
-static int registerMachine(const char *code)
+static int registerMachine(const std::string& code)
 {
   long rc = curlHandle->post("/spooky/register", code);
 
@@ -381,7 +422,7 @@ void signalHandler(int signal)
 int main(int argc, char **argv)
 {
   int opt, reg = 0, run = 0;
-  std::string gameName;
+  std::string gameName, regCode;
   pid_t pid;
 
   if (argc < 2) {
@@ -402,11 +443,12 @@ int main(int argc, char **argv)
       break;
 
     case 'r':
-      if (argv[2] != NULL && strlen(argv[2]) == 4) reg = 1;
+      reg = 1;
+      regCode = optarg;
       break;
 
     case 'g':
-      gameName = argv[2];
+      gameName = optarg;
       break;
 
     case 'd':
@@ -437,13 +479,12 @@ int main(int argc, char **argv)
   }
 
   if (reg) {
-    registerMachine(argv[2]);
+    registerMachine(regCode);
   }
 
   if (run) {
     if (gameName.empty()) {
       std::cerr << "Missing -g <gameName>" << std::endl;
-      return 1;
     }
     else {
       game = GameBase::create(gameName);
@@ -475,7 +516,6 @@ int main(int argc, char **argv)
       }
       else {
         std::cerr << "Invalid game. Supported games:<list here>\n";
-        return 1;
       }
     }
   }
