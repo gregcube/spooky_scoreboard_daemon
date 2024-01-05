@@ -8,7 +8,6 @@
 
 const Json::Value HWN::processHighScores()
 {
-  //std::ifstream ifs(gamePath + "/" + scoresFile);
   std::ifstream ifs("/game/highscores.config");
 
   if (!ifs.is_open()) {
@@ -62,7 +61,6 @@ const Json::Value HWN::processHighScores()
 
 uint32_t HWN::getGamesPlayed()
 {
-  //std::ifstream ifs(gamePath + "/" + auditsFile);
   std::ifstream ifs("/game/_game_audits.json");
 
   if (!ifs.is_open()) {

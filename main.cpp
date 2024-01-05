@@ -321,30 +321,6 @@ static void processEvent(char *buf, ssize_t bytes)
           break;
         }
       }
-
-      /*
-      if (strcmp(evt->name, game->getScoresFile().c_str()) == 0) {
-        try {
-          Json::StreamWriterBuilder writerBuilder;
-          Json::Value json = game->processHighScores();
-
-          writerBuilder["indentation"] = "";
-          std::string jsonStr = Json::writeString(writerBuilder, json);
-          curlHandle->post("/spooky/score", mid + jsonStr);
-
-          setGamesPlayed(&gamesPlayed);
-        }
-        catch (const std::runtime_error& e) {
-          std::cerr << "Exception: " << e.what() << std::endl;
-        }
-        break;
-      }
-
-      if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
-        setPlayerSpot();
-        break;
-      }
-      */
     }
 
     ptr += sizeof(struct inotify_event) + evt->len;
@@ -361,7 +337,9 @@ static void watch()
     //cleanup(1);
   }
 
-  if ((wd = inotify_add_watch(fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
+  if ((wd = inotify_add_watch(
+    fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
+
     perror("Failed inotify_add_watch()");
     //cleanup(1);
   }

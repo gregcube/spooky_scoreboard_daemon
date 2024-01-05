@@ -9,7 +9,6 @@ private:
   const std::string gameName = "Halloween";
   const std::string gamePath = "/game";
   const std::string tmpPath = "/game/tmp";
-  const std::string scoresFile = "highscores.config";
   const std::string auditsFile = "_game_audits.json";
 
 public:
@@ -19,7 +18,6 @@ public:
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
   const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getScoresFile() override { return scoresFile; }
   const std::string& getAuditsFile() override { return auditsFile; }
 };
 

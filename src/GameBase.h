@@ -18,7 +18,6 @@ public:
   virtual const std::string& getGameName() = 0;
   virtual const std::string& getGamePath() = 0;
   virtual const std::string& getTmpPath() = 0;
-  virtual const std::string& getScoresFile() = 0;
   virtual const std::string& getAuditsFile() = 0;
 };
 

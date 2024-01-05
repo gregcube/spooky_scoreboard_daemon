@@ -9,7 +9,6 @@ private:
   const std::string gameName = "Total Nuclear Annihilation";
   const std::string tmpPath = "/tna/game/tmp";
   const std::string gamePath = "/tna/game/config";
-  const std::string scoresFile = "tna.yaml";
   const std::string auditsFile = "tna.yaml";
 
 public:
@@ -19,7 +18,6 @@ public:
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
   const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getScoresFile() override { return scoresFile; }
   const std::string& getAuditsFile() override { return auditsFile; }
 };
 
