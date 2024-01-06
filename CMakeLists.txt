@@ -21,19 +21,19 @@ add_executable(ssbd
   ${GAME_SOURCES}
 )
 
-target_link_directories(ssbd PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-linux/lib
-)
+set(JSONCPP_STATIC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-linux/lib/libjsoncpp.a")
+set(YAML_CPP_STATIC_LIB "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-linux/lib/libyaml-cpp.a")
 
 target_include_directories(ssbd PRIVATE
   ${jsoncpp_INCLUDE_DIRS}
   ${yaml-cpp_INCLUDE_DIRS}
   /usr/include/freetype2
+  ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/installed/x64-linux/include
 )
 
 target_link_libraries(ssbd PRIVATE
-  jsoncpp
-  yaml-cpp::yaml-cpp
+  ${JSONCPP_STATIC_LIB}
+  ${YAML_CPP_STATIC_LIB}
   curl
   X11
   Xft
