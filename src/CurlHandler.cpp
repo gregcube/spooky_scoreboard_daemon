@@ -35,7 +35,9 @@ long CurlHandler::execute(const std::string& endpoint)
   CURLcode cc;
   struct curl_slist *hdrs = NULL;
 
+#ifdef DEBUG
   std::cout << "Calling " << endpoint << std::endl;
+#endif
 
   hdrs = curl_slist_append(hdrs, "Content-Type: text/plain; charset=utf-8");
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);

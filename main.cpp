@@ -33,6 +33,7 @@ typedef struct {
 static char mid[MAX_MACHINE_ID_LEN + 1];
 static uint32_t gamesPlayed = 0;
 static Display *display;
+static CURLcode curlCode;
 static login_codes_t loginCodes;
 
 std::atomic<bool> isRunning(false);
@@ -40,18 +41,43 @@ std::unique_ptr<GameBase> game;
 std::shared_ptr<CurlHandler> curlHandle;
 std::thread ping, codeWindow;
 
+static void cleanup()
+{
+  std::cout << "Cleaning up..." << std::endl;
+
+  isRunning.store(false);
+
+  if (ping.joinable()) {
+    ping.join();
+  }
+
+  if (codeWindow.joinable()) {
+    codeWindow.join();
+  }
+
+  if (display) {
+    XCloseDisplay(display);
+  }
+
+  if (curlCode) {
+    curl_global_cleanup();
+  }
+}
+
 static void loadMachineId()
 {
   std::ifstream file("/.ssbd_mid");
 
   if (!file.is_open()) {
     std::cerr << "Failed to load machine id" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   file.read(mid, MAX_MACHINE_ID_LEN);
   if (file.gcount() != MAX_MACHINE_ID_LEN) {
     std::cerr << "Failed to read machine id" << std::endl;
     file.close();
+    std::exit(EXIT_FAILURE);
   }
 
   file.close();
@@ -64,6 +90,9 @@ static void sendPing()
   CurlHandler ch("https://hwn.local:8443");
 
   while (isRunning.load()) {
+#ifdef DEBUG
+    std::cout << "Sending ping..." << std::endl;
+#endif
     long rescode = ch.post("/spooky/ping", mid);
 
     if (rescode != 200) {
@@ -80,7 +109,6 @@ static void setGamesPlayed(uint32_t *ptr)
 {
   try {
     *ptr = game->getGamesPlayed();
-    std::cout << ptr << ": " << *ptr << std::endl;
   }
   catch (const std::runtime_error& e) {
     std::cerr << "Exception: " << e.what() << std::endl;
@@ -143,8 +171,7 @@ static void showLoginCodes(void *arg)
     display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, &xpm_attr);
 
   if (rc != XpmSuccess) {
-    fprintf(stderr, "Failed to create pixmap: %s\n", XpmGetErrorString(rc));
-    //cleanup(1);
+    std::cerr << "Failed to create pixmap" << XpmGetErrorString(rc) << std::endl;
   }
 
   GC gc = XCreateGC(display, window, 0, NULL);
@@ -155,14 +182,14 @@ static void showLoginCodes(void *arg)
   );
 
   if (!result) {
-    fprintf(stderr, "FontConfig: Failed to load font.\n");
-    //cleanup(1);
+    std::cerr << "Failed to load font" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
   if (!xft_font) {
-    fprintf(stderr, "Xft: Unable to open TTF font.\n");
-    //cleanup(1);
+    std::cerr << "Unable to open TTF font" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   XftColorAllocName(
@@ -264,6 +291,7 @@ static void openPlayerSpot(uint32_t nPlayers)
 static void uploadScores()
 {
   std::cout << "Uploading scores" << std::endl;
+
   try {
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
@@ -295,13 +323,14 @@ static void processEvent(char *buf, ssize_t bytes)
         uint32_t gameCheck, nPlayers;
         setGamesPlayed(&gameCheck);
 
+#ifdef DEBUG
         std::cout << "gamesPlayed: " << gamesPlayed << std::endl;
         std::cout << "gameCheck: " << gameCheck << std::endl;
         std::cout << "lastGameCheck: " << lastGameCheck << std::endl;
+#endif
 
         if (gameCheck > gamesPlayed) {
           nPlayers = gameCheck - gamesPlayed;
-          std::cout << "nPlayers: " << nPlayers << std::endl;
 
           if (nPlayers == 0 || nPlayers > 4) {
             break;
@@ -333,19 +362,19 @@ static void watch()
   char buf[1024];
 
   if ((fd = inotify_init()) == -1) {
-    perror("Failed inotify_init()");
-    //cleanup(1);
+    std::cerr << "Failed inotify_init()" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   if ((wd = inotify_add_watch(
     fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
 
-    perror("Failed inotify_add_watch()");
-    //cleanup(1);
+    std::cerr << "Failed inotify_add_watch()" << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   while (isRunning.load()) {
-    std::cout << "Watching for action" << std::endl;
+    std::cout << "Waiting for action..." << std::endl;
     ssize_t bytes = read(fd, buf, sizeof(buf));
 
     if (bytes == -1)
@@ -357,44 +386,30 @@ static void watch()
   }
 }
 
-static int registerMachine(const std::string& code)
+static void registerMachine(const std::string& code)
 {
   long rc = curlHandle->post("/spooky/register", code);
 
   if (rc != 200 || curlHandle->responseData.size() != MAX_MACHINE_ID_LEN) {
-    return 1;
+    std::exit(EXIT_FAILURE);
   }
 
   strncpy(mid, curlHandle->responseData.c_str(), MAX_MACHINE_ID_LEN);
   std::cout << mid << std::endl;
-
-  return 0;
 }
 
 static void print_usage()
 {
   std::cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
-  std::cerr << " -g <game> Specify the game" << std::endl;
-  std::cerr << " -m Monitor highscores & send to server" << std::endl;
-  std::cerr << " -d Run in background (daemon mode)" << std::endl;
-  std::cerr << " -r <code> Register your pinball machine" << std::endl;
-  std::cerr << " -h Displays this" << std::endl;
+  std::cerr << " -g <game> Start game monitoring" << std::endl;
+  std::cerr << " -r <code> Register pinball machine" << std::endl;
+  std::cerr << " -d Forks to background (daemon mode)" << std::endl;
+  std::cerr << " -h Displays usage" << std::endl;
 }
 
 void signalHandler(int signal)
 {
-  if (signal == SIGINT || signal == SIGTERM) {
-    std::cout << "Cleaning up..." << std::endl;
-
-    isRunning.store(false);
-    curl_global_cleanup();
-
-    if (display) {
-      XCloseDisplay(display);
-    }
-
-    std::exit(0);
-  } 
+  if (signal == SIGINT || signal == SIGTERM) std::exit(0);
 }
 
 int main(int argc, char **argv)
@@ -405,7 +420,7 @@ int main(int argc, char **argv)
 
   if (argc < 2) {
     std::cerr
-      << "Missing parameters: -r <reg code> or -m is required, -g <game name> too!"
+      << "Missing parameters: -r <code> or -g <game>"
       << std::endl;
 
     print_usage();
@@ -413,7 +428,7 @@ int main(int argc, char **argv)
   }
 
   for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "r:g:mdh")) == -1) break;
+    if ((opt = getopt(argc, argv, "r:g:dh")) == -1) break;
 
     switch (opt) {
     case 'h':
@@ -426,6 +441,7 @@ int main(int argc, char **argv)
       break;
 
     case 'g':
+      run = 1;
       gameName = optarg;
       break;
 
@@ -433,28 +449,27 @@ int main(int argc, char **argv)
       pid = fork();
 
       if (pid < 0) {
-        perror("Failed to fork");
-        exit(1);
+        std::cerr << "Failed to fork" << std::endl;
+        std::exit(EXIT_FAILURE);
       }
 
-      if (pid > 0) exit(0);
-      break;
-
-    case 'm':
-      run = 1;
+      if (pid > 0) std::exit(0);
       break;
     }
   }
 
   if (run && reg) {
-    std::cerr << "Cannot use -m and -r together" << std::endl;
+    std::cerr << "Cannot use -r and -g together" << std::endl;
+    print_usage();
     return 1;
   }
 
   if (run || reg) {
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
     curlHandle = std::make_shared<CurlHandler>("https://hwn.local:8443");
   }
+
+  std::atexit(cleanup);
 
   if (reg) {
     registerMachine(regCode);
@@ -482,7 +497,7 @@ int main(int argc, char **argv)
         setenv("DISPLAY", ":0", 0);
         if ((display = XOpenDisplay(NULL)) == NULL) {
           std::cerr << "Unable to open X display" << std::endl;
-          return 1;
+          std::exit(EXIT_FAILURE);
         }
         else {
           std::cout << "X display opened" << std::endl;
@@ -494,10 +509,11 @@ int main(int argc, char **argv)
       }
       else {
         std::cerr << "Invalid game. Supported games:<list here>\n";
+        std::exit(EXIT_FAILURE);
       }
     }
   }
 
-  curl_global_cleanup();
+  cleanup();
   return 0;
 }
