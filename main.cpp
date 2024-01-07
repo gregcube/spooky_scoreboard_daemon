@@ -24,6 +24,12 @@
 #define VERSION "0.0.2"
 #define MAX_MACHINE_ID_LEN 36
 
+#ifdef DEBUG
+#define BASE_URL "https://hwn.local:8443"
+#else
+#define BASE_URL "https://scoreboard.web.net"
+#endif
+
 typedef struct {
   char code[4][5];    // Login code for each player.
   uint8_t n_players;  // Number of players (usually 1-4).
@@ -87,7 +93,7 @@ static void loadMachineId()
 static void sendPing()
 {
   std::cout << "Setting up ping thread" << std::endl;
-  CurlHandler ch("https://hwn.local:8443");
+  CurlHandler ch(BASE_URL);
 
   while (isRunning.load()) {
 #ifdef DEBUG
@@ -488,7 +494,7 @@ int main(int argc, char **argv)
 
   if (run || reg) {
     curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
-    curlHandle = std::make_shared<CurlHandler>("https://hwn.local:8443");
+    curlHandle = std::make_shared<CurlHandler>(BASE_URL);
   }
 
   std::atexit(cleanup);
