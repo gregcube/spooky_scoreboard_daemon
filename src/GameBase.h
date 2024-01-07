@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <functional>
 
 #include <json/json.h>
 
@@ -20,5 +21,9 @@ public:
   virtual const std::string& getTmpPath() = 0;
   virtual const std::string& getAuditsFile() = 0;
 };
+
+using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;
+
+extern std::map<std::string, GameFactoryFunction> gameFactories;
 
 #endif

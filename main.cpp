@@ -43,7 +43,7 @@ std::thread ping, codeWindow;
 
 static void cleanup()
 {
-  std::cout << "Cleaning up..." << std::endl;
+  std::cout << "Exiting..." << std::endl;
 
   isRunning.store(false);
 
@@ -75,8 +75,8 @@ static void loadMachineId()
 
   file.read(mid, MAX_MACHINE_ID_LEN);
   if (file.gcount() != MAX_MACHINE_ID_LEN) {
-    std::cerr << "Failed to read machine id" << std::endl;
     file.close();
+    std::cerr << "Failed to read machine id" << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
@@ -324,15 +324,15 @@ static void processEvent(char *buf, ssize_t bytes)
         setGamesPlayed(&gameCheck);
 
 #ifdef DEBUG
-        std::cout << "gamesPlayed: " << gamesPlayed << std::endl;
-        std::cout << "gameCheck: " << gameCheck << std::endl;
+        std::cout << "gamesPlayed: " << gamesPlayed << "\n";
+        std::cout << "gameCheck: " << gameCheck << "\n";
         std::cout << "lastGameCheck: " << lastGameCheck << std::endl;
 #endif
 
         if (gameCheck > gamesPlayed) {
           nPlayers = gameCheck - gamesPlayed;
 
-          if (nPlayers == 0 || nPlayers > 4) {
+          if (nPlayers > 4) {
             break;
           }
 
@@ -386,8 +386,14 @@ static void watch()
   }
 }
 
-static void registerMachine(const std::string& code)
+static void printSupportedGames()
 {
+  for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
+    std::cout << "  " << it->first << ": " << it->second()->getGameName() << "\n";
+  }
+}
+
+static void registerMachine(const std::string& code) {
   long rc = curlHandle->post("/spooky/register", code);
 
   if (rc != 200 || curlHandle->responseData.size() != MAX_MACHINE_ID_LEN) {
@@ -398,13 +404,14 @@ static void registerMachine(const std::string& code)
   std::cout << mid << std::endl;
 }
 
-static void print_usage()
+static void printUsage()
 {
   std::cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
-  std::cerr << " -g <game> Start game monitoring" << std::endl;
-  std::cerr << " -r <code> Register pinball machine" << std::endl;
-  std::cerr << " -d Forks to background (daemon mode)" << std::endl;
-  std::cerr << " -h Displays usage" << std::endl;
+  std::cerr << " -g <game> Start game monitoring\n";
+  std::cerr << " -r <code> Register pinball machine\n";
+  std::cerr << " -d Forks to background (daemon mode)\n";
+  std::cerr << " -l List supported games\n";
+  std::cerr << " -h Displays usage\n" << std::endl;
 }
 
 void signalHandler(int signal)
@@ -423,26 +430,41 @@ int main(int argc, char **argv)
       << "Missing parameters: -r <code> or -g <game>"
       << std::endl;
 
-    print_usage();
+    printUsage();
     return 1;
   }
 
   for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "r:g:dh")) == -1) break;
+    if ((opt = getopt(argc, argv, "r:g:ldh")) == -1) break;
 
     switch (opt) {
     case 'h':
-      print_usage();
+      printUsage();
       break;
 
     case 'r':
-      reg = 1;
-      regCode = optarg;
+      if (strlen(optarg) == 4) {
+        reg = 1;
+        regCode = optarg;
+      }
+      else {
+        std::cerr << "Invalid code." << std::endl;
+      }
       break;
 
     case 'g':
-      run = 1;
-      gameName = optarg;
+      if (auto it = gameFactories.find(optarg); it != gameFactories.end()) {
+        run = 1;
+        gameName = optarg;
+      }
+      else {
+        std::cerr << "Invalid game.\n";
+        printSupportedGames();
+      }
+      break;
+
+    case 'l':
+      printSupportedGames();
       break;
 
     case 'd':
@@ -460,7 +482,7 @@ int main(int argc, char **argv)
 
   if (run && reg) {
     std::cerr << "Cannot use -r and -g together" << std::endl;
-    print_usage();
+    printUsage();
     return 1;
   }
 
@@ -470,50 +492,36 @@ int main(int argc, char **argv)
   }
 
   std::atexit(cleanup);
+  std::signal(SIGINT, signalHandler);
+  std::signal(SIGTERM, signalHandler);
 
   if (reg) {
     registerMachine(regCode);
   }
 
-  if (run) {
-    if (gameName.empty()) {
-      std::cerr << "Missing -g <gameName>" << std::endl;
+  if (run && (game = GameBase::create(gameName)) != nullptr) {
+    std::cout << game->getGameName() << std::endl;
+
+    isRunning.store(true);
+    loadMachineId();
+
+    ping = std::thread(sendPing);
+    ping.detach();
+
+    XInitThreads();
+    setenv("DISPLAY", ":0", 0);
+    if ((display = XOpenDisplay(NULL)) == NULL) {
+      std::cerr << "Unable to open X display" << std::endl;
+      std::exit(EXIT_FAILURE);
     }
     else {
-      game = GameBase::create(gameName);
-      if (game) {
-        std::cout << game->getGameName() << std::endl;
-
-        std::signal(SIGINT, signalHandler);
-        std::signal(SIGTERM, signalHandler);
-
-        isRunning.store(true);
-        loadMachineId();
-
-        ping = std::thread(sendPing);
-        ping.detach();
-
-        XInitThreads();
-        setenv("DISPLAY", ":0", 0);
-        if ((display = XOpenDisplay(NULL)) == NULL) {
-          std::cerr << "Unable to open X display" << std::endl;
-          std::exit(EXIT_FAILURE);
-        }
-        else {
-          std::cout << "X display opened" << std::endl;
-        }
-
-        std::make_unique<QrCode>(curlHandle)->get(mid)->write();
-        setGamesPlayed(&gamesPlayed);
-        watch(); 
-      }
-      else {
-        std::cerr << "Invalid game. Supported games:<list here>\n";
-        std::exit(EXIT_FAILURE);
-      }
+      std::cout << "X display opened" << std::endl;
     }
+
+    std::make_unique<QrCode>(curlHandle)->get(mid)->write();
+    setGamesPlayed(&gamesPlayed);
+    watch(); 
   }
 
-  cleanup();
   return 0;
 }
