@@ -39,4 +39,5 @@ target_link_libraries(ssbd PRIVATE
   Xft
   Xpm
   fontconfig
+  pthread
 )
