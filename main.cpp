@@ -134,7 +134,7 @@ static void setLoginCodes(login_codes_t *ptr)
     memcpy(ptr->code[i], response, 4);
     ptr->code[i][4] = '\0';
     std::cout << "Code " << i << ": " << ptr->code[i] << std::endl;
-    response++;
+    response += 4;
   }
 }
 
