@@ -294,7 +294,7 @@ static void openPlayerSpot(uint32_t nPlayers)
   }
 }
 
-static void uploadScores()
+static void uploadScores(const Json::Value& scores)
 {
   std::cout << "Uploading scores" << std::endl;
 
@@ -302,22 +302,25 @@ static void uploadScores()
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
 
-    Json::Value json = game->processHighScores();
-
     curlHandle
-      ->post("/spooky/score", mid + Json::writeString(writerBuilder, json));
-
-    setGamesPlayed(&gamesPlayed);
+      ->post("/spooky/score", mid + Json::writeString(writerBuilder, scores));
   }
   catch (const std::runtime_error& e) {
     std::cerr << "Exception: " << e.what() << std::endl;
   }
 }
 
+/**
+ * TODO: Will likely need to change when we learn how other games work.
+ *
+ * Halloween writes audits to a file, then highscores to another file after a game.
+ * Writes audits when a new game is started.
+ *
+ * TNA writes high scores and audits to the same file (I think).
+ */
 static void processEvent(char *buf, ssize_t bytes)
 {
   char *ptr = buf;
-  static uint32_t lastGameCheck;
 
   while (ptr < buf + bytes) {
     struct inotify_event *evt = (struct inotify_event *)ptr;
@@ -325,35 +328,24 @@ static void processEvent(char *buf, ssize_t bytes)
     if (evt->len > 0) {
       std::cout << "Event: " << evt->name << std::endl;
 
+      if (strcmp(evt->name, game->getHighScoresFile().c_str()) == 0) {
+        static Json::Value lastScore;
+        Json::Value currentScore = game->processHighScores();
+
+        if (currentScore != lastScore) {
+          uploadScores(currentScore);
+          lastScore = currentScore;
+          setGamesPlayed(&gamesPlayed);
+        }
+      }
+
       if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
         uint32_t gameCheck, nPlayers;
         setGamesPlayed(&gameCheck);
 
-#ifdef DEBUG
-        std::cout << "gamesPlayed: " << gamesPlayed << "\n";
-        std::cout << "gameCheck: " << gameCheck << "\n";
-        std::cout << "lastGameCheck: " << lastGameCheck << std::endl;
-#endif
-
         if (gameCheck > gamesPlayed) {
           nPlayers = gameCheck - gamesPlayed;
-
-          if (nPlayers > 4) {
-            break;
-          }
-
-          if (gameCheck == lastGameCheck) {
-            uploadScores();
-            lastGameCheck = 0;
-            break;
-          }
-
           openPlayerSpot(nPlayers);
-          lastGameCheck = gameCheck;
-        }
-        else {
-          uploadScores();
-          break;
         }
       }
     }

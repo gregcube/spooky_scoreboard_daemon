@@ -26,7 +26,8 @@ const Json::Value TNA::processHighScores()
   last.append(lastScoresNode["Player3LastScore"].as<uint32_t>());
   last.append(lastScoresNode["Player4LastScore"].as<uint32_t>());
 
-  root.append(classic).append(last);
+  root.append(classic);
+  root.append(last);
   return root;
 }
 
