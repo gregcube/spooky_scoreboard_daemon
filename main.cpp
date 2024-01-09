@@ -138,17 +138,17 @@ static void setLoginCodes(login_codes_t *ptr)
   }
 }
 
-static void showLoginCodes(void *arg)
+static void showLoginCodes(login_codes_t *loginCode)
 {
   uint8_t display_secs = 20;
   struct timeval start_time, current_time, update_time;
-  login_codes_t *login_code = (login_codes_t *)arg;
   Window window;
+  Visual *visual;
+  Colormap colormap;
   XftDraw *xft_draw;
   XftFont *xft_font;
   XftColor xft_color;
   Pixmap qr_pixmap;
-  XpmAttributes xpm_attr;
 
   int screen = DefaultScreen(display);
 
@@ -174,7 +174,7 @@ static void showLoginCodes(void *arg)
   XRaiseWindow(display, window);
 
   int rc = XpmReadFileToPixmap(
-    display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, &xpm_attr);
+    display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, NULL);
 
   if (rc != XpmSuccess) {
     std::cerr << "Failed to create pixmap" << XpmGetErrorString(rc) << std::endl;
@@ -198,10 +198,13 @@ static void showLoginCodes(void *arg)
     std::exit(EXIT_FAILURE);
   }
 
+  colormap = DefaultColormap(display, screen);
+  visual = DefaultVisual(display, screen);
+
   XftColorAllocName(
     display,
-    DefaultVisual(display, screen),
-    DefaultColormap(display, screen),
+    visual,
+    colormap,
     "black",
     &xft_color
   );
@@ -209,8 +212,8 @@ static void showLoginCodes(void *arg)
   xft_draw = XftDrawCreate(
     display,
     window,
-    DefaultVisual(display, screen),
-    DefaultColormap(display, screen)
+    visual,
+    colormap
   );
 
   XSelectInput(display, window, ExposureMask);
@@ -223,17 +226,14 @@ static void showLoginCodes(void *arg)
       XNextEvent(display, &event);
 
       if (event.type == Expose && event.xexpose.count == 0) {
-        XCopyArea(
-          display, qr_pixmap, window, gc, 0, 0,
-          xpm_attr.width, xpm_attr.height, ww - 210, 10);
-
+        XCopyArea(display, qr_pixmap, window, gc, 0, 0, 200, 200, ww - 210, 10);
         XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
 
-        for (int i = 0, ty = 40; i < login_code->n_players; i++, ty += 40) {
+        for (int i = 0, ty = 40; i < loginCode->n_players; i++, ty += 40) {
           char code[15];
 
           snprintf(code, sizeof(code),
-            "Player %d: %s", i + 1, login_code->code[i]);
+            "Player %d: %s", i + 1, loginCode->code[i]);
 
           XftDrawString8(
             xft_draw, &xft_color, xft_font, 10, ty,
@@ -262,19 +262,12 @@ static void showLoginCodes(void *arg)
 
   XFreePixmap(display, qr_pixmap);
   XftDrawDestroy(xft_draw);
-
-  XftColorFree(
-    display,
-    DefaultVisual(display, screen),
-    DefaultColormap(display, screen),
-    &xft_color
-  );
-
+  XftColorFree(display, visual, colormap, &xft_color);
   XftFontClose(display, xft_font);
   XDestroyWindow(display, window);
   XFlush(display);
 
-  login_code->shown = 0;
+  loginCode->shown = 0;
 }
 
 static void openPlayerSpot(uint32_t nPlayers)
