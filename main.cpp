@@ -334,12 +334,15 @@ static void processEvent(char *buf, ssize_t bytes)
 
       if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
         uint32_t gameCheck, nPlayers;
-        setGamesPlayed(&gameCheck);
+        static uint32_t lastCheck = 0;
 
-        if (gameCheck > gamesPlayed) {
+        setGamesPlayed(&gameCheck);
+        if (gameCheck > gamesPlayed && gameCheck != lastCheck) {
           nPlayers = gameCheck - gamesPlayed;
           openPlayerSpot(nPlayers);
         }
+
+        lastCheck = gameCheck;
       }
     }
 
