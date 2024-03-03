@@ -11,6 +11,7 @@ class GameBase
 {
 public:
   virtual ~GameBase() = default;
+
   virtual const Json::Value processHighScores() = 0;
   virtual uint32_t getGamesPlayed() = 0;
 
@@ -24,7 +25,6 @@ public:
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;
-
 extern std::map<std::string, GameFactoryFunction> gameFactories;
 
 #endif

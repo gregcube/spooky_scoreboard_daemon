@@ -1,7 +1,6 @@
 #include <map>
 
 #include "GameBase.h"
-
 #include "game/hwn.h"
 #include "game/tna.h"
 

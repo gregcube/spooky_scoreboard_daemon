@@ -14,7 +14,7 @@ find_package(yaml-cpp CONFIG REQUIRED)
 add_definitions(-DDEBUG)
 
 add_executable(ssbd
-  main.cpp
+  src/main.cpp
   src/CurlHandler.cpp
   src/QrCode.cpp
   src/GameBase.cpp

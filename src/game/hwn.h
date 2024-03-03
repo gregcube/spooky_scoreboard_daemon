@@ -1,5 +1,5 @@
-#ifndef _HWN_H_
-#define _HWN_H_
+#ifndef _HWN_H
+#define _HWN_H
 
 #include "../GameBase.h"
 

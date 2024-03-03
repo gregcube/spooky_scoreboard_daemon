@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <cstddef>
+
 #include "CurlHandler.h"
 
 class QrCode

@@ -2,6 +2,7 @@
 #define _CURL_HANDLER_H
 
 #include <string>
+
 #include <curl/curl.h>
 
 class CurlHandler
@@ -12,6 +13,7 @@ public:
 
   CurlHandler(const std::string& baseUrl);
   ~CurlHandler(void);
+
   long get(const std::string& path);
   long post(const std::string& path, const std::string& data);
 

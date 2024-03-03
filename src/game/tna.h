@@ -1,5 +1,5 @@
-#ifndef _TNA_H_
-#define _TNA_H_
+#ifndef _TNA_H
+#define _TNA_H
 
 #include "../GameBase.h"
 

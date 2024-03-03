@@ -17,9 +17,9 @@
 #include <X11/xpm.h>
 #include <fontconfig/fontconfig.h>
 
-#include "src/CurlHandler.h"
-#include "src/QrCode.h"
-#include "src/GameBase.h"
+#include "CurlHandler.h"
+#include "QrCode.h"
+#include "GameBase.h"
 
 #define VERSION "0.0.2"
 #define MAX_MACHINE_ID_LEN 36
@@ -387,7 +387,8 @@ static void printSupportedGames()
   }
 }
 
-static void registerMachine(const std::string& code) {
+static void registerMachine(const std::string& code)
+{
   long rc = curlHandle->post("/spooky/register", code);
 
   if (rc != 200 || curlHandle->responseData.size() != MAX_MACHINE_ID_LEN) {
@@ -420,10 +421,7 @@ int main(int argc, char **argv)
   pid_t pid;
 
   if (argc < 2) {
-    std::cerr
-      << "Missing parameters: -r <code> or -g <game>"
-      << std::endl;
-
+    std::cerr << "Missing parameters: -r <code> or -g <game>" << std::endl;
     printUsage();
     return 1;
   }
@@ -519,3 +517,6 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
+// vim: set ts=2 sw=2 expandtab:
+
