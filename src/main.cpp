@@ -25,7 +25,7 @@
 #define MAX_MACHINE_ID_LEN 36
 
 #ifdef DEBUG
-#define BASE_URL "https://hwn.local:8443"
+#define BASE_URL "https://ssb.local:8443"
 #else
 #define BASE_URL "https://scoreboard.web.net"
 #endif
@@ -510,9 +510,15 @@ int main(int argc, char **argv)
       std::cout << "X display opened" << std::endl;
     }
 
-    std::make_unique<QrCode>(curlHandle)->get(mid)->write();
-    setGamesPlayed(&gamesPlayed);
-    watch(); 
+
+    try {
+      std::make_unique<QrCode>(curlHandle)->get(mid)->write();
+      setGamesPlayed(&gamesPlayed);
+      watch();
+    }
+    catch (const std::runtime_error& e) {
+      std::cerr << e.what() << std::endl;
+    }
   }
 
   return 0;

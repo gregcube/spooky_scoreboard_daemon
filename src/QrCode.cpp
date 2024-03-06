@@ -11,7 +11,7 @@ QrCode* QrCode::get(const char *ptr)
 
   if ((rc = curlHandle->post("/spooky/qr", ptr)) != 200) {
     std::cerr << "QR: " << rc << std::endl;
-    return nullptr;
+    throw std::runtime_error("Unable to download QR code");
   }
 
   return this;
