@@ -15,7 +15,7 @@ What you'll need
 Halloween/ Ultraman (UP) Installation
 ---------------------------
 
-0. Copy install-UP-HWN_UM.sh to a USB drive.
+0. Copy scripts/install-UP-HWN_UM.sh to a USB drive.
 
    Optionally download and copy the wpa_supplicant package
    if you plan to use wifi. Rename the file to `wpa_supplicant.pkg.tar.gz`.
@@ -33,16 +33,12 @@ Halloween/ Ultraman (UP) Installation
 4. At the `pinix login` prompt.
    Login using `pinball` as the username and password.
 
-5. Run the following commands:
-
-   ```
-   cd /game/media
-   sudo bash install-UP-HWN_UM.sh
-   ```
-
+5. Run the following commands: `sudo bash /game/media/install-UP-HWN_UM.sh`
    When prompted enter `pinball` as the password.
+   You will be prompted for your SSID and password if you're using wifi.
 
-6. Sign-up at https://scoreboard.web.net and follow the instructions to
+6. If the install script returns "Completed" then we should be good.
+   Sign-up at https://scoreboard.web.net and follow the instructions to
    register your machine.  You will be given a 4-digit alphanumeric code.
    See Note below.
 

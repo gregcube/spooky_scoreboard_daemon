@@ -49,8 +49,6 @@ std::thread ping, codeWindow;
 
 static void cleanup()
 {
-  std::cout << "Exiting..." << std::endl;
-
   isRunning.store(false);
 
   if (ping.joinable()) {
