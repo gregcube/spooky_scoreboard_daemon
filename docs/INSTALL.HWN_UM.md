@@ -32,7 +32,13 @@ Halloween/ Ultraman (UP) Installation
 4. At the pinix login prompt.  
    Login using `pinball` as the username and password.
 
-5. Run the following command: `sudo bash /game/media/install-UP-HWN_UM.sh`
+5. Run the following command:  
+
+   For Halloween:  
+   `sudo bash /game/media/install-UP-HWN_UM.sh hwn`
+
+   For Ultraman:  
+   `sudo bash /game/media/install-UP-HWN_UM.sh um`
    
    When prompted enter `pinball` as the password.  
    You will be prompted for a SSID and password if you're using wifi.

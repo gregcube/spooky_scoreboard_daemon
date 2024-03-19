@@ -1,9 +1,14 @@
 #!/bin/bash
 
-# Requires root access.
+# Require root access.
 [[ "$(id -u)" -ne 0 ]] && { echo "Run as root to proceed" >&2; exit 1; }
 
 main() {
+  # Check params.
+  [[ $# -eq 0 ]] && { echo "Missing game parameter" >&2; exit 1; }
+  [[ "$1" != "hwn" && "$1" != "um" ]] && { echo "hwn or um" >&2; exit 1; }
+  game=$1
+
   # Remount file system with read/write access.
   mount -o remount,rw /
   err "Failed to remount file system"
@@ -64,10 +69,10 @@ main() {
   err "Failed to install spooky scoreboard daemon"
 
   # Generate startup script.
-  write_ssb_startup
+  write_ssb_startup "${game}"
 
   # Add wpa_supplicant call to startup script if we're using wifi.
-  if [[ -n "$ssid" ]] && [[ -n "$pass" ]]; then
+  if [[ -n "$ssid" && -n "$pass" ]]; then
     sed -i '2i\wpa_supplicant -B -Dwext -iwlp0s20u4u2 -c/etc/wpa_supplicant/wifi.conf' /etc/X11/xinit/xinitrc.d/99-ssbd.sh
   fi
 
@@ -114,7 +119,7 @@ cat <<EOF >/etc/X11/xinit/xinitrc.d/99-ssbd.sh
 #!/bin/bash
 find /tmp -name 'serverauth.*' -type f -exec cp {} /game/.Xauthority \;
 sleep 5
-ssbd -g hwn -d >/game/tmp/ssbd.log
+ssbd -g ${game} -d >/game/tmp/ssbd.log
 EOF
 chmod +x /etc/X11/xinit/xinitrc.d/99-ssbd.sh
 }
