@@ -117,9 +117,8 @@ EOF
 write_ssb_startup() {
 cat <<EOF >/etc/X11/xinit/xinitrc.d/99-ssbd.sh
 #!/bin/bash
-find /tmp -name 'serverauth.*' -type f -exec cp {} /game/.Xauthority \;
 sleep 5
-ssbd -g ${game} -d >/game/tmp/ssbd.log
+ssbd -g $1 -d >/game/tmp/ssbd.log
 EOF
 chmod +x /etc/X11/xinit/xinitrc.d/99-ssbd.sh
 }

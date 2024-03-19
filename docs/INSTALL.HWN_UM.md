@@ -29,8 +29,7 @@ Halloween/ Ultraman (UP) Installation
 
 3. On the keyboard press `CTRL` + `ALT` + `F2`
 
-4. At the pinix login prompt.  
-   Login using `pinball` as the username and password.
+4. At the pinix login prompt. Login using `pinball` as the username and password.
 
 5. Run the following command:  
 
