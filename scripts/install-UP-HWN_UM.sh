@@ -47,8 +47,8 @@ main() {
   systemctl start systemd-networkd
 
   # Wait for an internet connection.
-  echo "Waiting for internet connection..."
-  while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do sleep 1; done
+  echo "Waiting for internet connection"
+  while ! ping -c 1 8.8.8.8 >/dev/null 2>&1; do echo -n .; sleep 1; done
 
   # Download and install libxpm package.
   # Required for spooky scoreboard to display QR codes on screen.
