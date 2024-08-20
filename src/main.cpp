@@ -240,6 +240,7 @@ static void showLoginCodes(login_codes_t *loginCode)
       }
     }
 
+    /*
     gettimeofday(&current_time, NULL);
     if (current_time.tv_sec - start_time.tv_sec >= display_secs)
       break;
@@ -256,6 +257,7 @@ static void showLoginCodes(login_codes_t *loginCode)
         xft_draw, &xft_color, xft_font, 5, wh - 10,
         (XftChar8 *)countdown, strlen(countdown));
     }
+    */
   }
 
   XFreePixmap(display, qr_pixmap);
@@ -359,7 +361,7 @@ static void watch()
   }
 
   if ((wd = inotify_add_watch(
-    fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
+    fd, game->getGamePath().c_str(), IN_MODIFY)) == -1) {
 
     std::cerr << "Failed inotify_add_watch()" << std::endl;
     std::exit(EXIT_FAILURE);
