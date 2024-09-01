@@ -13,8 +13,7 @@ The daemon runs in the background on your Spooky pinball machine, periodically
 sending data to the web server. This data includes highscores and game audit
 information. The server processes this data to display in a variety of formats.
 This includes showcasing top scores specific to each machine and leaderboards
-spanning all supported games. *Only Halloween is supported at this moment. More
-on that below.*
+spanning all supported games.
 
 On the website you can register as a Player or an Operator or both.
 
@@ -30,12 +29,21 @@ player profile is set to private.  All players are automatically logged out
 after each game.
 
 
+Supported Games
+---------------
+
+- Halloween (UP)
+- Ultraman (UP)
+- Texas Chainsaw Massacre (UP)
+- Total Nuclear Annihilation (preliminary support)
+
+
 Notes
 ------
 
-This has only been tested on a Spooky Halloween CE pinball machine
-with the "UP" computer board.  It has not been tested on the mini-PC that
-was used in later Halloween/ Ultraman builds.
+This has only been tested on games with the "UP" computer board.
+It has not been tested on the mini-PC that was used in later
+Halloween/ Ultraman builds.
 
 See docs directory for more info.
 

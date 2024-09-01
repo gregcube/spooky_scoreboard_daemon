@@ -8,7 +8,7 @@
 
 const Json::Value TCM::processHighScores()
 {
-  std::ifstream ifs("/game/highscores.config");
+  std::ifstream ifs("/game/audits/highscores.tcm");
 
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to process highscores");
@@ -62,7 +62,8 @@ const Json::Value TCM::processHighScores()
 
 uint32_t TCM::getGamesPlayed()
 {
-  std::ifstream ifs("/game/_game_audits.json");
+<<<<<<< HEAD
+  std::ifstream ifs("/game/audits/_game_audits.json");
 
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to open game audits file");

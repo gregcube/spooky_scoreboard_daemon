@@ -11,7 +11,7 @@ file(GLOB GAME_SOURCES src/game/*.cpp)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 
-add_definitions(-DDEBUG)
+#add_definitions(-DDEBUG)
 
 add_executable(ssbd
   src/main.cpp

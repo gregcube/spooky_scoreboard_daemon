@@ -7,10 +7,10 @@ class TCM: public GameBase
 {
 private:
   const std::string gameName = "Texas Chainsaw Massacre";
-  const std::string gamePath = "/game";
+  const std::string gamePath = "/game/logs";
   const std::string tmpPath = "/game/tmp";
   const std::string auditsFile = "_game_audits.json";
-  const std::string scoresFile = "highscores.config";
+  const std::string scoresFile = "highscores.tcm";
 
 public:
   const Json::Value processHighScores() override;
