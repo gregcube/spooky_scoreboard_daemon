@@ -62,7 +62,6 @@ const Json::Value TCM::processHighScores()
 
 uint32_t TCM::getGamesPlayed()
 {
-<<<<<<< HEAD
   std::ifstream ifs("/game/audits/_game_audits.json");
 
   if (!ifs.is_open()) {
