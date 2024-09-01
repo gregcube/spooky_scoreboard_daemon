@@ -21,7 +21,7 @@
 #include "QrCode.h"
 #include "GameBase.h"
 
-#define VERSION "0.0.2"
+#define VERSION "0.0.3"
 #define MAX_MACHINE_ID_LEN 36
 
 #ifdef DEBUG
@@ -49,8 +49,6 @@ std::thread ping, codeWindow;
 
 static void cleanup()
 {
-  std::cout << "Exiting..." << std::endl;
-
   isRunning.store(false);
 
   if (ping.joinable()) {
@@ -402,11 +400,12 @@ static void registerMachine(const std::string& code)
 static void printUsage()
 {
   std::cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
-  std::cerr << " -g <game> Start game monitoring\n";
+  std::cerr << " -g <game> Game name. Use -l to list supported games\n";
   std::cerr << " -r <code> Register pinball machine\n";
-  std::cerr << " -d Forks to background (daemon mode)\n";
-  std::cerr << " -l List supported games\n";
-  std::cerr << " -h Displays usage\n" << std::endl;
+  std::cerr << " -u        Upload high scores and exit\n";
+  std::cerr << " -d        Forks to background (daemon mode)\n";
+  std::cerr << " -l        List supported games\n";
+  std::cerr << " -h        Displays usage\n" << std::endl;
 }
 
 void signalHandler(int signal)
@@ -416,7 +415,7 @@ void signalHandler(int signal)
 
 int main(int argc, char **argv)
 {
-  int opt, reg = 0, run = 0;
+  int opt, reg = 0, run = 0, upload = 0;
   std::string gameName, regCode;
   pid_t pid;
 
@@ -427,7 +426,7 @@ int main(int argc, char **argv)
   }
 
   for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "r:g:ldh")) == -1) break;
+    if ((opt = getopt(argc, argv, "r:g:ldhu")) == -1) break;
 
     switch (opt) {
     case 'h':
@@ -453,6 +452,11 @@ int main(int argc, char **argv)
         std::cerr << "Invalid game.\n";
         printSupportedGames();
       }
+      break;
+
+    case 'u':
+      run = 1;
+      upload = 1;
       break;
 
     case 'l':
@@ -496,6 +500,12 @@ int main(int argc, char **argv)
 
     isRunning.store(true);
     loadMachineId();
+
+    if (upload) {
+      Json::Value scores = game->processHighScores();
+      uploadScores(scores);
+      std::exit(EXIT_SUCCESS);
+    }
 
     ping = std::thread(sendPing);
     ping.detach();
