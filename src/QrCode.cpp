@@ -6,7 +6,6 @@
 
 QrCode* QrCode::get(const char *ptr)
 {
-  std::cout << "Downloading QR Code" << std::endl;
   long rc;
 
   if ((rc = curlHandle->post("/spooky/qr", ptr)) != 200) {

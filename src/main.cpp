@@ -1,62 +1,49 @@
 #include <cstdint>
-#include <cstring>
 #include <csignal>
 #include <iostream>
 #include <fstream>
 #include <thread>
-#include <atomic>
 
 #include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
-#include <curl/curl.h>
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xft/Xft.h>
 #include <X11/xpm.h>
+#include <X11/Xatom.h>
 #include <fontconfig/fontconfig.h>
 
+#include "main.h"
 #include "CurlHandler.h"
 #include "QrCode.h"
+#include "QrScanner.h"
 #include "GameBase.h"
 
-#define VERSION "0.0.3"
-#define MAX_MACHINE_ID_LEN 36
+char mid[MAX_UUID_LEN + 1];
+players playerList;
 
-#ifdef DEBUG
-#define BASE_URL "https://ssb.local:8443"
-#else
-#define BASE_URL "https://scoreboard.web.net"
-#endif
-
-typedef struct {
-  char code[4][5];    // Login code for each player.
-  uint8_t n_players;  // Number of players (usually 1-4).
-  uint8_t shown;      // Are login codes currently displayed on screen.
-} login_codes_t;
-
-static char mid[MAX_MACHINE_ID_LEN + 1];
 static uint32_t gamesPlayed = 0;
 static Display *display;
 static CURLcode curlCode;
-static login_codes_t loginCodes;
 
 std::atomic<bool> isRunning(false);
 std::unique_ptr<GameBase> game;
 std::shared_ptr<CurlHandler> curlHandle;
-std::thread ping, codeWindow;
+std::shared_ptr<QrScanner> qrScanner;
+std::thread ping, playerWindow;
 
 static void cleanup()
 {
   isRunning.store(false);
 
-  if (ping.joinable()) {
-    ping.join();
+  if (qrScanner) {
+    qrScanner->stop();
   }
 
-  if (codeWindow.joinable()) {
-    codeWindow.join();
+  if (ping.joinable()) {
+    ping.join();
   }
 
   if (display) {
@@ -77,66 +64,35 @@ static void loadMachineId()
     std::exit(EXIT_FAILURE);
   }
 
-  file.read(mid, MAX_MACHINE_ID_LEN);
-  if (file.gcount() != MAX_MACHINE_ID_LEN) {
+  file.read(mid, MAX_UUID_LEN);
+  if (file.gcount() != MAX_UUID_LEN) {
     file.close();
     std::cerr << "Failed to read machine id" << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
   file.close();
-  mid[MAX_MACHINE_ID_LEN] = '\0';
+  mid[MAX_UUID_LEN] = '\0';
 }
 
 static void sendPing()
 {
-  std::cout << "Setting up ping thread" << std::endl;
-  CurlHandler ch(BASE_URL);
+  const auto ch = std::make_unique<CurlHandler>(BASE_URL);
 
   while (isRunning.load()) {
 #ifdef DEBUG
     std::cout << "Sending ping..." << std::endl;
 #endif
-    long rescode = ch.post("/spooky/ping", mid);
-
+    long rescode = ch->post("/spooky/ping", mid);
     if (rescode != 200) {
       std::cerr << "Failed to send ping: " << rescode << std::endl;
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-  }
-
-  std::cout << "Exiting ping thread" << std::endl;
-}
-
-static void setGamesPlayed(uint32_t *ptr)
-{
-  try {
-    *ptr = game->getGamesPlayed();
-  }
-  catch (const std::runtime_error& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(10));
   }
 }
 
-static void setLoginCodes(login_codes_t *ptr)
-{
-  size_t bytes = curlHandle->responseData.size();
-
-  if (bytes % 4 != 0 || bytes > (4 * 4))
-    return;
-
-  const char *response = curlHandle->responseData.c_str();
-
-  for (size_t i = 0; i < bytes / 4; i++) {
-    memcpy(ptr->code[i], response, 4);
-    ptr->code[i][4] = '\0';
-    std::cout << "Code " << i << ": " << ptr->code[i] << std::endl;
-    response += 4;
-  }
-}
-
-static void showLoginCodes(login_codes_t *loginCode)
+static void showPlayerLogin()
 {
   uint8_t display_secs = 20;
   struct timeval start_time, current_time, update_time;
@@ -171,7 +127,26 @@ static void showLoginCodes(login_codes_t *loginCode)
   XMapWindow(display, window);
   XRaiseWindow(display, window);
 
-  int rc = XpmReadFileToPixmap(
+  Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+  Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+  XChangeProperty(
+    display,
+    window,
+    wm_state,
+    XA_ATOM,
+    32,
+    PropModeReplace,
+    (unsigned char *) &wm_state_above,
+    1
+  );
+
+  int rc = game->sendi3cmd(window);
+
+  if (rc < 0) {
+    std::exit(EXIT_FAILURE);
+  }
+
+  rc = XpmReadFileToPixmap(
     display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, NULL);
 
   if (rc != XpmSuccess) {
@@ -227,34 +202,53 @@ static void showLoginCodes(login_codes_t *loginCode)
         XCopyArea(display, qr_pixmap, window, gc, 0, 0, 200, 200, ww - 210, 10);
         XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
 
-        for (int i = 0, ty = 40; i < loginCode->n_players; i++, ty += 40) {
-          char code[15];
+        for (int i = 0, ty = 40; i < playerList.numPlayers; i++, ty += 40) {
+          char username[60];
 
-          snprintf(code, sizeof(code),
-            "Player %d: %s", i + 1, loginCode->code[i]);
+          snprintf(
+            username,
+            sizeof(username),
+            "Player %d: %s", i + 1,
+            playerList.player[i].c_str());
 
           XftDrawString8(
-            xft_draw, &xft_color, xft_font, 10, ty,
-            (XftChar8 *)code, strlen(code));
+            xft_draw,
+            &xft_color,
+            xft_font,
+            10,
+            ty,
+            (XftChar8 *)username,
+            strlen(username));
         }
       }
     }
 
     gettimeofday(&current_time, NULL);
-    if (current_time.tv_sec - start_time.tv_sec >= display_secs)
+    if (current_time.tv_sec - start_time.tv_sec >= display_secs) {
       break;
+    }
 
     if (current_time.tv_sec - update_time.tv_sec >= 1) {
       char countdown[3];
 
       update_time = current_time;
-      snprintf(countdown, sizeof(countdown), "%d",
+
+      snprintf(
+        countdown,
+        sizeof(countdown),
+        "%d",
         (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
 
       XClearArea(display, window, 0, wh - 30, 40, 40, 1);
+
       XftDrawString8(
-        xft_draw, &xft_color, xft_font, 5, wh - 10,
-        (XftChar8 *)countdown, strlen(countdown));
+        xft_draw,
+        &xft_color,
+        xft_font,
+        5,
+        wh - 10,
+        (XftChar8 *)countdown,
+        strlen(countdown));
     }
   }
 
@@ -265,23 +259,22 @@ static void showLoginCodes(login_codes_t *loginCode)
   XDestroyWindow(display, window);
   XFlush(display);
 
-  loginCode->shown = 0;
+  playerList.onScreen = false;
 }
 
-static void openPlayerSpot(uint32_t nPlayers)
+void addPlayer(const char *playerName)
 {
-  long rc = curlHandle
-    ->post("/spooky/spot", mid + std::to_string(nPlayers));
+  if (playerList.numPlayers > 4) {
+    return;
+  }
 
-  if (rc == 200) {
-    loginCodes.n_players = nPlayers;
-    setLoginCodes(&loginCodes);
+  playerList.player[playerList.numPlayers] = playerName;
+  playerList.numPlayers++;
 
-    if (loginCodes.shown == 0) {
-      std::thread codeWindow(showLoginCodes, &loginCodes);
-      codeWindow.detach();
-      loginCodes.shown = 1;
-    }
+  if (!playerList.onScreen) {
+    std::thread playerWindow(showPlayerLogin);
+    playerWindow.detach();
+    playerList.onScreen = true;
   }
 }
 
@@ -301,14 +294,6 @@ static void uploadScores(const Json::Value& scores)
   }
 }
 
-/**
- * TODO: Will likely need to change when we learn how other games work.
- *
- * Halloween writes audits to a file, then highscores to another file after a game.
- * Writes audits when a new game is started.
- *
- * TNA writes high scores and audits to the same file (I think).
- */
 static void processEvent(char *buf, ssize_t bytes)
 {
   char *ptr = buf;
@@ -325,22 +310,9 @@ static void processEvent(char *buf, ssize_t bytes)
 
         if (currentScore != lastScore) {
           uploadScores(currentScore);
+          playerList.reset();
           lastScore = currentScore;
-          setGamesPlayed(&gamesPlayed);
         }
-      }
-
-      if (strcmp(evt->name, game->getAuditsFile().c_str()) == 0) {
-        uint32_t gameCheck, nPlayers;
-        static uint32_t lastCheck = 0;
-
-        setGamesPlayed(&gameCheck);
-        if (gameCheck > gamesPlayed && gameCheck != lastCheck) {
-          nPlayers = gameCheck - gamesPlayed;
-          openPlayerSpot(nPlayers);
-        }
-
-        lastCheck = gameCheck;
       }
     }
 
@@ -369,8 +341,9 @@ static void watch()
     std::cout << "Waiting for action..." << std::endl;
     ssize_t bytes = read(fd, buf, sizeof(buf));
 
-    if (bytes == -1)
+    if (bytes == -1) {
       std::cerr << "Failed reading event" << std::endl;
+    }
     else {
       std::cout << "Processing event..." << std::endl;
       processEvent(buf, bytes);
@@ -389,11 +362,11 @@ static void registerMachine(const std::string& code)
 {
   long rc = curlHandle->post("/spooky/register", code);
 
-  if (rc != 200 || curlHandle->responseData.size() != MAX_MACHINE_ID_LEN) {
+  if (rc != 200 || curlHandle->responseData.size() != MAX_UUID_LEN) {
     std::exit(EXIT_FAILURE);
   }
 
-  strncpy(mid, curlHandle->responseData.c_str(), MAX_MACHINE_ID_LEN);
+  strncpy(mid, curlHandle->responseData.c_str(), MAX_UUID_LEN);
   std::cout << mid << std::endl;
 }
 
@@ -507,24 +480,24 @@ int main(int argc, char **argv)
       std::exit(EXIT_SUCCESS);
     }
 
-    ping = std::thread(sendPing);
-    ping.detach();
-
     XInitThreads();
     setenv("DISPLAY", ":0", 0);
     if ((display = XOpenDisplay(NULL)) == NULL) {
       std::cerr << "Unable to open X display" << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    else {
-      std::cout << "X display opened" << std::endl;
-    }
-
 
     try {
       std::make_unique<QrCode>(curlHandle)->get(mid)->write();
-      setGamesPlayed(&gamesPlayed);
+      ping = std::thread(sendPing);
+
+      qrScanner = std::make_shared<QrScanner>("/dev/hidraw0");
+      qrScanner->start();
+
       watch();
+    }
+    catch (const std::system_error& e) {
+      std::cerr << e.what() << std::endl;
     }
     catch (const std::runtime_error& e) {
       std::cerr << e.what() << std::endl;

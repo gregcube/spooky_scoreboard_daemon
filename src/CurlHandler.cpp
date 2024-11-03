@@ -13,9 +13,7 @@ CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
 
 CurlHandler::~CurlHandler()
 {
-  if (curl) {
-    curl_easy_cleanup(curl);
-  }
+  if (curl) curl_easy_cleanup(curl);
 }
 
 long CurlHandler::get(const std::string& path)
@@ -45,7 +43,10 @@ long CurlHandler::execute(const std::string& endpoint)
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseData);
+  curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
+  curl_easy_setopt(curl, CURLOPT_MAXCONNECTS, 5L);
 #ifdef DEBUG
+  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
@@ -53,7 +54,7 @@ long CurlHandler::execute(const std::string& endpoint)
   responseData.erase();
 
   if ((cc = curl_easy_perform(curl)) != CURLE_OK) {
-    std::cerr << "CURL failed: " << curl_easy_strerror(cc) << std::endl;
+    std::cerr << "CURL failed: " << endpoint << ": " << curl_easy_strerror(cc) << std::endl;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);

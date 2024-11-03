@@ -13,8 +13,7 @@ The daemon runs in the background on your Spooky pinball machine, periodically
 sending data to the web server. This data includes highscores and game audit
 information. The server processes this data to display in a variety of formats.
 This includes showcasing top scores specific to each machine and leaderboards
-spanning all supported games. *Only Halloween is supported at this moment. More
-on that below.*
+spanning all supported games.
 
 On the website you can register as a Player or an Operator or both.
 
@@ -23,19 +22,31 @@ option to make their machines publicly visible, thereby showcasing highscores
 and participating in leaderboards, or a private setting where only the operator
 has access to top scores.
 
-Players have the privilege to login to a machine and track their highscores.
-Players may scan the on-screen QR code or manually access the machine login
-page. Player scores are recorded and displayed, with the exception being if a
-player profile is set to private.  All players are automatically logged out
-after each game.
+Players can log into a machine via their player profile QR code.
+Scan the on-screen QR code to easily access machine leaderboards.
+Player scores are saved and displayed, with the exception being if a
+player profile is set to private.
+All players are automatically logged out after each game.
+
+
+Supported Games
+---------------
+
+- Halloween (UP)
+- Ultraman (UP)
+- Texas Chainsaw Massacre (UP)
+- Total Nuclear Annihilation (preliminary support)
 
 
 Notes
 ------
 
-This has only been tested on a Spooky Halloween CE pinball machine
-with the "UP" computer board.  It has not been tested on the mini-PC that
-was used in later Halloween/ Ultraman builds.
+You will need a USB QR code scanner. I'm using the following:
+- [Symcode MJ-3300](https://amzn.to/4fuNqTx)
+
+This has only been tested on games with the "UP" computer board.
+It has not been tested on the mini-PC that was used in later
+Halloween/ Ultraman builds.
 
 See docs directory for more info.
 
@@ -43,4 +54,4 @@ See docs directory for more info.
 Demo
 ----
 
-[![Demo Video](https://img.youtube.com/vi/vLXcv0MFY6M/0.jpg)](https://www.youtube.com/watch?v=vLXcv0MFY6M)
+[![Demo Video](https://img.youtube.com/vi/hG7_vvCaeZU/0.jpg)](https://www.youtube.com/watch?v=hG7_vvCaeZU)

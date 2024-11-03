@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake CACHE STRING "Vcpkg toolchain file")
-set(CMAKE_BUILD_TYPE Debug)
 
 project(SpookyScoreboardDaemon)
 
@@ -11,12 +10,11 @@ file(GLOB GAME_SOURCES src/game/*.cpp)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 
-add_definitions(-DDEBUG)
-
 add_executable(ssbd
   src/main.cpp
   src/CurlHandler.cpp
   src/QrCode.cpp
+  src/QrScanner.cpp
   src/GameBase.cpp
   ${GAME_SOURCES}
 )
