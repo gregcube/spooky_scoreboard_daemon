@@ -63,7 +63,7 @@ main() {
   err "Failed to install libxpm"
 
   # Download and install spooky scoreboard daemon.
-  curl -L -o /game/tmp/ssbd.tar.gz https://github.com/gregcube/spooky_scoreboard_daemon/blob/master/dist/arch/ssbd-0.0.4-1-arch-x86_64.tar.gz
+  curl -L -o /game/tmp/ssbd.tar.gz https://github.com/gregcube/spooky_scoreboard_daemon/raw/refs/heads/master/dist/arch/ssbd-0.0.4-1-arch-x86_64.tar.gz
   err "Failed to download spooky scoreboard"
   tar -zxf /game/tmp/ssbd.tar.gz -C /usr/bin
   err "Failed to install spooky scoreboard daemon"

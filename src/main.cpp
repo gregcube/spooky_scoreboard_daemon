@@ -92,7 +92,7 @@ static void sendPing()
   }
 }
 
-static void showPlayerLogin()
+static void openPlayerListWindow()
 {
   uint8_t display_secs = 20;
   struct timeval start_time, current_time, update_time;
@@ -262,19 +262,20 @@ static void showPlayerLogin()
   playerList.onScreen = false;
 }
 
-void addPlayer(const char *playerName)
+void showPlayerList()
 {
-  if (playerList.numPlayers > 4) {
-    return;
-  }
-
-  playerList.player[playerList.numPlayers] = playerName;
-  playerList.numPlayers++;
-
   if (!playerList.onScreen) {
-    std::thread playerWindow(showPlayerLogin);
+    std::thread playerWindow(openPlayerListWindow);
     playerWindow.detach();
     playerList.onScreen = true;
+  }
+}
+
+void addPlayer(const char *playerName)
+{
+  if (playerList.numPlayers < 4) {
+    playerList.player[playerList.numPlayers++] = playerName;
+    showPlayerList();
   }
 }
 
@@ -339,14 +340,14 @@ static void watch()
 
   while (isRunning.load()) {
     std::cout << "Waiting for action..." << std::endl;
-    ssize_t bytes = read(fd, buf, sizeof(buf));
+    ssize_t n = read(fd, buf, sizeof(buf));
 
-    if (bytes == -1) {
+    if (n < 0) {
       std::cerr << "Failed reading event" << std::endl;
     }
     else {
       std::cout << "Processing event..." << std::endl;
-      processEvent(buf, bytes);
+      processEvent(buf, n);
     }
   }
 }
@@ -488,7 +489,7 @@ int main(int argc, char **argv)
     }
 
     try {
-      std::make_unique<QrCode>(curlHandle)->get(mid)->write();
+      std::make_unique<QrCode>(mid)->get()->write();
       ping = std::thread(sendPing);
 
       qrScanner = std::make_shared<QrScanner>("/dev/hidraw0");

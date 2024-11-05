@@ -4,25 +4,25 @@
 #include <memory>
 #include <cstddef>
 
+#include "main.h"
 #include "CurlHandler.h"
 
 class QrCode
 {
 public:
   /**
-   * @brief Constructs a QrCode object with the specified curl handler.
+   * @brief Constructs a QrCode object for the specified machine id.
    *
-   * @param ch A shared pointer to a CurlHandler instance.
+   * @param ptr Points to a C-string containing the machine id.
    */
-  QrCode(const std::shared_ptr<CurlHandler>& ch) : curlHandle(ch) {};
+  QrCode(const char* ptr) : ch(std::make_unique<CurlHandler>(BASE_URL)), mid(ptr) {}
 
   /**
    * @brief Fetches machine QR code from the server.
    *
-   * @param ptr Points to a C-string containing the machine id.
    * @return A reference to this instance.
    */
-  QrCode* get(const char* ptr);
+  QrCode* get();
 
   /**
    * @brief Writes machine QR code to an output file stream.
@@ -30,7 +30,8 @@ public:
   void write();
 
 private:
-  const std::shared_ptr<CurlHandler>& curlHandle;
+  const std::unique_ptr<CurlHandler> ch;
+  const char* mid;
 };
 
 #endif

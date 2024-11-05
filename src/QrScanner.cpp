@@ -40,6 +40,7 @@ void QrScanner::scan()
   char buf[8];
   std::vector<char> uuid;
   const auto ch = std::make_unique<CurlHandler>(BASE_URL);
+  auto last_scan = std::chrono::steady_clock::now();
 
   while (isRunning.load()) {
     fd_set readfds;
@@ -60,8 +61,13 @@ void QrScanner::scan()
       break;
     }
 
+    auto now = std::chrono::steady_clock::now();
+    if (std::chrono::duration_cast<std::chrono::seconds>(now - last_scan).count() > 3 && !uuid.empty()) {
+      uuid.clear();
+    }
+
     // Process qr code data.
-    if (FD_ISSET(hid, &readfds)) {
+    if (playerList.numPlayers < 4 && FD_ISSET(hid, &readfds)) {
       memset(buf, 0, sizeof(buf));
 
       ssize_t n = read(hid, buf, sizeof(buf));
@@ -73,8 +79,8 @@ void QrScanner::scan()
         if (ascii) uuid.push_back(ascii);
       }
 
-      if (uuid.size() >= MAX_UUID_LEN) {
-        uuid.resize(MAX_UUID_LEN);
+      if (uuid.size() == MAX_UUID_LEN) {
+        uuid.resize(MAX_UUID_LEN + 1);
         uuid.push_back('\0');
 
         std::string qr_code(uuid.data());
@@ -85,7 +91,11 @@ void QrScanner::scan()
 
         addPlayer(ch->responseData.c_str());
         uuid.clear();
+
+        std::this_thread::sleep_for(std::chrono::seconds(3));
       }
+
+      last_scan = now;
     }
   }
 }
@@ -93,7 +103,9 @@ void QrScanner::scan()
 void QrScanner::stop()
 {
   // Signal to exit scan loop.
-  write(pipes[1], "x", 1);
+  if (write(pipes[1], "x", 1) < 0) {
+    std::cerr << "Failed to signal exit pipe" << std::endl;
+  }
 
   if (scanThread.joinable()) {
     scanThread.join();

@@ -4,11 +4,11 @@
 
 #include "QrCode.h"
 
-QrCode* QrCode::get(const char *ptr)
+QrCode* QrCode::get()
 {
   long rc;
 
-  if ((rc = curlHandle->post("/spooky/qr", ptr)) != 200) {
+  if ((rc = ch->post("/spooky/qr", mid)) != 200) {
     std::cerr << "QR: " << rc << std::endl;
     throw std::runtime_error("Unable to download QR code");
   }
@@ -24,7 +24,7 @@ void QrCode::write()
     throw std::runtime_error("Unable to write QR code");
   }
  
-  xpm << curlHandle->responseData;
+  xpm << ch->responseData;
   xpm.close(); 
 }
 

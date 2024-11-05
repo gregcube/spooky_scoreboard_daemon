@@ -43,6 +43,7 @@ Notes
 
 You will need a USB QR code scanner. I'm using the following:
 - [Symcode MJ-3300](https://amzn.to/4fuNqTx)
+- [Symcode MJ-390](https://amzn.to/40QrH4D)
 
 This has only been tested on games with the "UP" computer board.
 It has not been tested on the mini-PC that was used in later

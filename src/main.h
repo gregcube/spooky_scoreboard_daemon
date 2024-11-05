@@ -31,5 +31,6 @@ extern char mid[MAX_UUID_LEN + 1];
 extern std::atomic<bool> isRunning;
 
 extern void addPlayer(const char *playerName);
+extern void showPlayerList();
 
 #endif
