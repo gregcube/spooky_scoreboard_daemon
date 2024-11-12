@@ -30,8 +30,8 @@ static CURLcode curlCode;
 
 std::atomic<bool> isRunning(false);
 std::unique_ptr<GameBase> game;
-std::shared_ptr<CurlHandler> curlHandle;
-std::shared_ptr<QrScanner> qrScanner;
+std::unique_ptr<CurlHandler> curlHandle;
+std::unique_ptr<QrScanner> qrScanner;
 std::thread ping, playerWindow;
 
 static void cleanup()
@@ -458,7 +458,7 @@ int main(int argc, char **argv)
 
   if (run || reg) {
     curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
-    curlHandle = std::make_shared<CurlHandler>(BASE_URL);
+    curlHandle = std::make_unique<CurlHandler>(BASE_URL);
   }
 
   std::atexit(cleanup);
@@ -492,7 +492,7 @@ int main(int argc, char **argv)
       std::make_unique<QrCode>(mid)->get()->write();
       ping = std::thread(sendPing);
 
-      qrScanner = std::make_shared<QrScanner>("/dev/hidraw0");
+      qrScanner = std::make_unique<QrScanner>("/dev/hidraw0");
       qrScanner->start();
 
       watch();

@@ -7,7 +7,7 @@ CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
 {
   curl = curl_easy_init();
   if (!curl) {
-    std::cerr << "Failed to init curl" << std::endl;
+    throw std::runtime_error("Unable to initialize CURL");
   }
 }
 

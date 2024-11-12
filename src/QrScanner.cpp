@@ -93,9 +93,8 @@ void QrScanner::scan()
         uuid.clear();
 
         std::this_thread::sleep_for(std::chrono::seconds(3));
+        last_scan = now;
       }
-
-      last_scan = now;
     }
   }
 }
