@@ -61,13 +61,15 @@ void QrScanner::scan()
       break;
     }
 
+    // Clear uuid if we've been idle more than 3 seconds.
     auto now = std::chrono::steady_clock::now();
     if (std::chrono::duration_cast<std::chrono::seconds>(now - last_scan).count() > 3 && !uuid.empty()) {
+      std::cout << "Clearing uuid data." << std::endl;
       uuid.clear();
     }
 
     // Process qr code data.
-    if (playerList.numPlayers < 4 && FD_ISSET(hid, &readfds)) {
+    if (FD_ISSET(hid, &readfds)) {
       memset(buf, 0, sizeof(buf));
 
       ssize_t n = read(hid, buf, sizeof(buf));
@@ -79,23 +81,32 @@ void QrScanner::scan()
         if (ascii) uuid.push_back(ascii);
       }
 
-      if (uuid.size() == MAX_UUID_LEN) {
-        uuid.resize(MAX_UUID_LEN + 1);
-        uuid.push_back('\0');
+      // +1 for requested player position.
+      if (uuid.size() == MAX_UUID_LEN + 1) {
+        uuid.resize(MAX_UUID_LEN + 2);
 
-        std::string qr_code(uuid.data());
-        std::string post = std::string(mid) + qr_code + std::to_string(playerList.numPlayers);
+        std::cout << "QR code detected." << std::endl;
 
-        int rc = ch->post("/spooky/qrlogin", post);
-        if (rc != 200) continue;
+        int position = uuid[uuid.size() - 2] - '0';
+        if (position >= 1 && position <= 4 && playerList.player[position - 1].empty()) {
+          std::cout << "Logging in..." << std::endl;
 
-        addPlayer(ch->responseData.c_str());
+          int rc = ch->post("/spooky/qrlogin", std::string(mid) + std::string(uuid.data()));
+          if (rc != 200) continue;
+
+          addPlayer(ch->responseData.c_str(), position);
+        }
+        else if (!playerList.player[position - 1].empty()) {
+          std::cout << "Show player list" << std::endl;
+          showPlayerList();
+        }
+
         uuid.clear();
-
         std::this_thread::sleep_for(std::chrono::seconds(3));
-        last_scan = now;
       }
     }
+
+    last_scan = now;
   }
 }
 
@@ -127,6 +138,7 @@ void QrScanner::start()
     throw std::runtime_error("Cannot open FIFO pipes");
   }
 
+  std::cout << "QR scanner started." << std::endl;
   scanThread = std::thread(&QrScanner::scan, this);
 }
 

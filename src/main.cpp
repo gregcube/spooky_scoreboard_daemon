@@ -202,7 +202,7 @@ static void openPlayerListWindow()
         XCopyArea(display, qr_pixmap, window, gc, 0, 0, 200, 200, ww - 210, 10);
         XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
 
-        for (int i = 0, ty = 40; i < playerList.numPlayers; i++, ty += 40) {
+        for (int i = 0, ty = 40; i < playerList.player.size(); i++, ty += 40) {
           char username[60];
 
           snprintf(
@@ -271,10 +271,11 @@ void showPlayerList()
   }
 }
 
-void addPlayer(const char *playerName)
+void addPlayer(const char *playerName, int position)
 {
-  if (playerList.numPlayers < 4) {
-    playerList.player[playerList.numPlayers++] = playerName;
+  if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
+    playerList.player[position - 1] = playerName;
+    ++playerList.numPlayers;
     showPlayerList();
   }
 }
