@@ -39,7 +39,6 @@ private:
   int pipes[2];
   const char *qrDevice;
   std::thread scanThread;
-  const char keycodeToAscii(unsigned char keycode);
 };
 
 #endif 
