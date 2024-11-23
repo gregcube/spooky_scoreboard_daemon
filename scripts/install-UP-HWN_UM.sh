@@ -100,7 +100,7 @@ setup_qr_scanner() {
     idProduct=$(udevadm info -q property -n "$dev" | grep 'ID_MODEL_ID' | cut -d= -f2)
     if [[ -n "$idVendor" && -n "$idProduct" ]]; then
       if is_qr_scanner "$idVendor" "$idProduct"; then
-        create_udev_rule "$idVendor" "$idProduct"
+        write_udev_rule "$idVendor" "$idProduct"
         return
       fi
     fi
