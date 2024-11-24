@@ -45,10 +45,12 @@ You will need a USB QR code scanner/ reader. The following have been tested and 
 - [Symcode MJ-3300](https://amzn.to/4fuNqTx)
 - [Symcode MJ-390](https://amzn.to/40QrH4D)*
 
+Ensure the QR reader is set to USB-COM RS232 mode.
+
 **Linux fails to recognize the device when connected via the USB extension cable that
 is accessible inside the coin door. It does work however when connected directly
-to the UP board, or when using a USB hub connected to the port inside the
-coin door; plug QR scanner into hub, and hub into USB port.*
+to the UP board, or when using a USB hub connected to the port inside the coin door; 
+plug QR scanner into hub, and hub into USB port.*
 
 This has only been tested on games with the "UP" computer board.
 It has not been tested on the mini-PC that was used in later

@@ -12,7 +12,7 @@ public:
    * @brief Construct a QrScanner instance.
    *
    * @param qrdev Pointer to a null-terminated string that specifies
-   *              the path to the QR scanner device (e.g. "/dev/hidraw0").
+   *              the path to the QR scanner device.
    */
   QrScanner(const char *qrdev) : qrDevice(qrdev) {};
 
@@ -35,11 +35,10 @@ public:
   void scan();
 
 private:
-  int hid;
+  int ttyQR;
   int pipes[2];
   const char *qrDevice;
   std::thread scanThread;
-  const char keycodeToAscii(unsigned char keycode);
 };
 
 #endif 

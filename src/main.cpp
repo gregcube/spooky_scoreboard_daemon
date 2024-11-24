@@ -493,7 +493,7 @@ int main(int argc, char **argv)
       std::make_unique<QrCode>(mid)->get()->write();
       ping = std::thread(sendPing);
 
-      qrScanner = std::make_unique<QrScanner>("/dev/hidraw0");
+      qrScanner = std::make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();
 
       watch();

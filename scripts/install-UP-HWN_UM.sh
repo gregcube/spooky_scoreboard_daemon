@@ -13,6 +13,9 @@ main() {
   mount -o remount,rw /
   err "Failed to remount file system"
 
+  # Attempt to setup QR scanner/reader.
+  setup_qr_scanner || { echo "No QR scanner detected" >&2; exit 1; }
+
   # Check if wpa_supplicant file exists on USB drive.
   # Setup wifi access if file does exist.
   if [[ -f "/game/media/wpa_supplicant.pkg.tar.xz" ]]; then
@@ -86,6 +89,39 @@ main() {
 
 err() {
   [[ $? -ne 0 ]] && { echo "$1" >&2; exit 1; }
+}
+
+setup_qr_scanner() {
+  devices=$(ls /dev/ttyUSB* /dev/ttyACM* 2>/dev/null)
+  [[ -z "$devices" ]] && return 1;
+
+  for dev in $devices; do
+    idVendor=$(udevadm info -q property -n "$dev" | grep 'ID_VENDOR_ID' | cut -d= -f2)
+    idProduct=$(udevadm info -q property -n "$dev" | grep 'ID_MODEL_ID' | cut -d= -f2)
+    if [[ -n "$idVendor" && -n "$idProduct" ]]; then
+      if is_qr_scanner "$idVendor" "$idProduct"; then
+        write_udev_rule "$idVendor" "$idProduct"
+        return 0
+      fi
+    fi
+  done
+
+  return 1
+}
+
+is_qr_scanner() {
+  case "$1:$2" in
+    "152a:880f") return 0 ;; # symcode mj-390
+    "067b:2303") return 0 ;; # symcode mj-3300
+    *) return 1 ;;
+  esac
+}
+
+write_udev_rule() {
+cat <<EOF > /etc/udev/rules.d/99-ttyQR.rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="$1", ATTRS{idProduct}=="$2", SYMLINK+="ttyQR"
+EOF
+  udevadm control --reload-rules && udevadm trigger
 }
 
 write_wifi_config() {
