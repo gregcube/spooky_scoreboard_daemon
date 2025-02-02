@@ -28,6 +28,7 @@ Player scores are saved and displayed, with the exception being if a
 player profile is set to private.
 All players are automatically logged out after each game.
 
+Refer to INSTALL.md for instructions on installing the Spooky Scoreboard daemon on your machine.
 
 Supported Games
 ---------------

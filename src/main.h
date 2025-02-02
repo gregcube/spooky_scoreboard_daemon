@@ -5,7 +5,7 @@
 #include <array>
 #include <atomic>
 
-#define VERSION "0.0.4"
+#define VERSION "0.0.5-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG

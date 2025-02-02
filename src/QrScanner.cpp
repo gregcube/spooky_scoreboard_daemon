@@ -70,7 +70,7 @@ void QrScanner::scan()
 void QrScanner::stop()
 {
   // Signal to exit scan loop.
-  if (write(pipes[1], "x", 1) < 0) {
+  if (fcntl(pipes[1], F_GETFD) != -1 && write(pipes[1], "x", 1) < 0) {
     std::cerr << "Failed to signal exit pipe" << std::endl;
   }
 
