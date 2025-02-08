@@ -11,7 +11,7 @@
 #ifdef DEBUG
 #define BASE_URL "https://ssb.local:8443"
 #else
-#define BASE_URL "https://scoreboard.web.net"
+#define BASE_URL "https://spookyscoreboard.com"
 #endif
 
 typedef struct {

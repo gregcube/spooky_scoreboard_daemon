@@ -33,7 +33,7 @@ and we can work together to add support for your game.
 
 ## Installation Steps
 
-0. [**Download the Spooky Scoreboard Installer**](https://scoreboard.web.net/ssbd-installer.zip)
+0. [**Download the Spooky Scoreboard Installer**](https://spookyscoreboard.com/ssbd-installer.zip)
    - Unzip the file.
 
 1. **Prepare the USB drive**
@@ -57,8 +57,8 @@ and we can work together to add support for your game.
    - When prompted enter your 4-digit alphanumeric registration code.
 
 5. **Obtain Your Registration Code**
-   - Browse [here](https://scoreboard.web.net/user/register) to sign-up.
-   - Once logged in, browse to `Register machine` or click [here](https://scoreboard.web.net/m/add).
+   - Browse [here](https://spookyscoreboard.com/user/register) to sign-up.
+   - Once logged in, browse to `Register machine` or click [here](https://spookyscoreboard.com/m/add).
    - Enter your game details; click `Save`.
    - Your 4-digit code will be displayed.
 

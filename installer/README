@@ -1,7 +1,7 @@
 This directory contains files for building the linux-live spooky scoreboard installer.
 The installer is built using Linux Live Kit.
 See https://github.com/Tomas-M/linux-live for more information.
-The latest, pre-built, ready-to-flash installer is available at https://scoreboard.web.net/ssbd-installer.zip
+The latest, pre-built, ready-to-flash installer is available at https://spookyscoreboard.com/ssbd-installer.zip
 
 How to build installer image.
 1. Run `docker build -t ssbd-installer -f Dockerfile ../` from this directory to build the installer.

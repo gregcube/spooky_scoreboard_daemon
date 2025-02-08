@@ -2,7 +2,7 @@ Spooky Scoreboard Daemon
 ========================
 
 Connect your Spooky Pinball machine to the Internet and join the
-[online leaderboards](https://scoreboard.web.net).
+[online leaderboards](https://spookyscoreboard.com).
 
 What is it?
 -----------
@@ -56,8 +56,6 @@ plug QR scanner into hub, and hub into USB port.*
 This has only been tested on games with the "UP" computer board.
 It has not been tested on the mini-PC that was used in later
 Halloween/ Ultraman builds.
-
-See docs directory for more info.
 
 
 Demo
