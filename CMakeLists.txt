@@ -39,3 +39,7 @@ target_link_libraries(ssbd PRIVATE
   fontconfig
   pthread
 )
+
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+  add_compile_definitions(DEBUG)
+endif()

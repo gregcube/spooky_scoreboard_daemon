@@ -46,7 +46,7 @@ long CurlHandler::execute(const std::string& endpoint)
   curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
   curl_easy_setopt(curl, CURLOPT_MAXCONNECTS, 5L);
 #ifdef DEBUG
-  curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 #endif

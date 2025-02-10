@@ -35,10 +35,11 @@ public:
   void scan();
 
 private:
-  int ttyQR;
-  int pipes[2];
+  int ttyQR = -1;
+  int pipes[2] = { -1, -1 };
   const char *qrDevice;
   std::thread scanThread;
+  bool isStarted(int fd);
 };
 
 #endif 

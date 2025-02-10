@@ -36,6 +36,8 @@ std::thread ping, playerWindow;
 
 static void cleanup()
 {
+  std::cout << "Cleaning up..." << std::endl;
+
   isRunning.store(false);
 
   if (qrScanner) {
@@ -53,6 +55,8 @@ static void cleanup()
   if (curlCode) {
     curl_global_cleanup();
   }
+
+  std::cout << "Exited." << std::endl;
 }
 
 static void loadMachineId()
@@ -276,7 +280,6 @@ void addPlayer(const char *playerName, int position)
   if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
     playerList.player[position - 1] = playerName;
     ++playerList.numPlayers;
-    showPlayerList();
   }
 }
 
@@ -490,22 +493,20 @@ int main(int argc, char **argv)
     }
 
     try {
-      std::make_unique<QrCode>(mid)->get()->write();
-      ping = std::thread(sendPing);
-
       qrScanner = std::make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();
+
+      std::make_unique<QrCode>(mid)->get()->write();
+      ping = std::thread(sendPing);
 
       watch();
     }
     catch (const std::system_error& e) {
       std::cerr << e.what() << std::endl;
-      cleanup();
       return 1;
     }
     catch (const std::runtime_error& e) {
       std::cerr << e.what() << std::endl;
-      cleanup();
       return 1;
     }
   }

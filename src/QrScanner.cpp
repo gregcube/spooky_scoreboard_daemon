@@ -55,10 +55,11 @@ void QrScanner::scan()
         if (rc != 200) continue;
 
         addPlayer(ch->responseData.c_str(), position);
+        showPlayerList();
         uuid.clear();
       }
       else if (uuid.size() == sizeof(buf) + 1 && !playerList.player[position - 1].empty()) {
-        std::cout << "Show player list" << std::endl;
+        std::cout << "Already logged in; showing player list." << std::endl;
         showPlayerList();
       }
 
@@ -67,10 +68,15 @@ void QrScanner::scan()
   }
 }
 
+bool QrScanner::isStarted(int fd)
+{
+  return fd >= 0 && fcntl(fd, F_GETFD) != -1;
+}
+
 void QrScanner::stop()
 {
   // Signal to exit scan loop.
-  if (fcntl(pipes[1], F_GETFD) != -1 && write(pipes[1], "x", 1) < 0) {
+  if (isStarted(pipes[1]) && write(pipes[1], "x", 1) < 0) {
     std::cerr << "Failed to signal exit pipe" << std::endl;
   }
 
@@ -78,9 +84,9 @@ void QrScanner::stop()
     scanThread.join();
   }
 
-  close(ttyQR);
-  close(pipes[0]);
-  close(pipes[1]);
+  if (isStarted(ttyQR)) close(ttyQR);
+  if (isStarted(pipes[0])) close(pipes[0]);
+  if (isStarted(pipes[1])) close(pipes[1]);
 }
 
 void QrScanner::start()
@@ -88,11 +94,11 @@ void QrScanner::start()
   ttyQR = open(qrDevice, O_RDONLY);
 
   if (ttyQR < 0) {
-    throw std::runtime_error("Cannot open QR scanner");
+    throw std::runtime_error("Cannot open QR scanner.");
   }
 
   if (pipe(pipes) == -1) {
-    throw std::runtime_error("Cannot open FIFO pipes");
+    throw std::runtime_error("Cannot open FIFO pipes.");
   }
 
   std::cout << "QR scanner started." << std::endl;
