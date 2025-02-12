@@ -9,7 +9,7 @@
 set -e
 set -o pipefail
 
-version="0.0.5-1"
+version="0.0.6-1"
 echo "Starting Spooky Scoreboard Installer..."
 
 cleanup() {
@@ -81,9 +81,7 @@ install() {
     err "Invalid code."
   fi
 
-  ./ssbd -r ${code} >/mnt/rootfs/.ssbd_mid || err "Failed to register machine."
-  echo "Machine registered."
-
+  ./ssbd -r ${code} || err "Failed to register machine."
   echo "Completed."
 }
 
@@ -110,7 +108,7 @@ uninstall() {
   chroot /mnt/rootfs systemctl disable systemd-networkd >/dev/null 2>&1
 
   rm -f /mnt/rootfs/usr/bin/ssbd || true
-  rm -f /mnt/rootfs/.ssbd_mid || true
+  rm -f /mnt/rootfs/.ssbd.json || true
   rm -f /mnt/rootfs/etc/systemd/system/ssbd.service || true
   rm -f /mnt/rootfs/etc/systemd/network/ssbd.network || true
   rm -f /mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules || true

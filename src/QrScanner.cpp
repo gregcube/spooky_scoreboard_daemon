@@ -5,6 +5,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <json/json.h>
 
 #include "main.h"
 #include "QrScanner.h"
@@ -13,7 +14,6 @@ void QrScanner::scan()
 {
   char buf[MAX_UUID_LEN + 1];
   std::vector<char> uuid;
-  const auto ch = std::make_unique<CurlHandler>(BASE_URL);
 
   while (isRunning.load()) {
     fd_set readfds;
@@ -42,26 +42,12 @@ void QrScanner::scan()
       if (n < 0 || n != sizeof(buf)) continue;
 
       uuid.clear();
-      uuid.assign(buf, buf + sizeof(buf));
-      uuid.resize(uuid.size() + 1); // adds null terminator
+      uuid.assign(buf, buf + sizeof(buf) - 1);
+      int position = buf[sizeof(buf) - 1] - '0';
 
       std::cout << "QR code detected." << std::endl;
-
-      int position = uuid[uuid.size() - 2] - '0';
-      if (uuid.size() == sizeof(buf) + 1 && position >= 1 && position <= 4 && playerList.player[position - 1].empty()) {
-        std::cout << "Logging in..." << std::endl;
-
-        int rc = ch->post("/spooky/qrlogin", std::string(mid) + std::string(uuid.data()));
-        if (rc != 200) continue;
-
-        addPlayer(ch->responseData.c_str(), position);
-        showPlayerList();
-        uuid.clear();
-      }
-      else if (uuid.size() == sizeof(buf) + 1 && !playerList.player[position - 1].empty()) {
-        std::cout << "Already logged in; showing player list." << std::endl;
-        showPlayerList();
-      }
+      playerLogin(uuid, position);
+      uuid.clear();
 
       std::this_thread::sleep_for(std::chrono::seconds(3));
     }

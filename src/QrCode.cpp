@@ -8,8 +8,7 @@ QrCode* QrCode::get()
 {
   long rc;
 
-  if ((rc = ch->post("/spooky/qr", mid)) != 200) {
-    std::cerr << "QR: " << rc << std::endl;
+  if ((rc = ch->post("/api/v1/qr")) != 200) {
     throw std::runtime_error("Unable to download QR code");
   }
 

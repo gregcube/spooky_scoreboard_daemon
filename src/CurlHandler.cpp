@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 
+#include "main.h"
 #include "CurlHandler.h"
 
 CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
@@ -21,10 +22,13 @@ long CurlHandler::get(const std::string& path)
   return execute(baseUrl + path);
 }
 
-long CurlHandler::post(const std::string& path, const std::string& data)
+long CurlHandler::post(const std::string& path, const std::optional<std::string>& data)
 {
+  std::string post = data.value_or("");
+
   curl_easy_setopt(curl, CURLOPT_POST, 1L);
-  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, data.c_str());
+  curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post.c_str());
+
   return execute(baseUrl + path);
 }
 
@@ -37,7 +41,15 @@ long CurlHandler::execute(const std::string& endpoint)
   std::cout << "Calling " << endpoint << std::endl;
 #endif
 
-  hdrs = curl_slist_append(hdrs, "Content-Type: text/plain; charset=utf-8");
+  hdrs = curl_slist_append(hdrs, "Content-Type: application/json; charset=utf-8");
+
+  if (mid[MAX_UUID_LEN] == '\0' && token != nullptr) {
+    std::string authHeader = "Authorization: Bearer " + std::string(token);
+    std::string uuidHeader = "X-Machine-Uuid: " + std::string(mid);
+    hdrs = curl_slist_append(hdrs, authHeader.c_str());
+    hdrs = curl_slist_append(hdrs, uuidHeader.c_str());
+  }
+
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, hdrs);
   curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);

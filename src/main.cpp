@@ -14,6 +14,7 @@
 #include <X11/xpm.h>
 #include <X11/Xatom.h>
 #include <fontconfig/fontconfig.h>
+#include <json/json.h>
 
 #include "main.h"
 #include "CurlHandler.h"
@@ -22,6 +23,8 @@
 #include "GameBase.h"
 
 char mid[MAX_UUID_LEN + 1];
+char *token = nullptr;
+
 players playerList;
 
 static uint32_t gamesPlayed = 0;
@@ -56,26 +59,43 @@ static void cleanup()
     curl_global_cleanup();
   }
 
+  if (token != nullptr) {
+    delete[] token;
+  }
+
   std::cout << "Exited." << std::endl;
 }
 
 static void loadMachineId()
 {
-  std::ifstream file("/.ssbd_mid");
+  std::ifstream file("/.ssbd.json");
 
   if (!file.is_open()) {
-    std::cerr << "Failed to load machine id" << std::endl;
+    std::cerr << "Failed to open /.ssbd.json." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
-  file.read(mid, MAX_UUID_LEN);
-  if (file.gcount() != MAX_UUID_LEN) {
+  Json::Value root;
+  Json::Reader reader;
+
+  if (reader.parse(file, root) == false) {
     file.close();
-    std::cerr << "Failed to read machine id" << std::endl;
+    std::cerr << "Failed to parse /.ssbd.json." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
   file.close();
+
+  size_t token_size = root["token"].asString().size();
+  token = new char[token_size + 1];
+  strncpy(token, root["token"].asString().c_str(), token_size);
+
+  if (root["uuid"].asString().size() != MAX_UUID_LEN) {
+    std::cerr << "Failed to read machine uuid." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  strncpy(mid, root["uuid"].asString().c_str(), MAX_UUID_LEN);
   mid[MAX_UUID_LEN] = '\0';
 }
 
@@ -84,12 +104,14 @@ static void sendPing()
   const auto ch = std::make_unique<CurlHandler>(BASE_URL);
 
   while (isRunning.load()) {
+    long rc;
+
 #ifdef DEBUG
     std::cout << "Sending ping..." << std::endl;
 #endif
-    long rescode = ch->post("/spooky/ping", mid);
-    if (rescode != 200) {
-      std::cerr << "Failed to send ping: " << rescode << std::endl;
+
+    if ((rc = ch->post("/api/v1/ping")) != 200) {
+      std::cerr << "Ping failed: " << rc << std::endl;
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -275,7 +297,7 @@ void showPlayerList()
   }
 }
 
-void addPlayer(const char *playerName, int position)
+void addPlayer(const char* playerName, int position)
 {
   if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
     playerList.player[position - 1] = playerName;
@@ -283,23 +305,67 @@ void addPlayer(const char *playerName, int position)
   }
 }
 
+void playerLogin(const std::vector<char>& uuid, int position)
+{
+  if (uuid.size() != MAX_UUID_LEN || position < 1 || position > 4) {
+    return;
+  }
+
+  if (!playerList.player[position - 1].empty()) {
+    showPlayerList();
+    return;
+  }
+
+  std::cout << "Logging in..." << std::endl;
+
+  Json::Value root;
+  root.append(uuid.data());
+  root.append(position);
+
+  int rc = curlHandle->post("/api/v1/login", root.toStyledString());
+  if (rc != 200) return;
+
+  root.clear();
+
+  Json::Reader reader;
+  reader.parse(curlHandle->responseData, root);
+  addPlayer(root["message"].asString().c_str(), position);
+  showPlayerList();
+}
+
 static void uploadScores(const Json::Value& scores)
 {
-  std::cout << "Uploading scores" << std::endl;
+  std::cout << "Uploading scores..." << std::endl;
 
   try {
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
-
-    curlHandle
-      ->post("/spooky/score", mid + Json::writeString(writerBuilder, scores));
+    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores));
   }
   catch (const std::runtime_error& e) {
     std::cerr << "Exception: " << e.what() << std::endl;
   }
 }
 
-static void processEvent(char *buf, ssize_t bytes)
+static void processHighScoresEvent()
+{
+  static Json::Value lastScore;
+
+  try {
+    Json::Value currentScore = game->processHighScores();
+
+    if (currentScore != lastScore) {
+      uploadScores(currentScore);
+      playerList.reset();
+      lastScore = currentScore;
+    }
+  }
+  catch (const std::runtime_error& e) {
+    std::cerr << "Exception: " << e.what() << std::endl;
+  }
+}
+
+static void processEvent(char* buf, ssize_t bytes)
 {
   char *ptr = buf;
 
@@ -307,17 +373,11 @@ static void processEvent(char *buf, ssize_t bytes)
     struct inotify_event *evt = (struct inotify_event *)ptr;
 
     if (evt->len > 0) {
+#ifdef DEBUG
       std::cout << "Event: " << evt->name << std::endl;
-
+#endif
       if (strcmp(evt->name, game->getHighScoresFile().c_str()) == 0) {
-        static Json::Value lastScore;
-        Json::Value currentScore = game->processHighScores();
-
-        if (currentScore != lastScore) {
-          uploadScores(currentScore);
-          playerList.reset();
-          lastScore = currentScore;
-        }
+        processHighScoresEvent();
       }
     }
 
@@ -363,16 +423,38 @@ static void printSupportedGames()
   }
 }
 
-static void registerMachine(const std::string& code)
+static void registerMachine(const std::string& regCode)
 {
-  long rc = curlHandle->post("/spooky/register", code);
+  Json::Reader reader;
+  Json::Value response, code = regCode;
 
-  if (rc != 200 || curlHandle->responseData.size() != MAX_UUID_LEN) {
+  std::cout << "Registering machine..." << std::endl;
+  long rc = curlHandle->post("/api/v1/register", code.toStyledString());
+
+  if (reader.parse(curlHandle->responseData, response) == false) {
+    std::cerr << "Invalid JSON response from server." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
-  strncpy(mid, curlHandle->responseData.c_str(), MAX_UUID_LEN);
-  std::cout << mid << std::endl;
+  if (rc != 200) {
+    std::cout << response["message"].asString() << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  std::ofstream file("/.ssbd.json");
+  if (!file.is_open()) {
+    std::cerr << "Failed to write /.ssbd.json." << std::endl;
+    std::cout << "Copy/paste the below into /.ssbd.json" << std::endl;
+    std::cout << response["message"] << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  Json::StreamWriterBuilder writer;
+  file << Json::writeString(writer, response["message"]);
+  file.close();
+
+  std::cout << "File /.ssbd.json saved." << std::endl;
+  std::cout << "Machine registered." << std::endl;
 }
 
 static void printUsage()
@@ -391,7 +473,7 @@ void signalHandler(int signal)
   if (signal == SIGINT || signal == SIGTERM) std::exit(0);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   int opt, reg = 0, run = 0, upload = 0;
   std::string gameName, regCode;
@@ -409,7 +491,11 @@ int main(int argc, char **argv)
     switch (opt) {
     case 'h':
       printUsage();
-      break;
+      return 0;
+
+    case 'l':
+      printSupportedGames();
+      return 0;
 
     case 'r':
       if (strlen(optarg) == 4) {
@@ -435,10 +521,6 @@ int main(int argc, char **argv)
     case 'u':
       run = 1;
       upload = 1;
-      break;
-
-    case 'l':
-      printSupportedGames();
       break;
 
     case 'd':

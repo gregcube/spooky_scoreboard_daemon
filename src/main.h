@@ -4,8 +4,10 @@
 #include <string>
 #include <array>
 #include <atomic>
+#include <vector>
+#include <algorithm>
 
-#define VERSION "0.0.5-1"
+#define VERSION "0.0.6-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG
@@ -14,23 +16,23 @@
 #define BASE_URL "https://spookyscoreboard.com"
 #endif
 
-typedef struct {
-  std::array<std::string, 4> player;
-  uint8_t numPlayers;
-  bool onScreen;
+struct players {
+  std::array<std::string, 4> player{};
+  uint8_t numPlayers{0};
+  bool onScreen{false};
 
   void reset() {
-    for (auto &p : player) p.clear();
+    std::fill(player.begin(), player.end(), "");
     numPlayers = 0;
     onScreen = false;
   }
-} players;
+};
 
 extern players playerList;
 extern char mid[MAX_UUID_LEN + 1];
+extern char *token;
 extern std::atomic<bool> isRunning;
 
-extern void addPlayer(const char *playerName, int position);
-extern void showPlayerList();
+extern void playerLogin(const std::vector<char>& uuid, int position);
 
 #endif

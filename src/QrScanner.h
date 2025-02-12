@@ -3,8 +3,6 @@
 
 #include <memory>
 
-#include "CurlHandler.h"
-
 class QrScanner
 {
 public:
