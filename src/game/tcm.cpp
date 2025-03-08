@@ -84,7 +84,7 @@ uint32_t TCM::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
-int TCM::sendi3cmd(const Window& win)
+int TCM::sendi3cmd()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sd < 0) {
@@ -113,9 +113,10 @@ int TCM::sendi3cmd(const Window& win)
 
   std::vector<std::string> cmds = {
     "[title=\"TCM\"] border none",
-    "[id=\"" + std::to_string(win) + "\"] border none",
-    "[id=\"" + std::to_string(win) + "\"] floating enable",
-    "[id=\"" + std::to_string(win) + "\"] focus"
+    "[title=\"SSBd\"] floating enable",
+    "[title=\"SSBd\"] sticky enable",
+    "[title=\"SSBd\"] border none",
+    "[title=\"SSBd\"] focus"
   };
 
   for (const auto& cmd : cmds) {

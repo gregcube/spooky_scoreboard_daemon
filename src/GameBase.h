@@ -84,10 +84,9 @@ public:
    * Some games (like TCM) may need to send extra commands if they're
    * using the i3 window manager.
    *
-   * @param win A reference to an X11 window for which the i3 commands are sent.
    * @return An integer status code.
    */
-  virtual int sendi3cmd(const Window& win) { return 0; }
+  virtual int sendi3cmd() { return 0; }
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

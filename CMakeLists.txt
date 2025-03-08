@@ -12,6 +12,7 @@ find_package(yaml-cpp CONFIG REQUIRED)
 
 add_executable(ssbd
   src/main.cpp
+  src/x11.cpp
   src/CurlHandler.cpp
   src/QrCode.cpp
   src/QrScanner.cpp

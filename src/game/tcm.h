@@ -29,11 +29,11 @@ public:
    * This function sends two commands, focus & floating enable, to ensure
    * the player login window is displayed on screen.
    *
-   * @param win A reference to an X11 window for which the i3 commands are sent.
    * @return An integer status code.
+   *
    * @see GameBase::sendi3cmd
    */
-  int sendi3cmd(const Window& win) override;
+  int sendi3cmd() override;
 };
 
 #endif

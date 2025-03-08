@@ -7,20 +7,13 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
-
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/Xft/Xft.h>
-#include <X11/xpm.h>
-#include <X11/Xatom.h>
-#include <fontconfig/fontconfig.h>
 #include <json/json.h>
 
 #include "main.h"
+#include "x11.h"
 #include "CurlHandler.h"
 #include "QrCode.h"
 #include "QrScanner.h"
-#include "GameBase.h"
 
 char mid[MAX_UUID_LEN + 1];
 char *token = nullptr;
@@ -28,7 +21,6 @@ char *token = nullptr;
 players playerList;
 
 static uint32_t gamesPlayed = 0;
-static Display *display;
 static CURLcode curlCode;
 
 std::atomic<bool> isRunning(false);
@@ -51,8 +43,8 @@ static void cleanup()
     ping.join();
   }
 
-  if (display) {
-    XCloseDisplay(display);
+  if (playerWindow.joinable()) {
+    playerWindow.join();
   }
 
   if (curlCode) {
@@ -99,201 +91,43 @@ static void loadMachineId()
   mid[MAX_UUID_LEN] = '\0';
 }
 
-static void sendPing()
+// todo: Exit after failing 10 or more pings(?)
+static void sendPing(const std::unique_ptr<CurlHandler>& ch)
 {
-  const auto ch = std::make_unique<CurlHandler>(BASE_URL);
+#ifdef DEBUG
+  std::cout << "Sending ping..." << std::endl;
+#endif
+  long rc;
+  if ((rc = ch->post("/api/v1/ping")) != 200) {
+    std::cerr << "Ping failed: " << rc << std::endl;
+  }
+}
+
+static void playerWindowThread()
+{
+  openPlayerListWindow();
 
   while (isRunning.load()) {
-    long rc;
-
-#ifdef DEBUG
-    std::cout << "Sending ping..." << std::endl;
-#endif
-
-    if ((rc = ch->post("/api/v1/ping")) != 200) {
-      std::cerr << "Ping failed: " << rc << std::endl;
+    if (playerList.onScreen) {
+      showPlayerListWindow();
+      runTimer(20);
+      hidePlayerListWindow();
+      playerList.onScreen = false;
     }
+    else {
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  }
 
+  closePlayerListWindow();
+}
+
+static void pingThread()
+{
+  const auto ch = std::make_unique<CurlHandler>(BASE_URL);
+  while (isRunning.load()) {
+    sendPing(ch);
     std::this_thread::sleep_for(std::chrono::seconds(10));
-  }
-}
-
-static void openPlayerListWindow()
-{
-  uint8_t display_secs = 20;
-  struct timeval start_time, current_time, update_time;
-  Window window;
-  Visual *visual;
-  Colormap colormap;
-  XftDraw *xft_draw;
-  XftFont *xft_font;
-  XftColor xft_color;
-  Pixmap qr_pixmap;
-
-  int screen = DefaultScreen(display);
-
-  int w = DisplayWidth(display, screen);
-  int h = DisplayHeight(display, screen);
-
-  int ww = 500;
-  int wh = 230;
-
-  window = XCreateSimpleWindow(
-    display,
-    RootWindow(display, screen),
-    (w - ww) / 2,
-    (h - wh) / 2,
-    ww,
-    wh,
-    1,
-    BlackPixel(display, screen),
-    WhitePixel(display, screen)
-  );
-
-  XMapWindow(display, window);
-  XRaiseWindow(display, window);
-
-  Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
-  Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-  XChangeProperty(
-    display,
-    window,
-    wm_state,
-    XA_ATOM,
-    32,
-    PropModeReplace,
-    (unsigned char *) &wm_state_above,
-    1
-  );
-
-  int rc = game->sendi3cmd(window);
-
-  if (rc < 0) {
-    std::exit(EXIT_FAILURE);
-  }
-
-  rc = XpmReadFileToPixmap(
-    display, window, "/game/tmp/qrcode.xpm", &qr_pixmap, NULL, NULL);
-
-  if (rc != XpmSuccess) {
-    std::cerr << "Failed to create pixmap" << XpmGetErrorString(rc) << std::endl;
-  }
-
-  GC gc = XCreateGC(display, window, 0, NULL);
-
-  FcBool result = FcConfigAppFontAddFile(
-    FcConfigGetCurrent(),
-    (const FcChar8 *)"/game/code/assets/fonts/Atari_Hanzel.ttf"
-  );
-
-  if (!result) {
-    std::cerr << "Failed to load font" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
-  if (!xft_font) {
-    std::cerr << "Unable to open TTF font" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  colormap = DefaultColormap(display, screen);
-  visual = DefaultVisual(display, screen);
-
-  XftColorAllocName(
-    display,
-    visual,
-    colormap,
-    "black",
-    &xft_color
-  );
-
-  xft_draw = XftDrawCreate(
-    display,
-    window,
-    visual,
-    colormap
-  );
-
-  XSelectInput(display, window, ExposureMask);
-  gettimeofday(&start_time, NULL);
-  update_time = start_time;
-
-  while (1) {
-    if (XPending(display) > 0) {
-      XEvent event;
-      XNextEvent(display, &event);
-
-      if (event.type == Expose && event.xexpose.count == 0) {
-        XCopyArea(display, qr_pixmap, window, gc, 0, 0, 200, 200, ww - 210, 10);
-        XClearArea(display, window, 0, 0, ww - 210, 40 * 4, 0);
-
-        for (int i = 0, ty = 40; i < playerList.player.size(); i++, ty += 40) {
-          char username[60];
-
-          snprintf(
-            username,
-            sizeof(username),
-            "Player %d: %s", i + 1,
-            playerList.player[i].c_str());
-
-          XftDrawString8(
-            xft_draw,
-            &xft_color,
-            xft_font,
-            10,
-            ty,
-            (XftChar8 *)username,
-            strlen(username));
-        }
-      }
-    }
-
-    gettimeofday(&current_time, NULL);
-    if (current_time.tv_sec - start_time.tv_sec >= display_secs) {
-      break;
-    }
-
-    if (current_time.tv_sec - update_time.tv_sec >= 1) {
-      char countdown[3];
-
-      update_time = current_time;
-
-      snprintf(
-        countdown,
-        sizeof(countdown),
-        "%d",
-        (int)(display_secs - (current_time.tv_sec - start_time.tv_sec)));
-
-      XClearArea(display, window, 0, wh - 30, 40, 40, 1);
-
-      XftDrawString8(
-        xft_draw,
-        &xft_color,
-        xft_font,
-        5,
-        wh - 10,
-        (XftChar8 *)countdown,
-        strlen(countdown));
-    }
-  }
-
-  XFreePixmap(display, qr_pixmap);
-  XftDrawDestroy(xft_draw);
-  XftColorFree(display, visual, colormap, &xft_color);
-  XftFontClose(display, xft_font);
-  XDestroyWindow(display, window);
-  XFlush(display);
-
-  playerList.onScreen = false;
-}
-
-void showPlayerList()
-{
-  if (!playerList.onScreen) {
-    std::thread playerWindow(openPlayerListWindow);
-    playerWindow.detach();
-    playerList.onScreen = true;
   }
 }
 
@@ -312,7 +146,7 @@ void playerLogin(const std::vector<char>& uuid, int position)
   }
 
   if (!playerList.player[position - 1].empty()) {
-    showPlayerList();
+    playerList.onScreen = true;
     return;
   }
 
@@ -330,7 +164,7 @@ void playerLogin(const std::vector<char>& uuid, int position)
   Json::Reader reader;
   reader.parse(curlHandle->responseData, root);
   addPlayer(root["message"].asString().c_str(), position);
-  showPlayerList();
+  playerList.onScreen = true;
 }
 
 static void uploadScores(const Json::Value& scores)
@@ -567,29 +401,25 @@ int main(int argc, char** argv)
       std::exit(EXIT_SUCCESS);
     }
 
-    XInitThreads();
-    setenv("DISPLAY", ":0", 0);
-    if ((display = XOpenDisplay(NULL)) == NULL) {
-      std::cerr << "Unable to open X display" << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
 
     try {
       qrScanner = std::make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();
 
       std::make_unique<QrCode>(mid)->get()->write();
-      ping = std::thread(sendPing);
+
+      playerWindow = std::thread(playerWindowThread);
+      ping = std::thread(pingThread);
 
       watch();
     }
     catch (const std::system_error& e) {
       std::cerr << e.what() << std::endl;
-      return 1;
+      std::exit(EXIT_FAILURE);
     }
     catch (const std::runtime_error& e) {
       std::cerr << e.what() << std::endl;
-      return 1;
+      std::exit(EXIT_FAILURE);
     }
   }
 
