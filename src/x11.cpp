@@ -207,18 +207,6 @@ void openPlayerListWindow()
     (unsigned char*)&wm_state_above,
     1);
 
-  Atom opacity_atom = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
-  unsigned long opacity = (unsigned long)(0xffffffff * 0.75);
-  XChangeProperty(
-    display,
-    window,
-    opacity_atom,
-    XA_CARDINAL,
-    32,
-    PropModeReplace,
-    (unsigned char *)&opacity,
-    1);
-
   int rc = XpmReadFileToPixmap(display, window, "/game/tmp/qrcode.xpm", &pixmap_qr, NULL, NULL);
   if (rc != XpmSuccess) {
     std::cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << std::endl;
