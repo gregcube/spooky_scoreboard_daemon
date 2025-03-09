@@ -13,11 +13,13 @@
 #include "x11.h"
 
 #define X11_WIN_WIDTH 640
-#define X11_WIN_HEIGHT 330
+#define X11_WIN_HEIGHT 480
 
 Display* display = nullptr;
 Window window = None;
-XftFont* xft_font = nullptr;
+XftFont* xft_hdr_font = nullptr;
+XftFont* xft_std_font = nullptr;
+XftFont* xft_sub_font = nullptr;
 XftDraw* xft_draw = nullptr;
 XftColor xft_color = {0};
 XSizeHints hints = {0};
@@ -50,23 +52,26 @@ void runTimer(int secs)
       XNextEvent(display, &event);
 
       if (event.type == Expose && event.xexpose.count == 0) {
-        XCopyArea(display, pixmap_qr, window, gc, 0, 0, 130, 130, 500, 195);
-        XClearArea(display, window, 0, 0, 640, 50 * 4, 0);
+        XCopyArea(display, pixmap_qr, window, gc, 0, 0, 145, 145, X11_WIN_WIDTH - 145, 0);
+        XClearArea(display, window, 0, 175, X11_WIN_WIDTH, 50 * 4, 0);
 
-        for (int i = 0, ty = 30; i < playerList.player.size(); i++, ty += 50) {
+        XftDrawString8(xft_draw, &xft_color, xft_hdr_font, 10, 40, (const FcChar8*)"Spooky Scoreboard", 17);
+        XftDrawString8(xft_draw, &xft_color, xft_sub_font, 10, 60, (const FcChar8*)"spookyscoreboard.com", 20);
+
+        for (int i = 0, ty = 175; i < playerList.player.size(); i++, ty += 75) {
           char username[60];
 
           snprintf(
             username,
             sizeof(username),
-            "Player %d: %s",
+            "%d. %s",
             i + 1,
             playerList.player[i].c_str());
 
           XftDrawString8(
             xft_draw,
             &xft_color,
-            xft_font,
+            xft_std_font,
             10,
             ty,
             (XftChar8*)username,
@@ -89,14 +94,14 @@ void runTimer(int secs)
         "%d",
         (int)(secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, 0, 280, 50, 50, 1);
+      XClearArea(display, window, 0, X11_WIN_HEIGHT - 50, 100, 100, 1);
 
       XftDrawString8(
         xft_draw,
         &xft_color,
-        xft_font,
+        xft_std_font,
         10,
-        320,
+        X11_WIN_HEIGHT - 10,
         (XftChar8 *)ct,
         strlen(ct));
 
@@ -139,11 +144,17 @@ void closePlayerListWindow()
     if (visual != nullptr)
       XftColorFree(display, visual, colormap, &xft_color);
 
-    if (xft_font != nullptr)
-      XftFontClose(display, xft_font);
+    if (xft_std_font != nullptr)
+      XftFontClose(display, xft_std_font);
+
+    if (xft_hdr_font != nullptr)
+      XftFontClose(display, xft_hdr_font);
+
+    if (xft_sub_font != nullptr)
+      XftFontClose(display, xft_sub_font);
 
     if (window != None)
-     XDestroyWindow(display, window);
+      XDestroyWindow(display, window);
 
     XFlush(display);
     XCloseDisplay(display);
@@ -194,8 +205,19 @@ void openPlayerListWindow()
     32,
     PropModeReplace,
     (unsigned char*)&wm_state_above,
-    1
-  );
+    1);
+
+  Atom opacity_atom = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+  unsigned long opacity = (unsigned long)(0xffffffff * 0.75);
+  XChangeProperty(
+    display,
+    window,
+    opacity_atom,
+    XA_CARDINAL,
+    32,
+    PropModeReplace,
+    (unsigned char *)&opacity,
+    1);
 
   int rc = XpmReadFileToPixmap(display, window, "/game/tmp/qrcode.xpm", &pixmap_qr, NULL, NULL);
   if (rc != XpmSuccess) {
@@ -204,7 +226,7 @@ void openPlayerListWindow()
 
   FcBool result = FcConfigAppFontAddFile(
     FcConfigGetCurrent(),
-    (const FcChar8*)"/game/code/assets/fonts/Atari_Hanzel.ttf"
+    (const FcChar8*)"/game/code/assets/fonts/SNNeoNoire-Regular.ttf"
   );
 
   if (!result) {
@@ -212,9 +234,21 @@ void openPlayerListWindow()
     std::exit(EXIT_FAILURE);
   }
 
-  xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
-  if (!xft_font) {
-    std::cerr << "Failed to open TTF font." << std::endl;
+  xft_std_font = XftFontOpenName(display, screen, "SN NeoNoire:size=18");
+  if (!xft_std_font) {
+    std::cerr << "Failed to open standard TTF font." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  xft_hdr_font = XftFontOpenName(display, screen, "SN NeoNoire:size=24");
+  if (!xft_hdr_font) {
+    std::cerr << "Failed to open header TTF font." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  xft_sub_font = XftFontOpenName(display, screen, "SN NeoNoire:size=10");
+  if (!xft_sub_font) {
+    std::cerr << "Failed to open sub TTF font." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
