@@ -32,7 +32,8 @@ struct players {
 
 extern players playerList;
 extern char mid[MAX_UUID_LEN + 1];
-extern char *token;
+extern char* token;
+extern std::string machineUrl;
 extern std::atomic<bool> isRunning;
 extern std::unique_ptr<GameBase> game;
 

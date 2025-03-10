@@ -16,13 +16,14 @@
 #include "QrScanner.h"
 
 char mid[MAX_UUID_LEN + 1];
-char *token = nullptr;
+char* token = nullptr;
 
 players playerList;
 
 static uint32_t gamesPlayed = 0;
 static CURLcode curlCode;
 
+std::string machineUrl;
 std::atomic<bool> isRunning(false);
 std::unique_ptr<GameBase> game;
 std::unique_ptr<CurlHandler> curlHandle;
@@ -257,6 +258,28 @@ static void printSupportedGames()
   }
 }
 
+static void getMachineUrl()
+{
+  Json::Reader reader;
+  Json::Value response;
+
+  std::cout << "Retrieving machine URL..." << std::endl;
+  long rc = curlHandle->get("/api/v1/url");
+
+  if (reader.parse(curlHandle->responseData, response) == false) {
+    std::cerr << "Invalid JSON response from server." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  if (rc != 200) {
+    std::cout << response["message"].asString() << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  size_t len = response["message"].asString().size();
+  machineUrl = response["message"].asString().substr(8, len - 8);
+}
+
 static void registerMachine(const std::string& regCode)
 {
   Json::Reader reader;
@@ -408,6 +431,7 @@ int main(int argc, char** argv)
 
       std::make_unique<QrCode>(mid)->get()->write();
 
+      getMachineUrl();
       playerWindow = std::thread(playerWindowThread);
       ping = std::thread(pingThread);
 

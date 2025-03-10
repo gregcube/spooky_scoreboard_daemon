@@ -56,7 +56,7 @@ void runTimer(int secs)
         XClearArea(display, window, 0, 175, X11_WIN_WIDTH, 50 * 4, 0);
 
         XftDrawString8(xft_draw, &xft_color, xft_hdr_font, 10, 40, (const FcChar8*)"Spooky Scoreboard", 17);
-        XftDrawString8(xft_draw, &xft_color, xft_sub_font, 10, 60, (const FcChar8*)"spookyscoreboard.com", 20);
+        XftDrawString8(xft_draw, &xft_color, xft_sub_font, 15, 70, (const FcChar8*)machineUrl.c_str(), machineUrl.size());
 
         for (int i = 0, ty = 175; i < playerList.player.size(); i++, ty += 75) {
           char username[60];
@@ -102,7 +102,7 @@ void runTimer(int secs)
         xft_std_font,
         10,
         X11_WIN_HEIGHT - 10,
-        (XftChar8 *)ct,
+        (FcChar8*)ct,
         strlen(ct));
 
       update_time = current_time;
@@ -218,7 +218,17 @@ void openPlayerListWindow()
   );
 
   if (!result) {
-    std::cerr << "Failed to load font." << std::endl;
+    std::cerr << "Failed to load SNNeoNoire-Regular.ttf." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  result = FcConfigAppFontAddFile(
+    FcConfigGetCurrent(),
+    (const FcChar8*)"/game/code/assets/fonts/Oswald-Extra-LightItalic.ttf"
+  );
+
+  if (!result) {
+    std::cerr << "Failed to load Oswald-Extra-LightItalic.ttf." << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
@@ -234,7 +244,7 @@ void openPlayerListWindow()
     std::exit(EXIT_FAILURE);
   }
 
-  xft_sub_font = XftFontOpenName(display, screen, "SN NeoNoire:size=10");
+  xft_sub_font = XftFontOpenName(display, screen, "Oswald:size=16");
   if (!xft_sub_font) {
     std::cerr << "Failed to open sub TTF font." << std::endl;
     std::exit(EXIT_FAILURE);
