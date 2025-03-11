@@ -5,11 +5,10 @@
 #include <array>
 #include <atomic>
 #include <vector>
-#include <algorithm>
 
 #include "GameBase.h"
 
-#define VERSION "0.0.6-1"
+#define VERSION "0.0.7-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG
@@ -31,10 +30,9 @@ struct players {
 };
 
 extern players playerList;
-extern char mid[MAX_UUID_LEN + 1];
-extern char *token;
 extern std::atomic<bool> isRunning;
 extern std::unique_ptr<GameBase> game;
+extern std::string machineId, machineUrl, token;
 
 extern void playerLogin(const std::vector<char>& uuid, int position);
 

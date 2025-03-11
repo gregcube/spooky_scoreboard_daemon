@@ -19,7 +19,7 @@ public:
   long post(const std::string& path, const std::optional<std::string>& data = std::nullopt);
 
 private:
-  CURL *curl;
+  CURL* curl;
   const std::string baseUrl;
 
   long execute(const std::string& url);

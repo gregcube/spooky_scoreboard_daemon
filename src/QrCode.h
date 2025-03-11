@@ -11,11 +11,9 @@ class QrCode
 {
 public:
   /**
-   * @brief Constructs a QrCode object for the specified machine id.
-   *
-   * @param ptr Points to a C-string containing the machine id.
+   * @brief Constructs a QrCode object.
    */
-  QrCode(const char* ptr) : ch(std::make_unique<CurlHandler>(BASE_URL)), mid(ptr) {}
+  QrCode() : ch(std::make_unique<CurlHandler>(BASE_URL)) {}
 
   /**
    * @brief Fetches machine QR code from the server.
@@ -31,7 +29,6 @@ public:
 
 private:
   const std::unique_ptr<CurlHandler> ch;
-  const char* mid;
 };
 
 #endif

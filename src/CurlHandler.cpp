@@ -7,9 +7,7 @@
 CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
 {
   curl = curl_easy_init();
-  if (!curl) {
-    throw std::runtime_error("Unable to initialize CURL");
-  }
+  if (!curl) throw std::runtime_error("Unable to initialize CURL");
 }
 
 CurlHandler::~CurlHandler()
@@ -43,9 +41,9 @@ long CurlHandler::execute(const std::string& endpoint)
 
   hdrs = curl_slist_append(hdrs, "Content-Type: application/json; charset=utf-8");
 
-  if (mid[MAX_UUID_LEN] == '\0' && token != nullptr) {
-    std::string authHeader = "Authorization: Bearer " + std::string(token);
-    std::string uuidHeader = "X-Machine-Uuid: " + std::string(mid);
+  if (!machineId.empty() && !token.empty()) {
+    std::string authHeader = "Authorization: Bearer " + token;
+    std::string uuidHeader = "X-Machine-Uuid: " + machineId;
     hdrs = curl_slist_append(hdrs, authHeader.c_str());
     hdrs = curl_slist_append(hdrs, uuidHeader.c_str());
   }
@@ -58,7 +56,6 @@ long CurlHandler::execute(const std::string& endpoint)
   curl_easy_setopt(curl, CURLOPT_FORBID_REUSE, 1L);
   curl_easy_setopt(curl, CURLOPT_MAXCONNECTS, 5L);
 #ifdef DEBUG
-  //curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
 #endif
@@ -73,12 +70,7 @@ long CurlHandler::execute(const std::string& endpoint)
   return responseCode;
 }
 
-size_t CurlHandler::writeCallback(
-  const char *ptr,
-  size_t size,
-  size_t nmemb,
-  std::string *output
-) {
+size_t CurlHandler::writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output) {
   size_t total = size * nmemb;
   output->append(ptr, total);
   return total;

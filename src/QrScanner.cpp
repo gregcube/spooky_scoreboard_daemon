@@ -5,7 +5,6 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <json/json.h>
 
 #include "main.h"
 #include "QrScanner.h"
@@ -25,14 +24,13 @@ void QrScanner::scan()
     int fd = select(std::max(ttyQR, pipes[0]) + 1, &readfds, NULL, NULL, NULL);
 
     if (fd == -1) {
-      std::cerr << "Failed to select file descriptor" << std::endl;
+      std::cerr << "Failed to select file descriptor." << std::endl;
       break;
     }
 
     // Break loop if pipes[1] is written to.
-    if (FD_ISSET(pipes[0], &readfds)) {
-      break;
-    }
+    // Writing to pipes[1] sends to pipes[0].
+    if (FD_ISSET(pipes[0], &readfds)) break;
 
     // Process qr code data.
     if (FD_ISSET(ttyQR, &readfds)) {
@@ -66,10 +64,7 @@ void QrScanner::stop()
     std::cerr << "Failed to signal exit pipe" << std::endl;
   }
 
-  if (scanThread.joinable()) {
-    scanThread.join();
-  }
-
+  if (scanThread.joinable()) scanThread.join();
   if (isStarted(ttyQR)) close(ttyQR);
   if (isStarted(pipes[0])) close(pipes[0]);
   if (isStarted(pipes[1])) close(pipes[1]);
@@ -79,13 +74,11 @@ void QrScanner::start()
 {
   ttyQR = open(qrDevice, O_RDONLY);
 
-  if (ttyQR < 0) {
+  if (ttyQR < 0)
     throw std::runtime_error("Cannot open QR scanner.");
-  }
 
-  if (pipe(pipes) == -1) {
+  if (pipe(pipes) == -1)
     throw std::runtime_error("Cannot open FIFO pipes.");
-  }
 
   std::cout << "QR scanner started." << std::endl;
   scanThread = std::thread(&QrScanner::scan, this);

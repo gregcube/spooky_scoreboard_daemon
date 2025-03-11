@@ -13,32 +13,58 @@
 #include "x11.h"
 
 #define X11_WIN_WIDTH 640
-#define X11_WIN_HEIGHT 330
+#define X11_WIN_HEIGHT 480
 
-Display* display = nullptr;
+using namespace std;
+
 Window window = None;
-XftFont* xft_font = nullptr;
+Pixmap pixmap_qr = None;
+Colormap colormap = None;
+Display* display = nullptr;
+XftFont* xft_hdr_font = nullptr;
+XftFont* xft_std_font = nullptr;
+XftFont* xft_sub_font = nullptr;
 XftDraw* xft_draw = nullptr;
+Visual* visual = nullptr;
+GC gc = nullptr;
 XftColor xft_color = {0};
 XSizeHints hints = {0};
-Colormap colormap;
-Visual* visual = nullptr;
-Pixmap pixmap_qr = None;
 
-void x11Init()
+static void x11Init()
 {
   XInitThreads();
   setenv("DISPLAY", ":0", 0);
   display = XOpenDisplay(nullptr);
   if (!display) {
-    std::cerr << "Failed to open X11 display." << std::endl;
+    cerr << "Failed to open X11 display." << endl;
+  }
+}
+
+static void drawPlayerList()
+{
+  XCopyArea(display, pixmap_qr, window, gc, 0, 0, 145, 145, X11_WIN_WIDTH - 145, 0);
+  XClearArea(display, window, 0, 175, X11_WIN_WIDTH, 50 * 4, 0);
+
+  XftDrawString8(xft_draw, &xft_color, xft_hdr_font,
+    10, 40, (const FcChar8*)"Spooky Scoreboard", 17);
+
+  XftDrawString8(xft_draw, &xft_color, xft_sub_font,
+    15, 70, (const FcChar8*)machineUrl.c_str(), machineUrl.size());
+
+  XftDrawString8(xft_draw, &xft_color, xft_sub_font,
+    X11_WIN_WIDTH - 60, X11_WIN_HEIGHT - 10, (const FcChar8*)VERSION, strlen(VERSION));
+
+  for (int i = 0, ty = 175; i < playerList.player.size(); i++, ty += 75) {
+    char name[60];
+    snprintf(name, sizeof(name), "%d. %s", i + 1, playerList.player[i].c_str());
+    XftDrawString8(xft_draw, &xft_color, xft_std_font, 10, ty, (const FcChar8*)name, strlen(name));
   }
 }
 
 void runTimer(int secs)
 {
   struct timeval start_time, current_time, update_time;
-  GC gc = XCreateGC(display, window, 0, NULL);
+  gc = XCreateGC(display, window, 0, NULL);
 
   gettimeofday(&start_time, NULL);
   update_time = start_time;
@@ -48,37 +74,11 @@ void runTimer(int secs)
 
     while (XPending(display) > 0) {
       XNextEvent(display, &event);
-
-      if (event.type == Expose && event.xexpose.count == 0) {
-        XCopyArea(display, pixmap_qr, window, gc, 0, 0, 130, 130, 500, 195);
-        XClearArea(display, window, 0, 0, 640, 50 * 4, 0);
-
-        for (int i = 0, ty = 30; i < playerList.player.size(); i++, ty += 50) {
-          char username[60];
-
-          snprintf(
-            username,
-            sizeof(username),
-            "Player %d: %s",
-            i + 1,
-            playerList.player[i].c_str());
-
-          XftDrawString8(
-            xft_draw,
-            &xft_color,
-            xft_font,
-            10,
-            ty,
-            (XftChar8*)username,
-            strlen(username));
-        }
-      }
+      if (event.type == Expose && event.xexpose.count == 0) drawPlayerList();
     }
 
     gettimeofday(&current_time, NULL);
-    if (current_time.tv_sec - start_time.tv_sec >= secs) {
-      break;
-    }
+    if (current_time.tv_sec - start_time.tv_sec >= secs) break;
 
     if (current_time.tv_sec - update_time.tv_sec >= 1) {
       char ct[3];
@@ -89,15 +89,15 @@ void runTimer(int secs)
         "%d",
         (int)(secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, 0, 280, 50, 50, 1);
+      XClearArea(display, window, 0, X11_WIN_HEIGHT - 50, 100, 100, 1);
 
       XftDrawString8(
         xft_draw,
         &xft_color,
-        xft_font,
+        xft_std_font,
         10,
-        320,
-        (XftChar8 *)ct,
+        X11_WIN_HEIGHT - 10,
+        (FcChar8*)ct,
         strlen(ct));
 
       update_time = current_time;
@@ -110,7 +110,7 @@ void runTimer(int secs)
 void showPlayerListWindow()
 {
   if (window != None) {
-    std::cout << "Showing player list window." << std::endl;
+    cout << "Showing player list window." << endl;
     XMapWindow(display, window);
     XRaiseWindow(display, window);
     game->sendi3cmd();
@@ -121,7 +121,7 @@ void showPlayerListWindow()
 void hidePlayerListWindow()
 {
   if (window != None) {
-    std::cout << "Hiding player list window." << std::endl;
+    cout << "Hiding player list window." << endl;
     XUnmapWindow(display, window);
     XSync(display, False);
   }
@@ -139,11 +139,17 @@ void closePlayerListWindow()
     if (visual != nullptr)
       XftColorFree(display, visual, colormap, &xft_color);
 
-    if (xft_font != nullptr)
-      XftFontClose(display, xft_font);
+    if (xft_std_font != nullptr)
+      XftFontClose(display, xft_std_font);
+
+    if (xft_hdr_font != nullptr)
+      XftFontClose(display, xft_hdr_font);
+
+    if (xft_sub_font != nullptr)
+      XftFontClose(display, xft_sub_font);
 
     if (window != None)
-     XDestroyWindow(display, window);
+      XDestroyWindow(display, window);
 
     XFlush(display);
     XCloseDisplay(display);
@@ -172,8 +178,7 @@ void openPlayerListWindow()
     wh,
     0,
     BlackPixel(display, screen),
-    WhitePixel(display, screen)
-  );
+    WhitePixel(display, screen));
 
   hints.flags = PSize | PMinSize | PMaxSize | PPosition;
   hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
@@ -194,28 +199,47 @@ void openPlayerListWindow()
     32,
     PropModeReplace,
     (unsigned char*)&wm_state_above,
-    1
-  );
+    1);
 
   int rc = XpmReadFileToPixmap(display, window, "/game/tmp/qrcode.xpm", &pixmap_qr, NULL, NULL);
   if (rc != XpmSuccess) {
-    std::cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << std::endl;
+    cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
   }
 
   FcBool result = FcConfigAppFontAddFile(
     FcConfigGetCurrent(),
-    (const FcChar8*)"/game/code/assets/fonts/Atari_Hanzel.ttf"
-  );
+    (const FcChar8*)"/game/code/assets/fonts/SNNeoNoire-Regular.ttf");
 
   if (!result) {
-    std::cerr << "Failed to load font." << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed to load SNNeoNoire-Regular.ttf." << endl;
+    exit(EXIT_FAILURE);
   }
 
-  xft_font = XftFontOpenName(display, screen, "Hanzel:size=21");
-  if (!xft_font) {
-    std::cerr << "Failed to open TTF font." << std::endl;
-    std::exit(EXIT_FAILURE);
+  result = FcConfigAppFontAddFile(
+    FcConfigGetCurrent(),
+    (const FcChar8*)"/game/code/assets/fonts/Oswald-Extra-LightItalic.ttf");
+
+  if (!result) {
+    cerr << "Failed to load Oswald-Extra-LightItalic.ttf." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  xft_std_font = XftFontOpenName(display, screen, "SN NeoNoire:size=18");
+  if (!xft_std_font) {
+    cerr << "Failed to open standard TTF font." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  xft_hdr_font = XftFontOpenName(display, screen, "SN NeoNoire:size=24");
+  if (!xft_hdr_font) {
+    cerr << "Failed to open header TTF font." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  xft_sub_font = XftFontOpenName(display, screen, "Oswald:size=16");
+  if (!xft_sub_font) {
+    cerr << "Failed to open sub TTF font." << endl;
+    exit(EXIT_FAILURE);
   }
 
   colormap = DefaultColormap(display, screen);
@@ -226,15 +250,13 @@ void openPlayerListWindow()
     visual,
     colormap,
     "black",
-    &xft_color
-  );
+    &xft_color);
 
   xft_draw = XftDrawCreate(
     display,
     window,
     visual,
-    colormap
-  );
+    colormap);
 
   XSelectInput(display, window, ExposureMask);
 }

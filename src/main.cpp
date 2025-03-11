@@ -1,3 +1,6 @@
+// Spooky Scoreboard Daemon
+// https://spookyscoreboard.com
+
 #include <cstdint>
 #include <csignal>
 #include <iostream>
@@ -15,23 +18,21 @@
 #include "QrCode.h"
 #include "QrScanner.h"
 
-char mid[MAX_UUID_LEN + 1];
-char *token = nullptr;
+using namespace std;
 
 players playerList;
-
-static uint32_t gamesPlayed = 0;
 static CURLcode curlCode;
 
-std::atomic<bool> isRunning(false);
-std::unique_ptr<GameBase> game;
-std::unique_ptr<CurlHandler> curlHandle;
-std::unique_ptr<QrScanner> qrScanner;
-std::thread ping, playerWindow;
+atomic<bool> isRunning(false);
+unique_ptr<GameBase> game = nullptr;
+unique_ptr<CurlHandler> curlHandle = nullptr;
+unique_ptr<QrScanner> qrScanner = nullptr;
+thread ping, playerWindow;
+string machineId, machineUrl, token;
 
 static void cleanup()
 {
-  std::cout << "Cleaning up..." << std::endl;
+  cout << "Cleaning up..." << endl;
 
   isRunning.store(false);
 
@@ -51,20 +52,16 @@ static void cleanup()
     curl_global_cleanup();
   }
 
-  if (token != nullptr) {
-    delete[] token;
-  }
-
-  std::cout << "Exited." << std::endl;
+  cout << "Exited." << endl;
 }
 
 static void loadMachineId()
 {
-  std::ifstream file("/.ssbd.json");
+  ifstream file("/.ssbd.json");
 
   if (!file.is_open()) {
-    std::cerr << "Failed to open /.ssbd.json." << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed to open /.ssbd.json." << endl;
+    exit(EXIT_FAILURE);
   }
 
   Json::Value root;
@@ -72,34 +69,30 @@ static void loadMachineId()
 
   if (reader.parse(file, root) == false) {
     file.close();
-    std::cerr << "Failed to parse /.ssbd.json." << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed to parse /.ssbd.json." << endl;
+    exit(EXIT_FAILURE);
   }
 
   file.close();
 
-  size_t token_size = root["token"].asString().size();
-  token = new char[token_size + 1];
-  strncpy(token, root["token"].asString().c_str(), token_size);
-
   if (root["uuid"].asString().size() != MAX_UUID_LEN) {
-    std::cerr << "Failed to read machine uuid." << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed to read machine uuid." << endl;
+    exit(EXIT_FAILURE);
   }
 
-  strncpy(mid, root["uuid"].asString().c_str(), MAX_UUID_LEN);
-  mid[MAX_UUID_LEN] = '\0';
+  token = root["token"].asString();
+  machineId = root["uuid"].asString();
 }
 
 // todo: Exit after failing 10 or more pings(?)
-static void sendPing(const std::unique_ptr<CurlHandler>& ch)
+static void sendPing(const unique_ptr<CurlHandler>& ch)
 {
 #ifdef DEBUG
-  std::cout << "Sending ping..." << std::endl;
+  cout << "Sending ping..." << endl;
 #endif
   long rc;
   if ((rc = ch->post("/api/v1/ping")) != 200) {
-    std::cerr << "Ping failed: " << rc << std::endl;
+    cerr << "Ping failed: " << rc << endl;
   }
 }
 
@@ -115,7 +108,7 @@ static void playerWindowThread()
       playerList.onScreen = false;
     }
     else {
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      this_thread::sleep_for(chrono::milliseconds(50));
     }
   }
 
@@ -124,10 +117,10 @@ static void playerWindowThread()
 
 static void pingThread()
 {
-  const auto ch = std::make_unique<CurlHandler>(BASE_URL);
+  const auto ch = make_unique<CurlHandler>(BASE_URL);
   while (isRunning.load()) {
     sendPing(ch);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    this_thread::sleep_for(chrono::seconds(10));
   }
 }
 
@@ -139,7 +132,7 @@ void addPlayer(const char* playerName, int position)
   }
 }
 
-void playerLogin(const std::vector<char>& uuid, int position)
+void playerLogin(const vector<char>& uuid, int position)
 {
   if (uuid.size() != MAX_UUID_LEN || position < 1 || position > 4) {
     return;
@@ -150,7 +143,7 @@ void playerLogin(const std::vector<char>& uuid, int position)
     return;
   }
 
-  std::cout << "Logging in..." << std::endl;
+  cout << "Logging in..." << endl;
 
   Json::Value root;
   root.append(uuid.data());
@@ -169,15 +162,15 @@ void playerLogin(const std::vector<char>& uuid, int position)
 
 static void uploadScores(const Json::Value& scores)
 {
-  std::cout << "Uploading scores..." << std::endl;
+  cout << "Uploading scores..." << endl;
 
   try {
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
     curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores));
   }
-  catch (const std::runtime_error& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
   }
 }
 
@@ -194,8 +187,8 @@ static void processHighScoresEvent()
       lastScore = currentScore;
     }
   }
-  catch (const std::runtime_error& e) {
-    std::cerr << "Exception: " << e.what() << std::endl;
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
   }
 }
 
@@ -208,7 +201,7 @@ static void processEvent(char* buf, ssize_t bytes)
 
     if (evt->len > 0) {
 #ifdef DEBUG
-      std::cout << "Event: " << evt->name << std::endl;
+      cout << "Event: " << evt->name << endl;
 #endif
       if (strcmp(evt->name, game->getHighScoresFile().c_str()) == 0) {
         processHighScoresEvent();
@@ -225,26 +218,26 @@ static void watch()
   char buf[1024];
 
   if ((fd = inotify_init()) == -1) {
-    std::cerr << "Failed inotify_init()" << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed inotify_init()." << endl;
+    exit(EXIT_FAILURE);
   }
 
   if ((wd = inotify_add_watch(
     fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
 
-    std::cerr << "Failed inotify_add_watch()" << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed inotify_add_watch()." << endl;
+    exit(EXIT_FAILURE);
   }
 
   while (isRunning.load()) {
-    std::cout << "Waiting for action..." << std::endl;
+    cout << "Waiting for action..." << endl;
     ssize_t n = read(fd, buf, sizeof(buf));
 
     if (n < 0) {
-      std::cerr << "Failed reading event" << std::endl;
+      cerr << "Failed reading event." << endl;
     }
     else {
-      std::cout << "Processing event..." << std::endl;
+      cout << "Processing event..." << endl;
       processEvent(buf, n);
     }
   }
@@ -253,68 +246,92 @@ static void watch()
 static void printSupportedGames()
 {
   for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
-    std::cout << "  " << it->first << ": " << it->second()->getGameName() << "\n";
+    cout << "  " << it->first << ": " << it->second()->getGameName() << "\n";
   }
 }
 
-static void registerMachine(const std::string& regCode)
+static void getMachineUrl()
+{
+  Json::Reader reader;
+  Json::Value response;
+
+  cout << "Retrieving machine URL..." << endl;
+  long rc = curlHandle->get("/api/v1/url");
+
+  if (reader.parse(curlHandle->responseData, response) == false) {
+    cerr << "Invalid JSON response from server." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  if (rc != 200) {
+    cout << response["message"].asString() << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  size_t len = response["message"].asString().size();
+  machineUrl = response["message"].asString().substr(8, len - 8);
+}
+
+static void registerMachine(const string& regCode)
 {
   Json::Reader reader;
   Json::Value response, code = regCode;
 
-  std::cout << "Registering machine..." << std::endl;
+  cout << "Registering machine..." << endl;
   long rc = curlHandle->post("/api/v1/register", code.toStyledString());
 
   if (reader.parse(curlHandle->responseData, response) == false) {
-    std::cerr << "Invalid JSON response from server." << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Invalid JSON response from server." << endl;
+    exit(EXIT_FAILURE);
   }
 
   if (rc != 200) {
-    std::cout << response["message"].asString() << std::endl;
-    std::exit(EXIT_FAILURE);
+    cout << response["message"].asString() << endl;
+    exit(EXIT_FAILURE);
   }
 
-  std::ofstream file("/.ssbd.json");
+  ofstream file("/.ssbd.json");
   if (!file.is_open()) {
-    std::cerr << "Failed to write /.ssbd.json." << std::endl;
-    std::cout << "Copy/paste the below into /.ssbd.json" << std::endl;
-    std::cout << response["message"] << std::endl;
-    std::exit(EXIT_FAILURE);
+    cerr << "Failed to write /.ssbd.json." << endl;
+    cout << "Copy/paste the below into /.ssbd.json" << endl;
+    cout << response["message"] << endl;
+    exit(EXIT_FAILURE);
   }
 
   Json::StreamWriterBuilder writer;
   file << Json::writeString(writer, response["message"]);
   file.close();
 
-  std::cout << "File /.ssbd.json saved." << std::endl;
-  std::cout << "Machine registered." << std::endl;
+  cout << "File /.ssbd.json saved." << endl;
+  cout << "Machine registered." << endl;
 }
 
 static void printUsage()
 {
-  std::cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
-  std::cerr << " -g <game> Game name. Use -l to list supported games\n";
-  std::cerr << " -r <code> Register pinball machine\n";
-  std::cerr << " -u        Upload high scores and exit\n";
-  std::cerr << " -d        Forks to background (daemon mode)\n";
-  std::cerr << " -l        List supported games\n";
-  std::cerr << " -h        Displays usage\n" << std::endl;
+  cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
+  cerr << " -g <game> Game name.\n";
+  cerr << "           Use -l to list supported games.\n\n";
+  cerr << " -r <code> Register pinball machine.\n";
+  cerr << "           Obtain registration code at spookyscoreboard.com.\n\n";
+  cerr << " -u        Upload high scores and exit.\n\n";
+  cerr << " -d        Fork to background (daemon mode).\n\n";
+  cerr << " -l        List supported games.\n\n";
+  cerr << " -h        Displays usage.\n" << endl;
 }
 
 void signalHandler(int signal)
 {
-  if (signal == SIGINT || signal == SIGTERM) std::exit(0);
+  if (signal == SIGINT || signal == SIGTERM) exit(0);
 }
 
 int main(int argc, char** argv)
 {
   int opt, reg = 0, run = 0, upload = 0;
-  std::string gameName, regCode;
+  string gameName, regCode;
   pid_t pid;
 
   if (argc < 2) {
-    std::cerr << "Missing parameters: -r <code> or -g <game>" << std::endl;
+    cerr << "Missing parameters: -r <code> or -g <game>" << endl;
     printUsage();
     return 1;
   }
@@ -337,7 +354,7 @@ int main(int argc, char** argv)
         regCode = optarg;
       }
       else {
-        std::cerr << "Invalid code." << std::endl;
+        cerr << "Invalid code." << endl;
       }
       break;
 
@@ -347,7 +364,7 @@ int main(int argc, char** argv)
         gameName = optarg;
       }
       else {
-        std::cerr << "Invalid game.\n";
+        cerr << "Invalid game.\n";
         printSupportedGames();
       }
       break;
@@ -361,36 +378,36 @@ int main(int argc, char** argv)
       pid = fork();
 
       if (pid < 0) {
-        std::cerr << "Failed to fork" << std::endl;
-        std::exit(EXIT_FAILURE);
+        cerr << "Failed to fork" << endl;
+        exit(EXIT_FAILURE);
       }
 
-      if (pid > 0) std::exit(0);
+      if (pid > 0) exit(0);
       break;
     }
   }
 
   if (run && reg) {
-    std::cerr << "Cannot use -r and -g together" << std::endl;
+    cerr << "Cannot use -r and -g together" << endl;
     printUsage();
     return 1;
   }
 
   if (run || reg) {
     curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
-    curlHandle = std::make_unique<CurlHandler>(BASE_URL);
+    curlHandle = make_unique<CurlHandler>(BASE_URL);
   }
 
-  std::atexit(cleanup);
-  std::signal(SIGINT, signalHandler);
-  std::signal(SIGTERM, signalHandler);
+  atexit(cleanup);
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
 
   if (reg) {
     registerMachine(regCode);
   }
 
   if (run && (game = GameBase::create(gameName)) != nullptr) {
-    std::cout << game->getGameName() << std::endl;
+    cout << game->getGameName() << endl;
 
     isRunning.store(true);
     loadMachineId();
@@ -398,28 +415,28 @@ int main(int argc, char** argv)
     if (upload) {
       Json::Value scores = game->processHighScores();
       uploadScores(scores);
-      std::exit(EXIT_SUCCESS);
+      exit(EXIT_SUCCESS);
     }
-
 
     try {
-      qrScanner = std::make_unique<QrScanner>("/dev/ttyQR");
+      qrScanner = make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();
 
-      std::make_unique<QrCode>(mid)->get()->write();
+      make_unique<QrCode>()->get()->write();
 
-      playerWindow = std::thread(playerWindowThread);
-      ping = std::thread(pingThread);
+      playerWindow = thread(playerWindowThread);
+      ping = thread(pingThread);
 
+      getMachineUrl();
       watch();
     }
-    catch (const std::system_error& e) {
-      std::cerr << e.what() << std::endl;
-      std::exit(EXIT_FAILURE);
+    catch (const system_error& e) {
+      cerr << e.what() << endl;
+      exit(EXIT_FAILURE);
     }
-    catch (const std::runtime_error& e) {
-      std::cerr << e.what() << std::endl;
-      std::exit(EXIT_FAILURE);
+    catch (const runtime_error& e) {
+      cerr << e.what() << endl;
+      exit(EXIT_FAILURE);
     }
   }
 

@@ -12,7 +12,7 @@ public:
    * @param qrdev Pointer to a null-terminated string that specifies
    *              the path to the QR scanner device.
    */
-  QrScanner(const char *qrdev) : qrDevice(qrdev) {};
+  QrScanner(const char* qrdev) : qrDevice(qrdev) {};
 
   /**
    * @brief Start the QR code scanner.
@@ -35,7 +35,7 @@ public:
 private:
   int ttyQR = -1;
   int pipes[2] = { -1, -1 };
-  const char *qrDevice;
+  const char* qrDevice;
   std::thread scanThread;
   bool isStarted(int fd);
 };
