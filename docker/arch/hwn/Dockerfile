@@ -42,8 +42,7 @@ RUN cd ssbd && git checkout docker
 RUN cd ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
 
 # Build spooky scoreboard daemon.
-RUN cd ssbd && mkdir build && cd build && cmake .. && make
+RUN cd ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
 
 WORKDIR /ssbd/build
-
 CMD ["/bin/bash"]
