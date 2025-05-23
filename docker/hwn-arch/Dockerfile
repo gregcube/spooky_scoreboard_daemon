@@ -24,7 +24,6 @@ RUN pacman -S --noconfirm \
   ninja \
   gcc \
   make \
-  cmake \
   mpfr \
   pkg-config \
   libffi \
