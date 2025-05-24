@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include <sys/time.h>
 #include <fontconfig/fontconfig.h>
@@ -12,10 +13,16 @@
 #include "main.h"
 #include "x11.h"
 
+#include "fonts/Ghoulish.h"
+#include "fonts/Roboto.h"
+
 #define X11_WIN_WIDTH 640
 #define X11_WIN_HEIGHT 480
 
 using namespace std;
+
+const char* ttf_ghoulish = "/tmp/ghoulish.ttf";
+const char* ttf_roboto = "/tmp/roboto.ttf";
 
 Window window = None;
 Pixmap pixmap_qr = None;
@@ -40,19 +47,36 @@ static void x11Init()
   }
 }
 
+static void loadFont(const char* ttfpath, const unsigned char* ttfdata, const unsigned int ttfsize, FcConfig* config)
+{
+  ofstream font_file(ttfpath, ios::binary);
+  if (!font_file) {
+    cerr << "Failed to open font file for writing." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  font_file.write(reinterpret_cast<const char*>(ttfdata), ttfsize);
+  font_file.close();
+
+  if (!FcConfigAppFontAddFile(config, (const FcChar8*)ttfpath)) {
+    cerr << "Failed to add font file to Fontconfig." << endl;
+    exit(EXIT_FAILURE);
+  }
+}
+
 static void drawPlayerList()
 {
   XCopyArea(display, pixmap_qr, window, gc, 0, 0, 145, 145, X11_WIN_WIDTH - 145, 0);
   XClearArea(display, window, 0, 175, X11_WIN_WIDTH, 50 * 4, 0);
 
   XftDrawString8(xft_draw, &xft_color, xft_hdr_font,
-    10, 40, (const FcChar8*)"Spooky Scoreboard", 17);
+    10, 50, (const FcChar8*)"Spooky Scoreboard", 17);
 
   XftDrawString8(xft_draw, &xft_color, xft_sub_font,
-    15, 70, (const FcChar8*)machineUrl.c_str(), machineUrl.size());
+    15, 80, (const FcChar8*)machineUrl.c_str(), machineUrl.size());
 
   XftDrawString8(xft_draw, &xft_color, xft_sub_font,
-    X11_WIN_WIDTH - 60, X11_WIN_HEIGHT - 10, (const FcChar8*)VERSION, strlen(VERSION));
+    X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10, (const FcChar8*)VERSION, strlen(VERSION));
 
   for (int i = 0, ty = 175; i < playerList.player.size(); i++, ty += 75) {
     char name[60];
@@ -89,12 +113,12 @@ void runTimer(int secs)
         "%d",
         (int)(secs - (current_time.tv_sec - start_time.tv_sec)));
 
-      XClearArea(display, window, 0, X11_WIN_HEIGHT - 50, 100, 100, 1);
+      XClearArea(display, window, 0, X11_WIN_HEIGHT - 60, 100, 100, 1);
 
       XftDrawString8(
         xft_draw,
         &xft_color,
-        xft_std_font,
+        xft_sub_font,
         10,
         X11_WIN_HEIGHT - 10,
         (FcChar8*)ct,
@@ -147,6 +171,9 @@ void closePlayerListWindow()
 
     if (xft_sub_font != nullptr)
       XftFontClose(display, xft_sub_font);
+
+    remove(ttf_ghoulish);
+    remove(ttf_roboto);
 
     if (window != None)
       XDestroyWindow(display, window);
@@ -206,37 +233,24 @@ void openPlayerListWindow()
     cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
   }
 
-  FcBool result = FcConfigAppFontAddFile(
-    FcConfigGetCurrent(),
-    (const FcChar8*)"/game/code/assets/fonts/SNNeoNoire-Regular.ttf");
+  FcConfig* fc_config = FcInitLoadConfigAndFonts();
+  loadFont(ttf_ghoulish, Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
+  loadFont(ttf_roboto, Roboto_ttf, Roboto_ttf_len, fc_config);
+  FcConfigSetCurrent(fc_config);
 
-  if (!result) {
-    cerr << "Failed to load SNNeoNoire-Regular.ttf." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  result = FcConfigAppFontAddFile(
-    FcConfigGetCurrent(),
-    (const FcChar8*)"/game/code/assets/fonts/Oswald-Extra-LightItalic.ttf");
-
-  if (!result) {
-    cerr << "Failed to load Oswald-Extra-LightItalic.ttf." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  xft_std_font = XftFontOpenName(display, screen, "SN NeoNoire:size=18");
+  xft_std_font = XftFontOpenName(display, screen, "Ghoulish:size=26");
   if (!xft_std_font) {
     cerr << "Failed to open standard TTF font." << endl;
     exit(EXIT_FAILURE);
   }
 
-  xft_hdr_font = XftFontOpenName(display, screen, "SN NeoNoire:size=24");
+  xft_hdr_font = XftFontOpenName(display, screen, "Ghoulish:size=38");
   if (!xft_hdr_font) {
     cerr << "Failed to open header TTF font." << endl;
     exit(EXIT_FAILURE);
   }
 
-  xft_sub_font = XftFontOpenName(display, screen, "Oswald:size=16");
+  xft_sub_font = XftFontOpenName(display, screen, "Roboto:size=16");
   if (!xft_sub_font) {
     cerr << "Failed to open sub TTF font." << endl;
     exit(EXIT_FAILURE);
