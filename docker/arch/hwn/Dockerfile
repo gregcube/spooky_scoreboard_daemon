@@ -30,7 +30,8 @@ RUN pacman -S --noconfirm \
   libx11 \
   fontconfig \
   libxft \
-  libxpm
+  libxpm \
+  patch
 
 # Clone and compile spooky scoreboard daemon.
 RUN git clone --recurse-submodules https://github.com/gregcube/spooky_scoreboard_daemon.git ssbd
@@ -40,6 +41,11 @@ RUN cd ssbd && git checkout docker
 
 # Prepare vcpkg dependencies.
 RUN cd ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
+
+# Patch yaml-cpp.
+# Otherwise we can't link it on arch linux.
+# Likely because it's an older version of cmake.
+RUN cd ssbd/vcpkg/installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../../../docker/arch/hwn/yaml-cpp.patch
 
 # Build spooky scoreboard daemon.
 RUN cd ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
