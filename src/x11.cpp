@@ -21,8 +21,8 @@
 
 using namespace std;
 
-const char *ttf_ghoulish = "/tmp/ghoulish.ttf";
-const char *ttf_roboto = "/tmp/roboto.ttf";
+const char* ttf_ghoulish = "/tmp/ghoulish.ttf";
+const char* ttf_roboto = "/tmp/roboto.ttf";
 
 Window window = None;
 Pixmap pixmap_qr = None;
@@ -47,7 +47,7 @@ static void x11Init()
   }
 }
 
-static void loadFont(const char *ttfpath, const unsigned char *ttfdata, const unsigned int ttfsize, FcConfig *config)
+static void loadFont(const char* ttfpath, const unsigned char* ttfdata, const unsigned int ttfsize, FcConfig* config)
 {
   ofstream font_file(ttfpath, ios::binary);
   if (!font_file) {
@@ -58,7 +58,7 @@ static void loadFont(const char *ttfpath, const unsigned char *ttfdata, const un
   font_file.write(reinterpret_cast<const char*>(ttfdata), ttfsize);
   font_file.close();
 
-  if (!FcConfigAppFontAddFile(config, (const FcChar8 *)ttfpath)) {
+  if (!FcConfigAppFontAddFile(config, (const FcChar8*)ttfpath)) {
     cerr << "Failed to add font file to Fontconfig." << endl;
     exit(EXIT_FAILURE);
   }
@@ -233,7 +233,7 @@ void openPlayerListWindow()
     cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
   }
 
-  FcConfig *fc_config = FcInitLoadConfigAndFonts();
+  FcConfig* fc_config = FcInitLoadConfigAndFonts();
   loadFont(ttf_ghoulish, Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
   loadFont(ttf_roboto, Roboto_ttf, Roboto_ttf_len, fc_config);
   FcConfigSetCurrent(fc_config);

@@ -33,7 +33,7 @@ long CurlHandler::post(const std::string& path, const std::optional<std::string>
 long CurlHandler::execute(const std::string& endpoint)
 {
   CURLcode cc;
-  struct curl_slist *hdrs = NULL;
+  struct curl_slist* hdrs = NULL;
 
 #ifdef DEBUG
   std::cout << "Calling " << endpoint << std::endl;

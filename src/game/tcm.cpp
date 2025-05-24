@@ -95,7 +95,7 @@ int TCM::sendi3cmd()
   struct sockaddr_un addr;
   addr.sun_family = AF_UNIX;
 
-  const char *i3path = getenv("I3_SOCKET_PATH");
+  const char* i3path = getenv("I3_SOCKET_PATH");
   if (!i3path) {
     std::cerr << "I3_SOCKET_PATH environment variable not set" << std::endl;
     close(sd);

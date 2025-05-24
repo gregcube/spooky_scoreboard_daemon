@@ -194,10 +194,10 @@ static void processHighScoresEvent()
 
 static void processEvent(char* buf, ssize_t bytes)
 {
-  char *ptr = buf;
+  char* ptr = buf;
 
   while (ptr < buf + bytes) {
-    struct inotify_event *evt = (struct inotify_event *)ptr;
+    struct inotify_event* evt = (struct inotify_event*)ptr;
 
     if (evt->len > 0) {
 #ifdef DEBUG

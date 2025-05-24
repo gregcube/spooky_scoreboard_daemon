@@ -8,7 +8,7 @@
 
 #include "GameBase.h"
 
-#define VERSION "0.0.7-1"
+#define VERSION "0.0.8-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG
