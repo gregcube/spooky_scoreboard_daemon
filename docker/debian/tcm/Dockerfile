@@ -1,4 +1,3 @@
-# Use the specified Debian base image.
 # TCM runs Debian bookworm.
 FROM debian:bookworm
 

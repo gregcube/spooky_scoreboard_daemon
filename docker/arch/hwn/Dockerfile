@@ -1,9 +1,8 @@
-# Use the specified Arch Linux base image.
 # This is the oldest image available.
+# Halloween runs an old, out-dated version of arch for some reason.
 FROM archlinux/archlinux:base-20201020.6556
 
 # Set the ALA mirror for June 1, 2017.
-# Halloween runs an old, out-dated version of arch.
 RUN echo "Server = https://archive.archlinux.org/repos/2017/06/01/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
 
 # Remove signature checks.

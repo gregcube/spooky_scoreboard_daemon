@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 
+#
+# This script automates the build process for the spooky_scoreboard_daemon (ssbd)
+# binary inside a Docker container for a specified game and Linux distribution
+# (e.g., Arch Linux or Debian).
+#
+# Usage: ./build.sh <game_name> <distribution>
+# Example: ./build.sh hwn arch
+# Example: ./build.sh tcm debian
+#
+
 # Enable strict mode
 set -euo pipefail
 IFS=$'\n\t'
