@@ -1,6 +1,9 @@
 Spooky Scoreboard Daemon
 ========================
 
+[![Status](https://github.com/gregcube/spooky_scoreboard_daemon/workflows/Test%20CI%20build/badge.svg)](https://github.com/gregcube/spooky_scoreboard_daemon/actions/workflows/ci.yml)
+
+
 Connect your Spooky Pinball machine to the Internet and join the
 [online leaderboards](https://spookyscoreboard.com).
 

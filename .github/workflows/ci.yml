@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - docker
+      - master
   workflow_dispatch:
 
 jobs:
@@ -36,5 +37,5 @@ jobs:
           docker create --name ssbd-test ${{ matrix.game }}
           docker cp ssbd-test:/ssbd/build/ssbd ./ssbd
           chmod +x ./ssbd
-          ./ssbd -h
+          ./ssbd -h 2>&1 | head -1
           docker rm ssbd-test
