@@ -28,11 +28,12 @@ jobs:
 
       - name: Build docker image
         run: |
-          bash docker/build.sh ${{ matrix.game }} ${{ matrix.dist }}
+          cd docker
+          ./build.sh ${{ matrix.game }} ${{ matrix.dist }}
 
       - name: Test binary
         run: |
-          docker create -- name ssbd-test ${{ matrix.game }}
+          docker create --name ssbd-test ${{ matrix.game }}
           docker cp ssbd-test:/ssbd/build/ssbd ./ssbd
           chmod +x ./ssbd
           ./ssbd -h
