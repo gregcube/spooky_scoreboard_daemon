@@ -14,21 +14,21 @@ jobs:
         dist: [arch, debian]
         game: [hwn, tcm]
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup docker buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Setup docker buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build docker image
-      run: |
-        bash docker/${{ matrix.dist }}/${{ matrix.game }}/build.sh ${{ matrix.game }} ${{ matrix.dist }}
+      - name: Build docker image
+        run: |
+          bash docker/${{ matrix.dist }}/${{ matrix.game }}/build.sh ${{ matrix.game }} ${{ matrix.dist }}
 
-    - name: Test binary
-      run: |
-        docker create -- name ssbd-test ${{ matrix.game }}
-        docker cp ssbd-test:/ssbd/build/ssbd ./ssbd
-        chmod +x ./ssbd
-        ./ssbd -h
-        docker rm ssbd-test
+      - name: Test binary
+        run: |
+          docker create -- name ssbd-test ${{ matrix.game }}
+          docker cp ssbd-test:/ssbd/build/ssbd ./ssbd
+          chmod +x ./ssbd
+          ./ssbd -h
+          docker rm ssbd-test
