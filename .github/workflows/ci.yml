@@ -13,6 +13,11 @@ jobs:
       matrix:
         dist: [arch, debian]
         game: [hwn, tcm]
+        exclude:
+          - dist: arch
+            game: tcm
+          - dist: debian
+            game: hwn
 
     steps:
       - name: Checkout code
@@ -23,7 +28,7 @@ jobs:
 
       - name: Build docker image
         run: |
-          bash docker/${{ matrix.dist }}/${{ matrix.game }}/build.sh ${{ matrix.game }} ${{ matrix.dist }}
+          bash docker/build.sh ${{ matrix.game }} ${{ matrix.dist }}
 
       - name: Test binary
         run: |
