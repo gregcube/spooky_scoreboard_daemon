@@ -1,7 +1,7 @@
 Spooky Scoreboard Daemon
 ========================
 
-[![Status](https://github.com/gregcube/spooky_scoreboard_daemon/workflows/Test%20CI%20build/badge.svg)](https://github.com/gregcube/spooky_scoreboard_daemon/actions/workflows/ci.yml)
+[![Status](https://github.com/gregcube/spooky_scoreboard_daemon/workflows/Build/badge.svg)](https://github.com/gregcube/spooky_scoreboard_daemon/actions/workflows/ci.yml)
 
 
 Connect your Spooky Pinball machine to the Internet and join the
@@ -31,7 +31,7 @@ Player scores are saved and displayed, with the exception being if a
 player profile is set to private.
 All players are automatically logged out after each game.
 
-Refer to INSTALL.md for instructions on installing the Spooky Scoreboard daemon on your machine.
+Refer to [INSTALL.md](https://github.com/gregcube/spooky_scoreboard_daemon/blob/master/INSTALL.md) for instructions on installing the Spooky Scoreboard daemon on your machine.
 
 Supported Games
 ---------------
