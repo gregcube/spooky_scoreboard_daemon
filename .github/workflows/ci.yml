@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        dist: [arch, debian]
+        game: [hwn, tcm]
+        exclude:
+          - dist: arch
+            game: tcm
+          - dist: debian
+            game: hwn
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build docker image
+        run: |
+          cd docker
+          ./build.sh ${{ matrix.game }} ${{ matrix.dist }}
+
+      - name: Test binary
+        run: |
+          docker create --name ssbd-test ${{ matrix.game }}
+          docker cp ssbd-test:/ssbd/build/ssbd ./ssbd
+          chmod +x ./ssbd
+          ./ssbd -h 2>&1 | head -1
+          docker rm ssbd-test
