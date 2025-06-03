@@ -63,4 +63,4 @@ Halloween/ Ultraman builds.
 Demo
 ----
 
-[![Demo Video](https://img.youtube.com/vi/hG7_vvCaeZU/0.jpg)](https://www.youtube.com/watch?v=hG7_vvCaeZU)
+[![Demo Video](https://img.youtube.com/vi/XXriBZilOks/0.jpg)](https://www.youtube.com/watch?v=XXriBZilOks)

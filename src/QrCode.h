@@ -16,6 +16,11 @@ public:
   QrCode() : ch(std::make_unique<CurlHandler>(BASE_URL)) {}
 
   /**
+   * @brief Destructor that deletes the temporary QR code file.
+   */
+  ~QrCode();
+
+  /**
    * @brief Fetches machine QR code from the server.
    *
    * @return A reference to this instance.

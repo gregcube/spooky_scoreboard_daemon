@@ -1,8 +1,16 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstdio>
 
 #include "QrCode.h"
+
+QrCode::~QrCode()
+{
+  if (std::remove("/tmp/qrcode.xpm") != 0) {
+    std::cerr << "Failed to delete /tmp/qrcode.xpm" << std::endl;
+  }
+}
 
 QrCode* QrCode::get()
 {
@@ -17,7 +25,7 @@ QrCode* QrCode::get()
 
 void QrCode::write()
 {
-  std::ofstream xpm("/game/tmp/qrcode.xpm");
+  std::ofstream xpm("/tmp/qrcode.xpm");
 
   if (!xpm.is_open()) {
     throw std::runtime_error("Unable to write QR code.");

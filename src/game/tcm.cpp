@@ -113,10 +113,10 @@ int TCM::sendi3cmd()
 
   std::vector<std::string> cmds = {
     "[title=\"TCM\"] border none",
-    "[title=\"SSBd\"] floating enable",
-    "[title=\"SSBd\"] sticky enable",
-    "[title=\"SSBd\"] border none",
-    "[title=\"SSBd\"] focus"
+    "[title=\"^Player [1-4]$\"] floating enable",
+    "[title=\"^Player [1-4]$\"] sticky enable",
+    "[title=\"^Player [1-4]$\"] border none",
+    "[title=\"^Player [1-4]$\"] focus"
   };
 
   for (const auto& cmd : cmds) {

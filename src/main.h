@@ -8,7 +8,7 @@
 
 #include "GameBase.h"
 
-#define VERSION "0.0.8-1"
+#define VERSION "0.0.9-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG
@@ -18,14 +18,12 @@
 #endif
 
 struct players {
-  std::array<std::string, 4> player{};
   uint8_t numPlayers{0};
-  bool onScreen{false};
+  std::array<std::string, 4> player{};
 
   void reset() {
-    std::fill(player.begin(), player.end(), "");
     numPlayers = 0;
-    onScreen = false;
+    std::fill(player.begin(), player.end(), "");
   }
 };
 
