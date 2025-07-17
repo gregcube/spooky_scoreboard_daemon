@@ -6,12 +6,16 @@
 #include "game/um.h"
 #include "game/tna.h"
 #include "game/tcm.h"
+#include "game/ed.h"
+
+using namespace std;
 
 std::map<std::string, GameFactoryFunction> gameFactories = {
-  {"tna", []() { return std::make_unique<TNA>(); }},
-  {"hwn", []() { return std::make_unique<HWN>(); }},
-  {"tcm", []() { return std::make_unique<TCM>(); }},
-  {"um",  []() { return std::make_unique<UM>();  }}
+  {"tna", []() { return make_unique<TNA>(); }},
+  {"hwn", []() { return make_unique<HWN>(); }},
+  {"tcm", []() { return make_unique<TCM>(); }},
+  {"um",  []() { return make_unique<UM>();  }},
+  {"ed",  []() { return make_unique<ED>();  }}
 };
 
 std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)

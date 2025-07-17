@@ -329,7 +329,7 @@ static void watch()
 static void printSupportedGames()
 {
   for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
-    cout << "  " << it->first << ": " << it->second()->getGameName() << "\n";
+    cout << "  " << it->first << ":\t" << it->second()->getGameName() << "\n";
   }
 }
 
