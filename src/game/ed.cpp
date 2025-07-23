@@ -16,9 +16,9 @@ const Json::Value ED::processHighScores()
     throw std::runtime_error("Failed to open highscores file.");
   }
 
-  Json::Value root;
+  Json::Value highscores;
   Json::Reader reader;
-  if (reader.parse(ifs, root) == false) {
+  if (reader.parse(ifs, highscores) == false) {
     ifs.close();
     throw std::runtime_error("Failed to parse highscores file.");
   }
@@ -27,17 +27,36 @@ const Json::Value ED::processHighScores()
 
   // There are 6 scores.
   // GC and 1-5.
+  /*
+  [
+    {
+      "theScore": 275416160,
+      "playerName": "GRG    ",
+      "modeName": null,
+      "playerIndex": 1,
+      "scoreBeaten": false,
+      "scorePlace": -1
+    },
+    ...
+  ]
+  */
+
+  Json::Value root, classicScores, lastScores;
+
   for (int i = 0; i < 6; i++) {
     Json::Value score;
-
-    /*
-    score["initials"] = line;
-    score["score"] = line;
-    */
-
+    score["initials"] = highscores[i]["playerName"];
+    score["score"] = highscores[i]["theScore"];
+    classicScores.append(score);
     score.clear();
   }
 
+  // TODO:
+  // Evil Dead last scores are seemingly stored in memory(?)
+  // Need to investigate more.
+
+  root.append(classicScores);
+  root.append(lastScores);
   return root;
 }
 
