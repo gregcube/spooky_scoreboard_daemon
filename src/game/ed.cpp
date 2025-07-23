@@ -11,54 +11,32 @@
 
 const Json::Value ED::processHighScores()
 {
-  std::ifstream ifs("/game/audits/highscores.ed");
-
+  std::ifstream ifs("/game/audits/highscores.json");
   if (!ifs.is_open()) {
-    throw std::runtime_error("Failed to process highscores");
+    throw std::runtime_error("Failed to open highscores file.");
   }
 
-  std::string line;
   Json::Value root;
+  Json::Reader reader;
+  if (reader.parse(ifs, root) == false) {
+    ifs.close();
+    throw std::runtime_error("Failed to parse highscores file.");
+  }
 
-  // Process classic scores.
-  Json::Value classicScores;
-
-  // Skip the first line.
-  std::getline(ifs, line);
+  ifs.close();
 
   // There are 6 scores.
+  // GC and 1-5.
   for (int i = 0; i < 6; i++) {
     Json::Value score;
 
-    std::getline(ifs, line);
+    /*
     score["initials"] = line;
+    score["score"] = line;
+    */
 
-    if (std::getline(ifs, line)) {
-      score["score"] = line;
-    }
-
-    classicScores.append(score);
     score.clear();
   }
-
-  // Process last scores.
-  Json::Value lastScores;
-
-  // Skip this line.
-  // It should be "[LAST SCORES]"
-  std::getline(ifs, line);
-
-  // There are 4 scores.
-  for (int i = 0; i < 4; i++) {
-    std::getline(ifs, line);
-    lastScores.append(line);
-  }
-
-  // TODO: Implement mode scores.
-
-  root.append(classicScores);
-  root.append(lastScores);
-  ifs.close();
 
   return root;
 }
@@ -84,7 +62,7 @@ uint32_t ED::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
-int ED::sendi3cmd()
+int ED::sendswaycmd()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sd < 0) {
@@ -95,24 +73,24 @@ int ED::sendi3cmd()
   struct sockaddr_un addr;
   addr.sun_family = AF_UNIX;
 
-  const char* i3path = getenv("I3_SOCKET_PATH");
-  if (!i3path) {
-    std::cerr << "I3_SOCKET_PATH environment variable not set" << std::endl;
+  const char* swaypath = getenv("SWAYSOCK");
+  if (!swaypath) {
+    std::cerr << "SWAYSOCK environment variable not set" << std::endl;
     close(sd);
     return -1;
   }
 
-  strncpy(addr.sun_path, i3path, sizeof(addr.sun_path) - 1);
+  strncpy(addr.sun_path, swaypath, sizeof(addr.sun_path) - 1);
   addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
   if (connect(sd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    std::cerr << "Failed to connect to I3 socket" << std::endl;
+    std::cerr << "Failed to connect to sway socket" << std::endl;
     close(sd);
     return -1;
   }
 
   std::vector<std::string> cmds = {
-    "[title=\"ED\"] border none",
+    "[title=\"Evil Dead\"] border none",
     "[title=\"^Player [1-4]$\"] floating enable",
     "[title=\"^Player [1-4]$\"] sticky enable",
     "[title=\"^Player [1-4]$\"] border none",
@@ -120,7 +98,7 @@ int ED::sendi3cmd()
   };
 
   for (const auto& cmd : cmds) {
-    std::string msg = "i3-ipc";
+    std::string msg = "i3-ipc"; // sway uses the same IPC magic string.
     uint32_t len = cmd.size();
     uint32_t type = 0;
 
@@ -130,7 +108,7 @@ int ED::sendi3cmd()
 
     ssize_t n = write(sd, msg.c_str(), msg.size());
     if (n < 0 || static_cast<size_t>(n) != msg.size()) {
-      std::cerr << "Failed writing to I3 socket" << std::endl;
+      std::cerr << "Failed writing to Sway socket" << std::endl;
       close(sd);
       return -1;
     }

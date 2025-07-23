@@ -87,6 +87,15 @@ public:
    * @return An integer status code.
    */
   virtual int sendi3cmd() { return 0; }
+
+  /**
+   * @brief Sends a sway command for the specified window.
+   *
+   * Some games (like Evil Dead) use sway to manage Xwayland windows.
+   *
+   * @return An integer status code.
+   */
+  virtual int sendswaycmd() { return 0; }
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

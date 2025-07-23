@@ -10,7 +10,7 @@ private:
   const std::string gamePath = "/game/audits";
   const std::string tmpPath = "/game/tmp";
   const std::string auditsFile = "_game_audits.json";
-  const std::string scoresFile = "highscores.ed";
+  const std::string scoresFile = "highscores.json";
 
 public:
   const Json::Value processHighScores() override;
@@ -23,13 +23,13 @@ public:
   const std::string& getHighScoresFile() override { return scoresFile; }
 
   /**
-   * @brief Overrides the base class method to send i3 commands.
+   * @brief Overrides the base class method to send sway commands.
    *
    * @return An integer status code.
    *
-   * @see GameBase::sendi3cmd
+   * @see GameBase::sendswaycmd
    */
-  int sendi3cmd() override;
+  int sendswaycmd() override;
 };
 
 #endif

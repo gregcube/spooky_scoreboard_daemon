@@ -271,6 +271,7 @@ void showPlayerWindow(int index)
 
   XSync(display, False);
   game->sendi3cmd();
+  game->sendswaycmd();
 }
 
 /**

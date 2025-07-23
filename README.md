@@ -1,5 +1,4 @@
 [![Status](https://github.com/gregcube/spooky_scoreboard_daemon/workflows/Build/badge.svg)](https://github.com/gregcube/spooky_scoreboard_daemon/actions/workflows/ci.yml)
-
 Spooky Scoreboard Daemon
 ========================
 
@@ -38,8 +37,11 @@ Supported Games
 - Halloween (UP)
 - Ultraman (UP)
 - Texas Chainsaw Massacre (UP)
+- Evil Dead (miniPC)
 - Total Nuclear Annihilation (preliminary support)
 
+UP games require an ethernet connection.  
+miniPC games use the integrated wifi adapter.
 
 Notes
 ------
