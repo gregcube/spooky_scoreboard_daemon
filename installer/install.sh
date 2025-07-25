@@ -53,26 +53,25 @@ install() {
   setup_qr_scanner || err "Failed to find QR scanner/reader."
 
   echo "Installing dependencies..."
-  for url in "${depends[@]}"; do
-    file=$(basename "${url}")
-    echo ">> Downloading ${file}..."
-    curl -Ls --retry 10 -o "/tmp/${file}" "${url}" || err "Failed to download ${file}"
-    cp "/tmp/${file}" /mnt/rootfs
-
-    case "$game" in
-      hwn)
+  case "$game" in
+    hwn)
+      for url in "${depends[@]}"; do
+        file=$(basename "${url}")
+        echo ">> Downloading ${file}..."
+        curl -Ls --retry 10 -o "/tmp/${file}" "${url}" || err "Failed to download ${file}"
+        cp "/tmp/${file}" /mnt/rootfs
         echo ">> Installing ${file}."
         chroot /mnt/rootfs pacman -U --noconfirm "/${file}" >/dev/null 2>&1 || err "Failed to install ${file}"
-        ;;
-      tcm)
-        ;;
-      ed)
-        # Install wpa_supplicant and depends.
-        ;;
-    esac
-
-    rm "/mnt/rootfs/${file}"
-  done
+        rm "/mnt/rootfs/${file}"
+      done
+      ;;
+    tcm)
+      ;;
+    ed)
+      chroot /mnt/rootfs apt-get update >/dev/null 2>&1 || err "Failed to update apt packages"
+      chroot /mnt/rootfs apt-get install -y "${depends[@]}" >/dev/null 2>&1 || err "Failed to install packages"
+      ;;
+  esac
 
   echo "Installing spooky scoreboard daemon..."
   tar -xzf "./spooky_scoreboard_daemon/dist/${dist}/ssbd-${version}-${dist}-x86_64.tar.gz" -C /mnt/rootfs/usr/bin >/dev/null 2>&1 || err "Failed to install."
@@ -275,6 +274,7 @@ case "$game" in
     label="Evil Dead"
     rootfs=/dev/sda3
     dist=debian
+    depends+=("wpa_supplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
     ;;
 esac
 
