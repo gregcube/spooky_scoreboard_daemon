@@ -34,9 +34,11 @@ install() {
   echo "Installing for ${label}..."
 
   echo "Setting up network..."
+  [[ "$game" == "ed" ]] && setup_wifi
+  write_ssbd_network
+  write_resolvconf
   systemctl enable systemd-networkd >/dev/null 2>&1
   systemctl start systemd-networkd >/dev/null 2>&1
-  write_resolvconf
 
   echo -n "Waiting for internet connection"
   until ping -c 1 8.8.8.8 >/dev/null 2>&1; do echo -n .; sleep 1; done
@@ -44,6 +46,7 @@ install() {
 
   cp /etc/resolv.conf /mnt/rootfs/etc
   cp /etc/systemd/network/ssbd.network /mnt/rootfs/etc/systemd/network
+  [[ -d /etc/wpa_supplicant ]] && cp -r /etc/wpa_supplicant /mnt/rootfs/etc
   chroot /mnt/rootfs systemctl enable systemd-networkd >/dev/null 2>&1
 
   echo "Setting up QR scanner/reader..."
@@ -62,6 +65,9 @@ install() {
         chroot /mnt/rootfs pacman -U --noconfirm "/${file}" >/dev/null 2>&1 || err "Failed to install ${file}"
         ;;
       tcm)
+        ;;
+      ed)
+        # Install wpa_supplicant and depends.
         ;;
     esac
 
@@ -142,9 +148,27 @@ is_qr_scanner() {
   esac
 }
 
-write_udev_rule() {
-  cat <<EOF >/mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules
-SUBSYSTEM=="tty", ATTRS{idVendor}=="$1", ATTRS{idProduct}=="$2", SYMLINK+="ttyQR"
+setup_wifi() {
+  local ssid pass tmpfile
+  tmpfile=$(mktemp)
+
+  dialog --inputbox "WiFi SSID:" 8 40 2>"$tmpfile"
+  ssid=$(<"$tmpfile")
+
+  dialog --inputbox "WiFi Password:" 8 40 2>"$tmpfile"
+  pass=$(<"$tmpfile")
+
+  rm -f "$tmpfile"
+
+  [[ -z "$ssid" || -z "$pass" ]] && err "SSID or password cannot be empty."
+
+  mkdir -p /etc/wpa_supplicant
+
+  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant.conf
+network={
+  ssid="$ssid"
+  psk="$pass"
+}
 EOF
 }
 
@@ -153,6 +177,29 @@ write_resolvconf() {
 nameserver 8.8.8.8
 nameserver 8.8.4.4
 EOF
+}
+
+write_ssbd_network() {
+  case "$1" in
+    hwn|tcm) cat <<EOF >/etc/systemd/network/ssbd.network
+[Match]
+Name=enp1s0
+Type=ether
+
+[Network]
+DHCP=yes
+EOF
+    ;;
+    ed) cat <<EOF >/etc/systemd/network/ssbd.network
+[Match]
+Name=wlp2s0
+Type=wlan
+
+[Network]
+DHCP=yes
+EOF
+    ;;
+  esac
 }
 
 write_ssbd_service() {
@@ -199,6 +246,12 @@ EOF
   esac
 }
 
+write_udev_rule() {
+  cat <<EOF >/mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="$1", ATTRS{idProduct}=="$2", SYMLINK+="ttyQR"
+EOF
+}
+
 # Identify game selection.
 game=$(cut -d ' ' -f1- /proc/cmdline | sed -n 's/.*boot=\([^ ]*\).*/\1/p')
 [[ -z "$game" ]] && err "Invalid selection."
@@ -216,6 +269,11 @@ case "$game" in
   tcm)
     label="Texas Chainsaw Massacre"
     rootfs=/dev/mmcblk0p2
+    dist=debian
+    ;;
+  ed)
+    label="Evil Dead"
+    rootfs=/dev/sda3
     dist=debian
     ;;
 esac
