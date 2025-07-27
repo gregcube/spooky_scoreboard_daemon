@@ -1,6 +1,9 @@
 *.h linguist-language=C++
 *.cpp linguist-language=C++
 *.sh linguist-language=Shell
+*.sh linguist-detectable
 CMakeLists.txt linguist-language=CMake
 *.cmake linguist-language=CMake
+*.cmake linguist-detectable
 Dockerfile linguist-language=Dockerfile
+Dockerfile linguist-detectable
