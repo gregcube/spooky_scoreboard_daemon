@@ -1,4 +1,5 @@
 [![Status](https://github.com/gregcube/spooky_scoreboard_daemon/workflows/Build/badge.svg)](https://github.com/gregcube/spooky_scoreboard_daemon/actions/workflows/ci.yml)
+
 Spooky Scoreboard Daemon
 ========================
 
@@ -56,10 +57,6 @@ Ensure the QR reader is set to USB-COM RS232 mode.
 is accessible inside the coin door. It does work however when connected directly
 to the UP board, or when using a USB hub connected to the port inside the coin door; 
 plug QR scanner into hub, and hub into USB port.*
-
-This has only been tested on games with the "UP" computer board.
-It has not been tested on the mini-PC that was used in later
-Halloween/ Ultraman builds.
 
 
 Demo

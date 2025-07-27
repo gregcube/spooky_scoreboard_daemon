@@ -23,13 +23,13 @@ to the UP board, or when using a USB hub connected to the port inside the coin d
 plug QR scanner into hub, and hub into USB port.*
 
 #### Supported Games
-"UP"-supported games:
-- Halloween
-- Ultraman
-- Texas Chainsaw Massacre
+- "UP"-supported games:
+  - Halloween
+  - Ultraman
+  - Texas Chainsaw Massacre
 
-"miniPC"-supported games:
-- Evil Dead
+- "miniPC"-supported games:
+  - Evil Dead
 
 If your game is not listed, please create an issue thread [here](https://github.com/gregcube/spooky_scoreboard_daemon/issues),
 and we can work together to get your machine online.
@@ -58,6 +58,7 @@ and we can work together to get your machine online.
 4. **System Installation**
    - Select your game at the boot prompt; press enter to continue.
    - Wait for the system to boot.
+   - *miniPC only*: Enter your WiFi SSID and password.
    - Select `Install` at the menu screen.
    - When prompted enter your 4-digit alphanumeric registration code.
 
