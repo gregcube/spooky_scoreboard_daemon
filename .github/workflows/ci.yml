@@ -12,12 +12,14 @@ jobs:
     strategy:
       matrix:
         dist: [arch, debian]
-        game: [hwn, tcm]
+        game: [hwn, tcm, ed]
         exclude:
           - dist: arch
             game: tcm
           - dist: debian
             game: hwn
+          - dist: arch
+            game: ed
 
     steps:
       - name: Checkout code
