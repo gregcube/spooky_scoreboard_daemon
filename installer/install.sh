@@ -40,13 +40,17 @@ install() {
   systemctl enable systemd-networkd >/dev/null 2>&1
   systemctl start systemd-networkd >/dev/null 2>&1
 
+  [[ -d /etc/wpa_supplicant ]] && {
+    cp -r /etc/wpa_supplicant /mnt/rootfs/etc
+    systemctl start wpa_supplicant@wlp2s0
+  }
+
   echo -n "Waiting for internet connection"
   until ping -c 1 8.8.8.8 >/dev/null 2>&1; do echo -n .; sleep 1; done
   echo " Connected."
 
   cp /etc/resolv.conf /mnt/rootfs/etc
   cp /etc/systemd/network/ssbd.network /mnt/rootfs/etc/systemd/network
-  [[ -d /etc/wpa_supplicant ]] && cp -r /etc/wpa_supplicant /mnt/rootfs/etc
   chroot /mnt/rootfs systemctl enable systemd-networkd >/dev/null 2>&1
 
   echo "Setting up QR scanner/reader..."
@@ -70,6 +74,7 @@ install() {
     ed)
       chroot /mnt/rootfs apt-get update >/dev/null 2>&1 || err "Failed to update apt packages"
       chroot /mnt/rootfs apt-get install -y "${depends[@]}" >/dev/null 2>&1 || err "Failed to install packages"
+      chroot /mnt/rootfs systemctl enable wpa_supplicant@wlp2s0
       ;;
   esac
 
@@ -163,7 +168,7 @@ setup_wifi() {
 
   mkdir -p /etc/wpa_supplicant
 
-  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant.conf
+  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant-wlp2s0.conf
 network={
   ssid="$ssid"
   psk="$pass"
