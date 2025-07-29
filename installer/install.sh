@@ -247,6 +247,26 @@ RestartSec=15
 WantedBy=multi-user.target
 EOF
     ;;
+    ed) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
+[Unit]
+Description=Spooky Scoreboard Daemon (SSBd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStartPre=/usr/bin/mkdir -p /game/tmp
+ExecStartPre=/bin/sh -c 'while [ ! -e /run/user/1000/sway-ipc.1000.* ]; do sleep 2; done'
+ExecStartPre=/bin/sh -c 'echo "export SWAYSOCK=\$(ls /run/user/1000/sway-ipc.1000.* 2>/dev/null)" > /game/tmp/.env'
+ExecStart=/bin/sh -c '. /game/tmp/.env && exec /usr/bin/ssbd -g ed'
+User=norville
+Group=norville
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    ;;
   esac
 }
 
