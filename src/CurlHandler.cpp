@@ -33,7 +33,7 @@ long CurlHandler::post(const std::string& path, const std::optional<std::string>
 long CurlHandler::execute(const std::string& endpoint)
 {
   CURLcode cc;
-  struct curl_slist* hdrs = NULL;
+  struct curl_slist* hdrs = nullptr;
 
 #ifdef DEBUG
   std::cout << "Calling " << endpoint << std::endl;
@@ -67,11 +67,17 @@ long CurlHandler::execute(const std::string& endpoint)
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+
+  curl_slist_free_all(hdrs);
+  hdrs = nullptr;
+
   return responseCode;
 }
 
-size_t CurlHandler::writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output) {
+size_t CurlHandler::writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output)
+{
   size_t total = size * nmemb;
   output->append(ptr, total);
   return total;
 }
+

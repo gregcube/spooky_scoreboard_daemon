@@ -19,6 +19,8 @@
 #include "QrCode.h"
 #include "QrScanner.h"
 
+#define TIMER_DEFAULT 15
+
 using namespace std;
 
 players playerList;
@@ -160,7 +162,7 @@ static void startPlayerThread(int index)
 
   thread([index]() {
     showPlayerWindow(index);
-    runTimer(20, index);
+    runTimer(TIMER_DEFAULT, index);
     hidePlayerWindow(index);
     {
       lock_guard<mutex> lock(mtx);
@@ -429,7 +431,6 @@ static void signalHandler(int signum)
 
 /**
  * Main entry point for the Spooky Scoreboard Daemon.
- * Handles command line arguments and initializes the program.
  *
  * @param argc Number of command line arguments
  * @param argv Array of command line arguments

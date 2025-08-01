@@ -156,7 +156,6 @@ void drawPlayerWindow(int index)
 
 /**
  * Runs a countdown timer for a specific player window.
- * Updates the timer display every second and handles window expose events.
  *
  * @param secs Number of seconds to count down
  * @param index The index of the window/player (0-3)
