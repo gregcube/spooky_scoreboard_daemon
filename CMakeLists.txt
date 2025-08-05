@@ -24,6 +24,7 @@ add_executable(ssbd
 )
 
 target_include_directories(ssbd PRIVATE
+  src/include
   /usr/include/freetype2
 )
 
