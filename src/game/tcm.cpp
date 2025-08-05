@@ -24,7 +24,7 @@
 #include <sys/un.h>
 #include <json/json.h>
 
-#include "tcm.h"
+#include "game/tcm.h"
 
 const Json::Value TCM::processHighScores()
 {

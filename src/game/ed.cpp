@@ -24,7 +24,7 @@
 #include <sys/un.h>
 #include <json/json.h>
 
-#include "ed.h"
+#include "game/ed.h"
 
 const Json::Value ED::processHighScores()
 {

@@ -21,7 +21,7 @@
 
 #include <json/json.h>
 
-#include "hwn.h"
+#include "game/hwn.h"
 
 const Json::Value HWN::processHighScores()
 {

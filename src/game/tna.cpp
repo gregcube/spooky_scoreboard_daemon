@@ -18,7 +18,7 @@
 #include <iostream>
 
 #include "yaml-cpp/yaml.h"
-#include "tna.h"
+#include "game/tna.h"
 
 const Json::Value TNA::processHighScores()
 {

@@ -34,8 +34,8 @@
 #include "main.h"
 #include "x11.h"
 
-#include "fonts/Ghoulish.h"
-#include "fonts/Roboto.h"
+#include "font/Ghoulish.h"
+#include "font/Roboto.h"
 
 #define X11_WIN_WIDTH 320
 #define X11_WIN_HEIGHT 480
