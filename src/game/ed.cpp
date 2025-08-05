@@ -51,13 +51,33 @@ const Json::Value ED::processHighScores()
     score.clear();
   }
 
-  // TODO:
-  // Evil Dead last scores are seemingly stored in memory(?)
-  // Need to investigate more.
+  // Process last scores.
+  // Because the API expects highscore and last game scores submissions
+  // together, we call processLastGameScores() here.
+  // TODO: Update the API to have two endpoints for high and last game scores.
+  lastScores = processLastGameScores();
 
   root.append(classicScores);
   root.append(lastScores);
   return root;
+}
+
+const Json::Value ED::processLastGameScores()
+{
+  std::ifstream ifs("/game/audits/lastgamescores.json");
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to open last game scores file.");
+  }
+
+  Json::Value scores;
+  Json::Reader reader;
+  if (reader.parse(ifs, scores) == false) {
+    ifs.close();
+    throw std::runtime_error("Failed to parse last game scores file.");
+  }
+
+  ifs.close();
+  return scores;
 }
 
 uint32_t ED::getGamesPlayed()

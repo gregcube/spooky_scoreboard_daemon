@@ -9,7 +9,6 @@
 const Json::Value HWN::processHighScores()
 {
   std::ifstream ifs("/game/highscores.config");
-
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to process highscores");
   }
@@ -58,6 +57,29 @@ const Json::Value HWN::processHighScores()
   ifs.close();
 
   return root;
+}
+
+const Json::Value HWN::processLastGameScores()
+{
+  std::ifstream ifs("/game/highscores.config");
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to process last game scores");
+  }
+
+  std::string line;
+  Json::Value scores;
+
+  // Skip first 8 lines.
+  for (int i = 0; i < 8 && std::getline(ifs, line); ++i) {}
+
+  // 4 next lines are last player scores.
+  for (int i = 0; i < 4; i++) {
+    std::getline(ifs, line);
+    scores.append(line);
+  }
+
+  ifs.close();
+  return scores;
 }
 
 uint32_t HWN::getGamesPlayed()

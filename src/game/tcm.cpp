@@ -12,7 +12,6 @@
 const Json::Value TCM::processHighScores()
 {
   std::ifstream ifs("/game/audits/highscores.tcm");
-
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to process highscores");
   }
@@ -42,17 +41,10 @@ const Json::Value TCM::processHighScores()
   }
 
   // Process last scores.
-  Json::Value lastScores;
-
-  // Skip this line.
-  // It should be "[LAST SCORES]"
-  std::getline(ifs, line);
-
-  // There are 4 scores.
-  for (int i = 0; i < 4; i++) {
-    std::getline(ifs, line);
-    lastScores.append(line);
-  }
+  // Because the API expects highscore and last game scores submissions
+  // together, we call processLastGameScores() here.
+  // TODO: Update the API to have two endpoints for high and last game scores.
+  Json::Value lastScores = processLastGameScores();
 
   // TODO: Implement mode scores.
 
@@ -61,6 +53,29 @@ const Json::Value TCM::processHighScores()
   ifs.close();
 
   return root;
+}
+
+const Json::Value TCM::processLastGameScores()
+{
+  std::ifstream ifs("/game/audits/highscores.tcm");
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to process last game scores");
+  }
+
+  std::string line;
+  Json::Value scores;
+
+  // Skip first 8 lines. Last scores start at line 9.
+  for (int i = 0; i < 8 && std::getline(ifs, line); ++i) {}
+
+  // Process next 4 lines for last scores.
+  for (int i = 0; i < 4; ++i) {
+    std::getline(ifs, line);
+    scores.append(line);
+  }
+
+  ifs.close();
+  return scores;
 }
 
 uint32_t TCM::getGamesPlayed()

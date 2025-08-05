@@ -28,6 +28,16 @@ public:
   virtual const Json::Value processHighScores() = 0;
 
   /**
+   * @brief Process last game scores.
+   *
+   * The derived game class must override this function, returning a JSON
+   * representation of the last game scores.
+   *
+   * @return A JSON object containing last game scores.
+   */
+  virtual const Json::Value processLastGameScores() = 0;
+
+  /**
    * @brief Retrieves the game name.
    *
    * The derived game class must override this function, returning the game name.
@@ -77,6 +87,14 @@ public:
    * @return A constant reference to a string containing the filename.
    */
   virtual const std::string& getHighScoresFile() = 0;
+
+  /**
+   * @brief Retrieves the filename where last game scores are stored.
+   *
+   * The derived game class must override this function, returning the
+   * last games scores file. Often times it's the same as the high scores file.
+   */
+  virtual const std::string& getLastScoresFile() = 0;
 
   /**
    * @brief Sends an i3 command for the specified window.

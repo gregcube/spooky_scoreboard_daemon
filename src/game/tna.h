@@ -10,17 +10,20 @@ private:
   const std::string tmpPath = "/tna/game/tmp";
   const std::string gamePath = "/tna/game/config";
   const std::string auditsFile = "tna.yaml";
-  const std::string scoresFile = "tna.yaml";
+  const std::string highScoresFile = "tna.yaml";
+  const std::string lastScoresFile = "tna.yaml";
 
 public:
   const Json::Value processHighScores() override;
+  const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
 
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
   const std::string& getTmpPath() override { return tmpPath; }
   const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return scoresFile; }
+  const std::string& getHighScoresFile() override { return highScoresFile; }
+  const std::string& getLastScoresFile() override { return lastScoresFile; }
 };
 
 #endif

@@ -10,17 +10,20 @@ private:
   const std::string gamePath = "/game/audits";
   const std::string tmpPath = "/game/tmp";
   const std::string auditsFile = "_game_audits.json";
-  const std::string scoresFile = "highscores.json";
+  const std::string highScoresFile = "highscores.json";
+  const std::string lastScoresFile = "lastgamescores.json";
 
 public:
   const Json::Value processHighScores() override;
+  const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
 
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
   const std::string& getTmpPath() override { return tmpPath; }
   const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return scoresFile; }
+  const std::string& getHighScoresFile() override { return highScoresFile; }
+  const std::string& getLastScoresFile() override { return lastScoresFile; }
 
   /**
    * @brief Overrides the base class method to send sway commands.
