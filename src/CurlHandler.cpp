@@ -4,7 +4,7 @@
 #include "main.h"
 #include "CurlHandler.h"
 
-CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
+CurlHandler::CurlHandler(const std::string& url) : baseUrl(url)
 {
   curl = curl_easy_init();
   if (!curl) throw std::runtime_error("Unable to initialize CURL");

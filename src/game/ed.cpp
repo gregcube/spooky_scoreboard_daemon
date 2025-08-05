@@ -138,7 +138,7 @@ int ED::sendswaycmd()
 
   for (const auto& cmd : cmds) {
     std::string msg = "i3-ipc"; // sway uses the same IPC magic string.
-    uint32_t len = cmd.size();
+    uint32_t len = static_cast<uint32_t>(cmd.size());
     uint32_t type = 0;
 
     msg.append(reinterpret_cast<const char*>(&len), 4);

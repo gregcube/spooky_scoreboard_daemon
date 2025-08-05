@@ -12,7 +12,7 @@ public:
   long responseCode;
   std::string responseData;
 
-  CurlHandler(const std::string& baseUrl);
+  CurlHandler(const std::string& url);
   ~CurlHandler(void);
 
   long get(const std::string& path);

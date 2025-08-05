@@ -3,6 +3,7 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <cstring>
 
 #include <sys/time.h>
 #include <fontconfig/fontconfig.h>
@@ -39,8 +40,7 @@ XftFont* xft_hdr_font = nullptr;
 XftFont* xft_std_font = nullptr;
 XftFont* xft_sub_font = nullptr;
 Visual* visual = nullptr;
-XftColor xft_color = {0};
-XSizeHints hints = {0};
+XftColor xft_color = {0, 0, 0, 0, 0};
 mutex x11_mutex;
 
 /**
@@ -122,8 +122,8 @@ void drawPlayerWindow(int index)
 
   // Draw machine url.
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-    center_x - (machineUrl.size() * 5.5), 130,
-    (const FcChar8*)machineUrl.c_str(), machineUrl.size());
+    center_x - static_cast<int>(static_cast<double>(machineUrl.size()) * 5.5), 130,
+    (const FcChar8*)machineUrl.c_str(), static_cast<int>(machineUrl.size()));
 
   // Copy QR code pixmap to pixmap buffer.
   XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145,
@@ -137,14 +137,14 @@ void drawPlayerWindow(int index)
   // Draw "Player <num>" text.
   string position = "Player " + to_string(index + 1);
   XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - (position.length() * 10), 370,
-    (const FcChar8*)position.c_str(), position.length());
+    center_x - static_cast<int>(position.length() * 10), 370,
+    (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
 
   // Draw player's online name.
   const string& playerName = playerList.player[index];
   XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - (playerName.length() * 10.5), 410,
-    (const FcChar8*)playerName.c_str(), playerName.length());
+    center_x - static_cast<int>(static_cast<double>(playerName.length()) * 10.5), 410,
+    (const FcChar8*)playerName.c_str(), static_cast<int>(playerName.length()));
 
   // Copy pixmap buffer to the window.
   XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, X11_WIN_WIDTH, X11_WIN_HEIGHT, 0, 0);
@@ -174,7 +174,7 @@ void runTimer(int secs, int index)
   while (isRunning.load()) {
     // Check and exit if timer has expired.
     gettimeofday(&current_time, NULL);
-    int remaining = secs - (current_time.tv_sec - start_time.tv_sec);
+    int remaining = static_cast<int>(secs - (current_time.tv_sec - start_time.tv_sec));
     if (remaining <= 0) break;
 
     // Timer hasn't expired.
@@ -195,7 +195,7 @@ void runTimer(int secs, int index)
 
         // Draw count down timer in bottom, left corner.
         XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-          5, X11_WIN_HEIGHT - 10, (FcChar8*)ct.c_str(), ct.length());
+          5, X11_WIN_HEIGHT - 10, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()));
 
         // Copy pixmap buffer to window.
         XCopyArea(display, pixmap_buf[index], window[index], gc[index],
@@ -448,6 +448,8 @@ void openPlayerWindows()
       x, y, ww, wh, 0, BlackPixel(display, screen), WhitePixel(display, screen));
 
     // Set window hints.
+    XSizeHints hints;
+    memset(&hints, 0, sizeof(XSizeHints));
     hints.flags = PSize | PMinSize | PMaxSize | PPosition;
     hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
     hints.height = hints.base_height = hints.min_height = hints.max_height = wh;

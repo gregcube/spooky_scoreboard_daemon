@@ -211,7 +211,7 @@ void playerLogin(const vector<char>& uuid, int position)
   root.append(uuid.data());
   root.append(position);
 
-  int rc = curlHandle->post("/api/v1/login", root.toStyledString());
+  long rc = curlHandle->post("/api/v1/login", root.toStyledString());
   if (rc != 200) {
     cerr << "Login failed with code: " << rc << endl;
     return;
