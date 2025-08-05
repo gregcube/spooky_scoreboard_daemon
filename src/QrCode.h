@@ -13,7 +13,7 @@ public:
   /**
    * @brief Constructs a QrCode object.
    */
-  QrCode() : ch(std::make_unique<CurlHandler>(BASE_URL)) {}
+  QrCode();
 
   /**
    * @brief Destructor that deletes the temporary QR code file.
@@ -32,8 +32,17 @@ public:
    */
   void write();
 
+  /**
+   * @brief Returns file system path to QR code.
+   *
+   * @return Path to QR code (in qrCodePath).
+   */
+  const std::string getPath() { return qrCodePath; }
+
+
 private:
   const std::unique_ptr<CurlHandler> ch;
+  const std::string qrCodePath;
 };
 
 #endif

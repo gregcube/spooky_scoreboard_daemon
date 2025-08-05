@@ -26,8 +26,8 @@
 
 using namespace std;
 
-const char* ttf_ghoulish = "/tmp/ghoulish.ttf";
-const char* ttf_roboto = "/tmp/roboto.ttf";
+const char* ttf_ghoulish = nullptr;
+const char* ttf_roboto = nullptr;
 
 Window window[4] = {None, None, None, None};
 GC gc[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -50,12 +50,16 @@ mutex x11_mutex;
 void x11Init()
 {
   XInitThreads();
+
   setenv("DISPLAY", ":0", 0);
   display = XOpenDisplay(nullptr);
   if (!display) {
     cerr << "Failed to open X11 display." << endl;
     exit(EXIT_FAILURE);
   }
+
+  ttf_ghoulish = (game->getTmpPath() + "/ghoulish.ttf").c_str();
+  ttf_roboto = (game->getTmpPath() + "/roboto.ttf").c_str();
 }
 
 /**
@@ -395,7 +399,12 @@ void openPlayerWindows()
   int wh = X11_WIN_HEIGHT;
 
   // Load shared resources first.
-  int rc = XpmReadFileToPixmap(display, RootWindow(display, screen), "/tmp/qrcode.xpm", &pixmap_qr, NULL, NULL);
+  int rc = XpmReadFileToPixmap(
+    display,
+    RootWindow(display, screen),
+    qrCode->getPath().c_str(),
+    &pixmap_qr, NULL, NULL);
+
   if (rc != XpmSuccess) {
     cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
   }

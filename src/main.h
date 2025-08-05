@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "GameBase.h"
+#include "QrCode.h"
 
 #define VERSION "0.0.9-1"
 #define MAX_UUID_LEN 36
@@ -30,6 +31,7 @@ struct players {
 extern players playerList;
 extern std::atomic<bool> isRunning;
 extern std::unique_ptr<GameBase> game;
+extern std::unique_ptr<QrCode> qrCode;
 extern std::string machineId, machineUrl, token;
 
 extern void playerLogin(const std::vector<char>& uuid, int position);

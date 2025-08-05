@@ -16,7 +16,6 @@
 #include "main.h"
 #include "x11.h"
 #include "CurlHandler.h"
-#include "QrCode.h"
 #include "QrScanner.h"
 
 #define TIMER_DEFAULT 15

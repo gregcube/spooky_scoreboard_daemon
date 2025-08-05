@@ -3,12 +3,19 @@
 #include <string>
 #include <cstdio>
 
+#include "main.h"
 #include "QrCode.h"
+
+using namespace std;
+
+QrCode::QrCode() :
+  ch(make_unique<CurlHandler>(BASE_URL)),
+  qrCodePath(game->getTmpPath() + "/qrcode.xpm") {}
 
 QrCode::~QrCode()
 {
-  if (std::remove("/tmp/qrcode.xpm") != 0) {
-    std::cerr << "Failed to delete /tmp/qrcode.xpm" << std::endl;
+  if (remove(qrCodePath.c_str()) != 0) {
+    cerr << "Failed to delete " << qrCodePath << endl;
   }
 }
 
@@ -17,7 +24,7 @@ QrCode* QrCode::get()
   long rc;
 
   if ((rc = ch->post("/api/v1/qr")) != 200) {
-    throw std::runtime_error("Unable to download QR code.");
+    throw runtime_error("Unable to download QR code.");
   }
 
   return this;
@@ -25,10 +32,10 @@ QrCode* QrCode::get()
 
 void QrCode::write()
 {
-  std::ofstream xpm("/tmp/qrcode.xpm");
+  ofstream xpm(qrCodePath);
 
   if (!xpm.is_open()) {
-    throw std::runtime_error("Unable to write QR code.");
+    throw runtime_error("Unable to write QR code.");
   }
  
   xpm << ch->responseData;
