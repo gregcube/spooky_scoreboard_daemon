@@ -43,9 +43,6 @@
 
 using namespace std;
 
-const char* ttf_ghoulish = nullptr;
-const char* ttf_roboto = nullptr;
-
 Window window[4] = {None, None, None, None};
 GC gc[4] = {nullptr, nullptr, nullptr, nullptr};
 XftDraw* xft_draw[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -67,16 +64,12 @@ mutex x11_mutex;
 void x11Init()
 {
   XInitThreads();
-
   setenv("DISPLAY", ":0", 0);
   display = XOpenDisplay(nullptr);
   if (!display) {
     cerr << "Failed to open X11 display." << endl;
     exit(EXIT_FAILURE);
   }
-
-  ttf_ghoulish = (game->getTmpPath() + "/ghoulish.ttf").c_str();
-  ttf_roboto = (game->getTmpPath() + "/roboto.ttf").c_str();
 }
 
 /**
@@ -378,8 +371,8 @@ void closePlayerWindows()
     }
 
     // Remove temporary font files.
-    remove(ttf_ghoulish);
-    remove(ttf_roboto);
+    remove((game->getTmpPath() + "/ghoulish.ttf").c_str());
+    remove((game->getTmpPath() + "/roboto.ttf").c_str());
 
     // Destroy windows.
     for (int i = 0; i < 4; i++) {
@@ -428,8 +421,8 @@ void openPlayerWindows()
 
   // Load TTF fonts.
   FcConfig* fc_config = FcInitLoadConfigAndFonts();
-  loadFont(ttf_ghoulish, Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
-  loadFont(ttf_roboto, Roboto_ttf, Roboto_ttf_len, fc_config);
+  loadFont((game->getTmpPath() + "/ghoulish.ttf").c_str(), Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
+  loadFont((game->getTmpPath() + "/roboto.ttf").c_str(), Roboto_ttf, Roboto_ttf_len, fc_config);
   FcConfigSetCurrent(fc_config);
 
   xft_std_font = XftFontOpenName(display, screen, "Ghoulish:size=31");
