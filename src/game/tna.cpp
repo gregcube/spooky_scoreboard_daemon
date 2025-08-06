@@ -22,7 +22,7 @@
 
 const Json::Value TNA::processHighScores()
 {
-  Json::Value root, classic, last;
+  Json::Value scores;
   YAML::Node tnaNode = YAML::LoadFile("/tna/game/config/tna.yaml");
   YAML::Node classicScoresNode = tnaNode["ClassicHighScores"];
 
@@ -32,19 +32,11 @@ const Json::Value TNA::processHighScores()
     score["initials"] = classicScoresNode[i]["inits"].as<std::string>();
     score["score"] = classicScoresNode[i]["score"].as<uint32_t>();
 
-    classic.append(score);
+    scores.append(score);
     score.clear();
   }
 
-  // Process last scores.
-  // Because the API expects highscore and last game scores submissions
-  // together, we call processLastGameScores() here.
-  // TODO: Update the API to have two endpoints for high and last game scores.
-  last = processLastGameScores();
-
-  root.append(classic);
-  root.append(last);
-  return root;
+  return scores;
 }
 
 const Json::Value TNA::processLastGameScores()

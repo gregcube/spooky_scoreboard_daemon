@@ -42,8 +42,6 @@ const Json::Value ED::processHighScores()
 
   ifs.close();
 
-  // There are 6 scores.
-  // GC and 1-5.
   /*
   [
     {
@@ -58,25 +56,16 @@ const Json::Value ED::processHighScores()
   ]
   */
 
-  Json::Value root, classicScores, lastScores;
-
+  Json::Value scores;
   for (int i = 0; i < 6; i++) {
     Json::Value score;
     score["initials"] = highscores[i]["playerName"];
     score["score"] = highscores[i]["theScore"];
-    classicScores.append(score);
+    scores.append(score);
     score.clear();
   }
 
-  // Process last scores.
-  // Because the API expects highscore and last game scores submissions
-  // together, we call processLastGameScores() here.
-  // TODO: Update the API to have two endpoints for high and last game scores.
-  lastScores = processLastGameScores();
-
-  root.append(classicScores);
-  root.append(lastScores);
-  return root;
+  return scores;
 }
 
 const Json::Value ED::processLastGameScores()

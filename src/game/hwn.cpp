@@ -31,10 +31,7 @@ const Json::Value HWN::processHighScores()
   }
 
   std::string line;
-  Json::Value root;
-
-  // Process classic scores.
-  Json::Value classicScores;
+  Json::Value scores;
 
   // Skip the first line.
   std::getline(ifs, line);
@@ -50,30 +47,14 @@ const Json::Value HWN::processHighScores()
       score["score"] = line;
     }
 
-    classicScores.append(score);
+    scores.append(score);
     score.clear();
-  }
-
-  // Process last scores.
-  Json::Value lastScores;
-
-  // Skip this line.
-  // It should be "[LAST SCORES]"
-  std::getline(ifs, line);
-
-  // There are 4 scores.
-  for (int i = 0; i < 4; i++) {
-    std::getline(ifs, line);
-    lastScores.append(line);
   }
 
   // TODO: Implement mode scores.
 
-  root.append(classicScores);
-  root.append(lastScores);
   ifs.close();
-
-  return root;
+  return scores;
 }
 
 const Json::Value HWN::processLastGameScores()
@@ -86,8 +67,8 @@ const Json::Value HWN::processLastGameScores()
   std::string line;
   Json::Value scores;
 
-  // Skip first 8 lines.
-  for (int i = 0; i < 8 && std::getline(ifs, line); ++i) {}
+  // Skip first 14 lines.
+  for (int i = 0; i < 14 && std::getline(ifs, line); ++i) {}
 
   // 4 next lines are last player scores.
   for (int i = 0; i < 4; i++) {

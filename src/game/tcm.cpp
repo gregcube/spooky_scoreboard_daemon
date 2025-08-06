@@ -34,10 +34,7 @@ const Json::Value TCM::processHighScores()
   }
 
   std::string line;
-  Json::Value root;
-
-  // Process classic scores.
-  Json::Value classicScores;
+  Json::Value scores;
 
   // Skip the first line.
   std::getline(ifs, line);
@@ -53,23 +50,14 @@ const Json::Value TCM::processHighScores()
       score["score"] = line;
     }
 
-    classicScores.append(score);
+    scores.append(score);
     score.clear();
   }
 
-  // Process last scores.
-  // Because the API expects highscore and last game scores submissions
-  // together, we call processLastGameScores() here.
-  // TODO: Update the API to have two endpoints for high and last game scores.
-  Json::Value lastScores = processLastGameScores();
-
   // TODO: Implement mode scores.
 
-  root.append(classicScores);
-  root.append(lastScores);
   ifs.close();
-
-  return root;
+  return scores;
 }
 
 const Json::Value TCM::processLastGameScores()
@@ -82,8 +70,8 @@ const Json::Value TCM::processLastGameScores()
   std::string line;
   Json::Value scores;
 
-  // Skip first 8 lines. Last scores start at line 9.
-  for (int i = 0; i < 8 && std::getline(ifs, line); ++i) {}
+  // Skip first 14 lines. Last scores start at line 15
+  for (int i = 0; i < 14 && std::getline(ifs, line); ++i) {}
 
   // Process next 4 lines for last scores.
   for (int i = 0; i < 4; ++i) {

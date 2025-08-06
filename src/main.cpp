@@ -253,10 +253,14 @@ static void uploadScores(const Json::Value& scores, ScoreType type)
 
     string query = "type=";
     switch (type) {
-    case ScoreType::High: query += "high"; break;
+    case ScoreType::High: query += "classic"; break;
     case ScoreType::Last: query += "last"; break;
     case ScoreType::Mode: query += "mode"; break;
     }
+
+#ifdef DEBUG
+    cout << "Scores: " << Json::writeString(writerBuilder, scores) << endl;
+#endif
 
     curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
   }
