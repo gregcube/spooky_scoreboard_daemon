@@ -18,7 +18,7 @@
 #ifndef _TNA_H
 #define _TNA_H
 
-#include "../GameBase.h"
+#include "GameBase.h"
 
 class TNA: public GameBase
 {

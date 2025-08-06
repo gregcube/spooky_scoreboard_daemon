@@ -18,7 +18,7 @@
 #ifndef _HWN_H
 #define _HWN_H
 
-#include "../GameBase.h"
+#include "GameBase.h"
 
 class HWN: public GameBase
 {

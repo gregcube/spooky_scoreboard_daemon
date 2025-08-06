@@ -33,7 +33,10 @@ public:
   ~CurlHandler(void);
 
   long get(const std::string& path);
-  long post(const std::string& path, const std::optional<std::string>& data = std::nullopt);
+  long post(
+    const std::string& path,
+    const std::optional<std::string>& data = std::nullopt,
+    const std::string& query = "");
 
 private:
   CURL* curl;

@@ -18,7 +18,7 @@
 #ifndef _TCM_H
 #define _TCM_H
 
-#include "../GameBase.h"
+#include "GameBase.h"
 
 class TCM: public GameBase
 {

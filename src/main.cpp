@@ -242,14 +242,23 @@ void playerLogin(const vector<char>& uuid, int position)
  *
  * @param scores The JSON object containing the scores to upload
  */
-static void uploadScores(const Json::Value& scores)
+enum class ScoreType { High, Last, Mode };
+static void uploadScores(const Json::Value& scores, ScoreType type)
 {
   cout << "Uploading scores..." << endl;
 
   try {
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
-    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores));
+
+    string query = "type=";
+    switch (type) {
+    case ScoreType::High: query += "high"; break;
+    case ScoreType::Last: query += "last"; break;
+    case ScoreType::Mode: query += "mode"; break;
+    }
+
+    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;
@@ -267,10 +276,23 @@ static void processHighScoresEvent()
   try {
     Json::Value currentScore = game->processHighScores();
     if (currentScore != lastScore) {
-      uploadScores(currentScore);
-      playerList.reset();
+      uploadScores(currentScore, ScoreType::High);
       lastScore = currentScore;
     }
+  }
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
+  }
+}
+
+/**
+ * Process and upload last game scores.
+ */
+static void processLastGameScoresEvent()
+{
+  try {
+    uploadScores(game->processLastGameScores(), ScoreType::Last);
+    playerList.reset();
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;
@@ -297,6 +319,10 @@ static void processEvent(char* buf, ssize_t bytes)
 #endif
       if (strcmp(evt->name, game->getHighScoresFile().c_str()) == 0) {
         processHighScoresEvent();
+      }
+
+      if (strcmp(evt->name, game->getLastScoresFile().c_str()) == 0) {
+        processLastGameScoresEvent();
       }
     }
 
@@ -540,7 +566,7 @@ int main(int argc, char** argv)
     // Upload and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
-      uploadScores(scores);
+      uploadScores(scores, ScoreType::High);
       exit(EXIT_SUCCESS);
     }
 

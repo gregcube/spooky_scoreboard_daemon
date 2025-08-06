@@ -18,7 +18,7 @@
 #ifndef _ED_H
 #define _ED_H
 
-#include "../GameBase.h"
+#include "GameBase.h"
 
 class ED: public GameBase
 {

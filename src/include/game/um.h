@@ -18,7 +18,7 @@
 #ifndef _UM_H
 #define _UM_H
 
-#include "hwn.h"
+#include "game/hwn.h"
 
 class UM: public HWN
 {
