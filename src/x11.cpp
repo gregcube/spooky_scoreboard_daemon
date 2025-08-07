@@ -33,6 +33,7 @@
 
 #include "main.h"
 #include "x11.h"
+#include "version.h"
 
 #include "font/Ghoulish.h"
 #include "font/Roboto.h"
@@ -146,7 +147,7 @@ void drawPlayerWindow(int index)
   // Draw version number in bottom right corner.
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
     X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
-    (const FcChar8*)VERSION, strlen(VERSION));
+    (const FcChar8*)Version::FULL, strlen(Version::FULL));
 
   // Draw "Player <num>" text.
   string position = "Player " + to_string(index + 1);

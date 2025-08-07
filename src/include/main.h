@@ -26,7 +26,6 @@
 #include "GameBase.h"
 #include "QrCode.h"
 
-#define VERSION "0.0.9-1"
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG

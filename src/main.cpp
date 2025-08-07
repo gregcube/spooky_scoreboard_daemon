@@ -31,6 +31,7 @@
 #include "x11.h"
 #include "CurlHandler.h"
 #include "QrScanner.h"
+#include "version.h"
 
 #define TIMER_DEFAULT 15
 
@@ -99,7 +100,6 @@ static void cleanup()
 static void loadMachineId()
 {
   ifstream file("/.ssbd.json");
-
   if (!file.is_open()) {
     cerr << "Failed to open /.ssbd.json." << endl;
     exit(EXIT_FAILURE);
@@ -448,7 +448,7 @@ static void registerMachine(const string& regCode)
  */
 static void printUsage()
 {
-  cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
+  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n\n";
   cerr << " -g <game> Game name.\n";
   cerr << "           Use -l to list supported games.\n\n";
   cerr << " -r <code> Register pinball machine.\n";
