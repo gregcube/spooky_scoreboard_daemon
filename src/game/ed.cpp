@@ -115,18 +115,17 @@ int ED::sendswaycmd()
     return -1;
   }
 
-  struct sockaddr_un addr;
+  struct sockaddr_un addr = {};
   addr.sun_family = AF_UNIX;
 
   const char* swaypath = getenv("SWAYSOCK");
   if (!swaypath) {
-    std::cerr << "SWAYSOCK environment variable not set" << std::endl;
+    std::cerr << "SWAYSOCK not set" << std::endl;
     close(sd);
     return -1;
   }
 
   strncpy(addr.sun_path, swaypath, sizeof(addr.sun_path) - 1);
-  addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
   if (connect(sd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
     std::cerr << "Failed to connect to sway socket" << std::endl;
@@ -143,17 +142,29 @@ int ED::sendswaycmd()
   };
 
   for (const auto& cmd : cmds) {
-    std::string msg = "i3-ipc"; // sway uses the same IPC magic string.
+    std::string msg = "i3-ipc";
     uint32_t len = static_cast<uint32_t>(cmd.size());
     uint32_t type = 0;
 
-    msg.append(reinterpret_cast<const char*>(&len), 4);
-    msg.append(reinterpret_cast<const char*>(&type), 4);
+    // Ensure little-endian for length and type.
+    uint32_t len_le = htole32(len);
+    uint32_t type_le = htole32(type);
+
+    msg.append(reinterpret_cast<const char*>(&len_le), 4);
+    msg.append(reinterpret_cast<const char*>(&type_le), 4);
     msg.append(cmd);
 
-    ssize_t n = write(sd, msg.c_str(), msg.size());
-    if (n < 0 || static_cast<size_t>(n) != msg.size()) {
-      std::cerr << "Failed writing to Sway socket" << std::endl;
+    if (write(sd, msg.c_str(), msg.size()) != static_cast<ssize_t>(msg.size())) {
+      std::cerr << "Failed writing to sway socket" << std::endl;
+      close(sd);
+      return -1;
+    }
+
+    // Read response to ensure command was processed.
+    char buffer[1024];
+    ssize_t n = read(sd, buffer, sizeof(buffer));
+    if (n <= 0) {
+      std::cerr << "Failed reading response" << std::endl;
       close(sd);
       return -1;
     }
