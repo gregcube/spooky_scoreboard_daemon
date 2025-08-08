@@ -15,34 +15,35 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <map>
+#ifndef _CURL_HANDLER_H
+#define _CURL_HANDLER_H
 
-#include "GameBase.h"
+#include <string>
+#include <optional>
 
-#include "game/hwn.h"
-#include "game/um.h"
-#include "game/tna.h"
-#include "game/tcm.h"
-#include "game/ed.h"
+#include <curl/curl.h>
 
-using namespace std;
+class CurlHandler
+{
+public:
+  long responseCode;
+  std::string responseData;
 
-std::map<std::string, GameFactoryFunction> gameFactories = {
-  {"tna", []() { return make_unique<TNA>(); }},
-  {"hwn", []() { return make_unique<HWN>(); }},
-  {"tcm", []() { return make_unique<TCM>(); }},
-  {"um",  []() { return make_unique<UM>();  }},
-  {"ed",  []() { return make_unique<ED>();  }}
+  CurlHandler(const std::string& url);
+  ~CurlHandler(void);
+
+  long get(const std::string& path);
+  long post(
+    const std::string& path,
+    const std::optional<std::string>& data = std::nullopt,
+    const std::string& query = "");
+
+private:
+  CURL* curl;
+  const std::string baseUrl;
+
+  long execute(const std::string& url);
+  static size_t writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output);
 };
 
-std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
-{
-  auto it = gameFactories.find(gameName);
-
-  if (it != gameFactories.end()) {
-    return (it->second)();
-  }
-
-  return nullptr;
-}
-
+#endif

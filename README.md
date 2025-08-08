@@ -38,8 +38,11 @@ Supported Games
 - Halloween (UP)
 - Ultraman (UP)
 - Texas Chainsaw Massacre (UP)
+- Evil Dead (miniPC)
 - Total Nuclear Annihilation (preliminary support)
 
+UP games require an ethernet connection.  
+miniPC games use the integrated wifi adapter.
 
 Notes
 ------
@@ -54,10 +57,6 @@ Ensure the QR reader is set to USB-COM RS232 mode.
 is accessible inside the coin door. It does work however when connected directly
 to the UP board, or when using a USB hub connected to the port inside the coin door; 
 plug QR scanner into hub, and hub into USB port.*
-
-This has only been tested on games with the "UP" computer board.
-It has not been tested on the mini-PC that was used in later
-Halloween/ Ultraman builds.
 
 
 Demo

@@ -1,13 +1,32 @@
+// Spooky Scoreboard Daemon
+// Copyright (C) 2025 Greg MacKenzie
+// https://spookyscoreboard.com
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #include <iostream>
 #include <string>
 
 #include "main.h"
 #include "CurlHandler.h"
 
-CurlHandler::CurlHandler(const std::string& baseUrl) : baseUrl(baseUrl)
+using namespace std;
+
+CurlHandler::CurlHandler(const string& url) : baseUrl(url)
 {
   curl = curl_easy_init();
-  if (!curl) throw std::runtime_error("Unable to initialize CURL");
+  if (!curl) throw runtime_error("Unable to initialize CURL");
 }
 
 CurlHandler::~CurlHandler()
@@ -15,35 +34,37 @@ CurlHandler::~CurlHandler()
   if (curl) curl_easy_cleanup(curl);
 }
 
-long CurlHandler::get(const std::string& path)
+long CurlHandler::get(const string& path)
 {
   return execute(baseUrl + path);
 }
 
-long CurlHandler::post(const std::string& path, const std::optional<std::string>& data)
+long CurlHandler::post(const string& path, const optional<string>& data, const string& query)
 {
-  std::string post = data.value_or("");
-
+  string post = data.value_or("");
   curl_easy_setopt(curl, CURLOPT_POST, 1L);
   curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post.c_str());
 
-  return execute(baseUrl + path);
+  string fullUrl = baseUrl + path;
+  if (!query.empty()) fullUrl += "?" + query;
+
+  return execute(fullUrl);
 }
 
-long CurlHandler::execute(const std::string& endpoint)
+long CurlHandler::execute(const string& endpoint)
 {
   CURLcode cc;
-  struct curl_slist* hdrs = NULL;
+  struct curl_slist* hdrs = nullptr;
 
 #ifdef DEBUG
-  std::cout << "Calling " << endpoint << std::endl;
+  cout << "Calling " << endpoint << endl;
 #endif
 
   hdrs = curl_slist_append(hdrs, "Content-Type: application/json; charset=utf-8");
 
   if (!machineId.empty() && !token.empty()) {
-    std::string authHeader = "Authorization: Bearer " + token;
-    std::string uuidHeader = "X-Machine-Uuid: " + machineId;
+    string authHeader = "Authorization: Bearer " + token;
+    string uuidHeader = "X-Machine-Uuid: " + machineId;
     hdrs = curl_slist_append(hdrs, authHeader.c_str());
     hdrs = curl_slist_append(hdrs, uuidHeader.c_str());
   }
@@ -63,15 +84,21 @@ long CurlHandler::execute(const std::string& endpoint)
   responseData.erase();
 
   if ((cc = curl_easy_perform(curl)) != CURLE_OK) {
-    std::cerr << "CURL failed: " << endpoint << ": " << curl_easy_strerror(cc) << std::endl;
+    cerr << "CURL failed: " << endpoint << ": " << curl_easy_strerror(cc) << endl;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+
+  curl_slist_free_all(hdrs);
+  hdrs = nullptr;
+
   return responseCode;
 }
 
-size_t CurlHandler::writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output) {
+size_t CurlHandler::writeCallback(const char* ptr, size_t size, size_t nmemb, string* output)
+{
   size_t total = size * nmemb;
   output->append(ptr, total);
   return total;
 }
+

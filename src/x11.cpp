@@ -1,8 +1,26 @@
+// Spooky Scoreboard Daemon
+// Copyright (C) 2025 Greg MacKenzie
+// https://spookyscoreboard.com
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #include <iostream>
 #include <fstream>
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <cstring>
 
 #include <sys/time.h>
 #include <fontconfig/fontconfig.h>
@@ -15,18 +33,16 @@
 
 #include "main.h"
 #include "x11.h"
+#include "version.h"
 
-#include "fonts/Ghoulish.h"
-#include "fonts/Roboto.h"
+#include "font/Ghoulish.h"
+#include "font/Roboto.h"
 
 #define X11_WIN_WIDTH 320
 #define X11_WIN_HEIGHT 480
 #define X11_WIN_GAP 10
 
 using namespace std;
-
-const char* ttf_ghoulish = "/tmp/ghoulish.ttf";
-const char* ttf_roboto = "/tmp/roboto.ttf";
 
 Window window[4] = {None, None, None, None};
 GC gc[4] = {nullptr, nullptr, nullptr, nullptr};
@@ -39,8 +55,7 @@ XftFont* xft_hdr_font = nullptr;
 XftFont* xft_std_font = nullptr;
 XftFont* xft_sub_font = nullptr;
 Visual* visual = nullptr;
-XftColor xft_color = {0};
-XSizeHints hints = {0};
+XftColor xft_color = {0, 0, 0, 0, 0};
 mutex x11_mutex;
 
 /**
@@ -122,8 +137,8 @@ void drawPlayerWindow(int index)
 
   // Draw machine url.
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-    center_x - (machineUrl.size() * 5.5), 130,
-    (const FcChar8*)machineUrl.c_str(), machineUrl.size());
+    center_x - static_cast<int>(static_cast<double>(machineUrl.size()) * 5.5), 130,
+    (const FcChar8*)machineUrl.c_str(), static_cast<int>(machineUrl.size()));
 
   // Copy QR code pixmap to pixmap buffer.
   XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145,
@@ -132,19 +147,19 @@ void drawPlayerWindow(int index)
   // Draw version number in bottom right corner.
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
     X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
-    (const FcChar8*)VERSION, strlen(VERSION));
+    (const FcChar8*)Version::FULL, strlen(Version::FULL));
 
   // Draw "Player <num>" text.
   string position = "Player " + to_string(index + 1);
   XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - (position.length() * 10), 370,
-    (const FcChar8*)position.c_str(), position.length());
+    center_x - static_cast<int>(position.length() * 10), 370,
+    (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
 
   // Draw player's online name.
   const string& playerName = playerList.player[index];
   XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - (playerName.length() * 10.5), 410,
-    (const FcChar8*)playerName.c_str(), playerName.length());
+    center_x - static_cast<int>(static_cast<double>(playerName.length()) * 10.5), 410,
+    (const FcChar8*)playerName.c_str(), static_cast<int>(playerName.length()));
 
   // Copy pixmap buffer to the window.
   XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, X11_WIN_WIDTH, X11_WIN_HEIGHT, 0, 0);
@@ -156,7 +171,6 @@ void drawPlayerWindow(int index)
 
 /**
  * Runs a countdown timer for a specific player window.
- * Updates the timer display every second and handles window expose events.
  *
  * @param secs Number of seconds to count down
  * @param index The index of the window/player (0-3)
@@ -175,7 +189,7 @@ void runTimer(int secs, int index)
   while (isRunning.load()) {
     // Check and exit if timer has expired.
     gettimeofday(&current_time, NULL);
-    int remaining = secs - (current_time.tv_sec - start_time.tv_sec);
+    int remaining = static_cast<int>(secs - (current_time.tv_sec - start_time.tv_sec));
     if (remaining <= 0) break;
 
     // Timer hasn't expired.
@@ -196,7 +210,7 @@ void runTimer(int secs, int index)
 
         // Draw count down timer in bottom, left corner.
         XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-          5, X11_WIN_HEIGHT - 10, (FcChar8*)ct.c_str(), ct.length());
+          5, X11_WIN_HEIGHT - 10, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()));
 
         // Copy pixmap buffer to window.
         XCopyArea(display, pixmap_buf[index], window[index], gc[index],
@@ -271,6 +285,7 @@ void showPlayerWindow(int index)
 
   XSync(display, False);
   game->sendi3cmd();
+  game->sendswaycmd();
 }
 
 /**
@@ -357,8 +372,8 @@ void closePlayerWindows()
     }
 
     // Remove temporary font files.
-    remove(ttf_ghoulish);
-    remove(ttf_roboto);
+    remove((game->getTmpPath() + "/ghoulish.ttf").c_str());
+    remove((game->getTmpPath() + "/roboto.ttf").c_str());
 
     // Destroy windows.
     for (int i = 0; i < 4; i++) {
@@ -395,15 +410,20 @@ void openPlayerWindows()
   int wh = X11_WIN_HEIGHT;
 
   // Load shared resources first.
-  int rc = XpmReadFileToPixmap(display, RootWindow(display, screen), "/tmp/qrcode.xpm", &pixmap_qr, NULL, NULL);
+  int rc = XpmReadFileToPixmap(
+    display,
+    RootWindow(display, screen),
+    qrCode->getPath().c_str(),
+    &pixmap_qr, NULL, NULL);
+
   if (rc != XpmSuccess) {
     cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
   }
 
   // Load TTF fonts.
   FcConfig* fc_config = FcInitLoadConfigAndFonts();
-  loadFont(ttf_ghoulish, Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
-  loadFont(ttf_roboto, Roboto_ttf, Roboto_ttf_len, fc_config);
+  loadFont((game->getTmpPath() + "/ghoulish.ttf").c_str(), Ghoulish_ttf, Ghoulish_ttf_len, fc_config);
+  loadFont((game->getTmpPath() + "/roboto.ttf").c_str(), Roboto_ttf, Roboto_ttf_len, fc_config);
   FcConfigSetCurrent(fc_config);
 
   xft_std_font = XftFontOpenName(display, screen, "Ghoulish:size=31");
@@ -448,6 +468,8 @@ void openPlayerWindows()
       x, y, ww, wh, 0, BlackPixel(display, screen), WhitePixel(display, screen));
 
     // Set window hints.
+    XSizeHints hints;
+    memset(&hints, 0, sizeof(XSizeHints));
     hints.flags = PSize | PMinSize | PMaxSize | PPosition;
     hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
     hints.height = hints.base_height = hints.min_height = hints.max_height = wh;

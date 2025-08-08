@@ -1,5 +1,19 @@
 // Spooky Scoreboard Daemon
+// Copyright (C) 2025 Greg MacKenzie
 // https://spookyscoreboard.com
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <cstdint>
 #include <csignal>
@@ -16,8 +30,10 @@
 #include "main.h"
 #include "x11.h"
 #include "CurlHandler.h"
-#include "QrCode.h"
 #include "QrScanner.h"
+#include "version.h"
+
+#define TIMER_DEFAULT 15
 
 using namespace std;
 
@@ -84,7 +100,6 @@ static void cleanup()
 static void loadMachineId()
 {
   ifstream file("/.ssbd.json");
-
   if (!file.is_open()) {
     cerr << "Failed to open /.ssbd.json." << endl;
     exit(EXIT_FAILURE);
@@ -160,7 +175,7 @@ static void startPlayerThread(int index)
 
   thread([index]() {
     showPlayerWindow(index);
-    runTimer(20, index);
+    runTimer(TIMER_DEFAULT, index);
     hidePlayerWindow(index);
     {
       lock_guard<mutex> lock(mtx);
@@ -209,7 +224,7 @@ void playerLogin(const vector<char>& uuid, int position)
   root.append(uuid.data());
   root.append(position);
 
-  int rc = curlHandle->post("/api/v1/login", root.toStyledString());
+  long rc = curlHandle->post("/api/v1/login", root.toStyledString());
   if (rc != 200) {
     cerr << "Login failed with code: " << rc << endl;
     return;
@@ -227,14 +242,27 @@ void playerLogin(const vector<char>& uuid, int position)
  *
  * @param scores The JSON object containing the scores to upload
  */
-static void uploadScores(const Json::Value& scores)
+enum class ScoreType { High, Last, Mode };
+static void uploadScores(const Json::Value& scores, ScoreType type)
 {
   cout << "Uploading scores..." << endl;
 
   try {
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
-    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores));
+
+    string query = "type=";
+    switch (type) {
+    case ScoreType::High: query += "classic"; break;
+    case ScoreType::Last: query += "last"; break;
+    case ScoreType::Mode: query += "mode"; break;
+    }
+
+#ifdef DEBUG
+    cout << "Scores: " << Json::writeString(writerBuilder, scores) << endl;
+#endif
+
+    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;
@@ -252,10 +280,23 @@ static void processHighScoresEvent()
   try {
     Json::Value currentScore = game->processHighScores();
     if (currentScore != lastScore) {
-      uploadScores(currentScore);
-      playerList.reset();
+      uploadScores(currentScore, ScoreType::High);
       lastScore = currentScore;
     }
+  }
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
+  }
+}
+
+/**
+ * Process and upload last game scores.
+ */
+static void processLastGameScoresEvent()
+{
+  try {
+    uploadScores(game->processLastGameScores(), ScoreType::Last);
+    playerList.reset();
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;
@@ -282,6 +323,10 @@ static void processEvent(char* buf, ssize_t bytes)
 #endif
       if (strcmp(evt->name, game->getHighScoresFile().c_str()) == 0) {
         processHighScoresEvent();
+      }
+
+      if (strcmp(evt->name, game->getLastScoresFile().c_str()) == 0) {
+        processLastGameScoresEvent();
       }
     }
 
@@ -329,7 +374,7 @@ static void watch()
 static void printSupportedGames()
 {
   for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
-    cout << "  " << it->first << ": " << it->second()->getGameName() << "\n";
+    cout << "  " << it->first << ":\t" << it->second()->getGameName() << "\n";
   }
 }
 
@@ -403,7 +448,7 @@ static void registerMachine(const string& regCode)
  */
 static void printUsage()
 {
-  cerr << "Spooky Scoreboard Daemon (ssbd) v" << VERSION << "\n\n";
+  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n\n";
   cerr << " -g <game> Game name.\n";
   cerr << "           Use -l to list supported games.\n\n";
   cerr << " -r <code> Register pinball machine.\n";
@@ -429,7 +474,6 @@ static void signalHandler(int signum)
 
 /**
  * Main entry point for the Spooky Scoreboard Daemon.
- * Handles command line arguments and initializes the program.
  *
  * @param argc Number of command line arguments
  * @param argv Array of command line arguments
@@ -526,7 +570,7 @@ int main(int argc, char** argv)
     // Upload and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
-      uploadScores(scores);
+      uploadScores(scores, ScoreType::High);
       exit(EXIT_SUCCESS);
     }
 

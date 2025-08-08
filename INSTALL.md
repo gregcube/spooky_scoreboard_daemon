@@ -3,7 +3,9 @@
 ## Requirements
 - USB stick (2GB or larger)
 - USB keyboard
-- Wired (Ethernet) internet connection
+- Internet
+  - Wired (Ethernet) connection for UP-supported games.
+  - WiFi connection for miniPC-supported games.
 - A compatible QR reader/scanner
 - A supported Spooky pinball machine
 
@@ -21,13 +23,16 @@ to the UP board, or when using a USB hub connected to the port inside the coin d
 plug QR scanner into hub, and hub into USB port.*
 
 #### Supported Games
-Only games using the "UP" computer board are currently supported.
-- Halloween
-- Ultraman
-- Texas Chainsaw Massacre
+- "UP"-supported games:
+  - Halloween
+  - Ultraman
+  - Texas Chainsaw Massacre
 
-If your game has a mini-PC, please create an issue thread [here](https://github.com/gregcube/spooky_scoreboard_daemon/issues),
-and we can work together to add support for your game.
+- "miniPC"-supported games:
+  - Evil Dead
+
+If your game is not listed, please create an issue thread [here](https://github.com/gregcube/spooky_scoreboard_daemon/issues),
+and we can work together to get your machine online.
 
 ---
 
@@ -53,6 +58,7 @@ and we can work together to add support for your game.
 4. **System Installation**
    - Select your game at the boot prompt; press enter to continue.
    - Wait for the system to boot.
+   - *miniPC only*: Enter your WiFi SSID and password.
    - Select `Install` at the menu screen.
    - When prompted enter your 4-digit alphanumeric registration code.
 
@@ -75,4 +81,3 @@ and we can work together to add support for your game.
 - Ensure your wired internet connection is active during the installation.
 - Please create an issue thread [here](https://github.com/gregcube/spooky_scoreboard_daemon/issues)
 if you encounter any errors or other issues.
-

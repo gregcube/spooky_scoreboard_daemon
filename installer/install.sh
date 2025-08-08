@@ -9,7 +9,7 @@
 set -e
 set -o pipefail
 
-version="0.0.9-1"
+version="0.1.0-1"
 echo "Starting Spooky Scoreboard Installer..."
 
 cleanup() {
@@ -34,9 +34,18 @@ install() {
   echo "Installing for ${label}..."
 
   echo "Setting up network..."
+  [[ "$game" == "ed" ]] && setup_wifi
+  write_ssbd_network "$game"
+  write_resolvconf
   systemctl enable systemd-networkd >/dev/null 2>&1
   systemctl start systemd-networkd >/dev/null 2>&1
-  write_resolvconf
+
+  [[ -d /etc/wpa_supplicant ]] && {
+    cp -r /etc/wpa_supplicant /mnt/rootfs/etc
+    systemctl enable wpa_supplicant@wlp2s0 >/dev/null 2>&1
+    systemctl start wpa_supplicant@wlp2s0 >/dev/null 2>&1
+    systemctl restart systemd-networkd >/dev/null 2>&1
+  }
 
   echo -n "Waiting for internet connection"
   until ping -c 1 8.8.8.8 >/dev/null 2>&1; do echo -n .; sleep 1; done
@@ -50,23 +59,26 @@ install() {
   setup_qr_scanner || err "Failed to find QR scanner/reader."
 
   echo "Installing dependencies..."
-  for url in "${depends[@]}"; do
-    file=$(basename "${url}")
-    echo ">> Downloading ${file}..."
-    curl -Ls --retry 10 -o "/tmp/${file}" "${url}" || err "Failed to download ${file}"
-    cp "/tmp/${file}" /mnt/rootfs
-
-    case "$game" in
-      hwn)
+  case "$game" in
+    hwn)
+      for url in "${depends[@]}"; do
+        file=$(basename "${url}")
+        echo ">> Downloading ${file}..."
+        curl -Ls --retry 10 -o "/tmp/${file}" "${url}" || err "Failed to download ${file}"
+        cp "/tmp/${file}" /mnt/rootfs
         echo ">> Installing ${file}."
         chroot /mnt/rootfs pacman -U --noconfirm "/${file}" >/dev/null 2>&1 || err "Failed to install ${file}"
-        ;;
-      tcm)
-        ;;
-    esac
-
-    rm "/mnt/rootfs/${file}"
-  done
+        rm "/mnt/rootfs/${file}"
+      done
+      ;;
+    tcm)
+      ;;
+    ed)
+      chroot /mnt/rootfs apt-get update >/dev/null 2>&1 || err "Failed to update apt packages"
+      chroot /mnt/rootfs apt-get install -y "${depends[@]}" >/dev/null 2>&1 || err "Failed to install packages"
+      chroot /mnt/rootfs systemctl enable wpa_supplicant@wlp2s0
+      ;;
+  esac
 
   echo "Installing spooky scoreboard daemon..."
   tar -xzf "./spooky_scoreboard_daemon/dist/${dist}/ssbd-${version}-${dist}-x86_64.tar.gz" -C /mnt/rootfs/usr/bin >/dev/null 2>&1 || err "Failed to install."
@@ -142,9 +154,27 @@ is_qr_scanner() {
   esac
 }
 
-write_udev_rule() {
-  cat <<EOF >/mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules
-SUBSYSTEM=="tty", ATTRS{idVendor}=="$1", ATTRS{idProduct}=="$2", SYMLINK+="ttyQR"
+setup_wifi() {
+  local ssid pass tmpfile
+  tmpfile=$(mktemp)
+
+  dialog --inputbox "WiFi SSID:" 8 40 2>"$tmpfile"
+  ssid=$(<"$tmpfile")
+
+  dialog --inputbox "WiFi Password:" 8 40 2>"$tmpfile"
+  pass=$(<"$tmpfile")
+
+  rm -f "$tmpfile"
+
+  [[ -z "$ssid" || -z "$pass" ]] && err "SSID or password cannot be empty."
+
+  mkdir -p /etc/wpa_supplicant
+
+  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant-wlp2s0.conf
+network={
+  ssid="$ssid"
+  psk="$pass"
+}
 EOF
 }
 
@@ -153,6 +183,29 @@ write_resolvconf() {
 nameserver 8.8.8.8
 nameserver 8.8.4.4
 EOF
+}
+
+write_ssbd_network() {
+  case "$1" in
+    hwn|tcm) cat <<EOF >/etc/systemd/network/ssbd.network
+[Match]
+Name=enp1s0
+Type=ether
+
+[Network]
+DHCP=yes
+EOF
+    ;;
+    ed) cat <<EOF >/etc/systemd/network/ssbd.network
+[Match]
+Name=wlp2s0
+Type=wlan
+
+[Network]
+DHCP=yes
+EOF
+    ;;
+  esac
 }
 
 write_ssbd_service() {
@@ -196,7 +249,33 @@ RestartSec=15
 WantedBy=multi-user.target
 EOF
     ;;
+    ed) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
+[Unit]
+Description=Spooky Scoreboard Daemon (SSBd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStartPre=/usr/bin/mkdir -p /game/tmp
+ExecStartPre=/bin/sh -c 'while [ ! -e /run/user/1000/sway-ipc.1000.* ]; do sleep 2; done'
+ExecStartPre=/bin/sh -c 'echo "export SWAYSOCK=\$(ls /run/user/1000/sway-ipc.1000.* 2>/dev/null)" > /game/tmp/.env'
+ExecStart=/bin/sh -c '. /game/tmp/.env && exec /usr/bin/ssbd -g ed'
+User=norville
+Group=norville
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    ;;
   esac
+}
+
+write_udev_rule() {
+  cat <<EOF >/mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules
+SUBSYSTEM=="tty", ATTRS{idVendor}=="$1", ATTRS{idProduct}=="$2", SYMLINK+="ttyQR"
+EOF
 }
 
 # Identify game selection.
@@ -217,6 +296,12 @@ case "$game" in
     label="Texas Chainsaw Massacre"
     rootfs=/dev/mmcblk0p2
     dist=debian
+    ;;
+  ed)
+    label="Evil Dead"
+    rootfs=/dev/sda3
+    dist=debian
+    depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
     ;;
 esac
 

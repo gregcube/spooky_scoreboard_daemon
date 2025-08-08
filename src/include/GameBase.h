@@ -1,3 +1,20 @@
+// Spooky Scoreboard Daemon
+// Copyright (C) 2025 Greg MacKenzie
+// https://spookyscoreboard.com
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #ifndef _GAME_BASE_H
 #define _GAME_BASE_H
 
@@ -26,6 +43,16 @@ public:
    * @return A JSON object containing highscores.
    */
   virtual const Json::Value processHighScores() = 0;
+
+  /**
+   * @brief Process last game scores.
+   *
+   * The derived game class must override this function, returning a JSON
+   * representation of the last game scores.
+   *
+   * @return A JSON object containing last game scores.
+   */
+  virtual const Json::Value processLastGameScores() = 0;
 
   /**
    * @brief Retrieves the game name.
@@ -79,6 +106,14 @@ public:
   virtual const std::string& getHighScoresFile() = 0;
 
   /**
+   * @brief Retrieves the filename where last game scores are stored.
+   *
+   * The derived game class must override this function, returning the
+   * last games scores file. Often times it's the same as the high scores file.
+   */
+  virtual const std::string& getLastScoresFile() = 0;
+
+  /**
    * @brief Sends an i3 command for the specified window.
    *
    * Some games (like TCM) may need to send extra commands if they're
@@ -87,6 +122,15 @@ public:
    * @return An integer status code.
    */
   virtual int sendi3cmd() { return 0; }
+
+  /**
+   * @brief Sends a sway command for the specified window.
+   *
+   * Some games (like Evil Dead) use sway to manage Xwayland windows.
+   *
+   * @return An integer status code.
+   */
+  virtual int sendswaycmd() { return 0; }
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

@@ -15,34 +15,41 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <map>
+#ifndef _MAIN_H
+#define _MAIN_H
+
+#include <string>
+#include <array>
+#include <atomic>
+#include <vector>
 
 #include "GameBase.h"
+#include "QrCode.h"
 
-#include "game/hwn.h"
-#include "game/um.h"
-#include "game/tna.h"
-#include "game/tcm.h"
-#include "game/ed.h"
+#define MAX_UUID_LEN 36
 
-using namespace std;
+#ifdef DEBUG
+#define BASE_URL "https://ssb.local:8443"
+#else
+#define BASE_URL "https://spookyscoreboard.com"
+#endif
 
-std::map<std::string, GameFactoryFunction> gameFactories = {
-  {"tna", []() { return make_unique<TNA>(); }},
-  {"hwn", []() { return make_unique<HWN>(); }},
-  {"tcm", []() { return make_unique<TCM>(); }},
-  {"um",  []() { return make_unique<UM>();  }},
-  {"ed",  []() { return make_unique<ED>();  }}
+struct players {
+  uint8_t numPlayers{0};
+  std::array<std::string, 4> player{};
+
+  void reset() {
+    numPlayers = 0;
+    std::fill(player.begin(), player.end(), "");
+  }
 };
 
-std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
-{
-  auto it = gameFactories.find(gameName);
+extern players playerList;
+extern std::atomic<bool> isRunning;
+extern std::unique_ptr<GameBase> game;
+extern std::unique_ptr<QrCode> qrCode;
+extern std::string machineId, machineUrl, token;
 
-  if (it != gameFactories.end()) {
-    return (it->second)();
-  }
+extern void playerLogin(const std::vector<char>& uuid, int position);
 
-  return nullptr;
-}
-
+#endif
