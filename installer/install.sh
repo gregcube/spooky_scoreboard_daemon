@@ -35,7 +35,7 @@ install() {
 
   echo "Setting up network..."
   [[ "$game" == "ed" ]] && setup_wifi
-  write_ssbd_network
+  write_ssbd_network "$game"
   write_resolvconf
   systemctl enable systemd-networkd >/dev/null 2>&1
   systemctl start systemd-networkd >/dev/null 2>&1

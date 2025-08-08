@@ -19,6 +19,7 @@ RUN apt update && apt install -y \
     xz-utils \
     linux-image-amd64 \
     util-linux \
+    firmware-realtek \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/ssb
