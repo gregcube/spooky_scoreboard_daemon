@@ -26,6 +26,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+          clean: false
+          fetch-depth: 1
 
       - name: Setup docker buildx
         uses: docker/setup-buildx-action@v3
