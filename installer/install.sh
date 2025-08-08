@@ -301,7 +301,7 @@ case "$game" in
     label="Evil Dead"
     rootfs=/dev/sda3
     dist=debian
-    depends+=("wpa_supplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
+    depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
     ;;
 esac
 
