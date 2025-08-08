@@ -70,15 +70,14 @@ fi
 
 # Use a unique tag with commit SHA to avoid caching issues
 readonly COMMIT_SHA=$(git rev-parse --short HEAD)
-readonly IMAGE_TAG="${GAME_NAME}:${DISTRO}-${COMMIT_SHA}"
 
-# Build the Docker image, using the repository root as context
+# Build the Docker image
 log_info "Building Docker image for $GAME_NAME using $DISTRO..."
-docker build --no-cache -t "$IMAGE_TAG" -f "$DISTRO/$GAME_NAME/Dockerfile" ../
+docker build --no-cache -t "$GAME_NAME" -f "$DISTRO/$GAME_NAME/Dockerfile" ../
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
-  log_success "Successfully built Docker image: $IMAGE_TAG"
+  log_success "Successfully built Docker image: $GAME_NAME"
 else
   log_error "Docker build failed"
   exit 1
@@ -86,7 +85,7 @@ fi
 
 # Create temporary container to copy files
 log_info "Creating temporary container to copy built binary..."
-CONTAINER_ID=$(docker create "$IMAGE_TAG")
+CONTAINER_ID=$(docker create "$GAME_NAME")
 
 # Create dist directory if it doesn't exist
 mkdir -p "../dist/$DISTRO"
