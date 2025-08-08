@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-#
 # This script automates the build process for the spooky_scoreboard_daemon (ssbd)
 # binary inside a Docker container for a specified game and Linux distribution
 # (e.g., Arch Linux or Debian).
@@ -8,7 +7,6 @@
 # Usage: ./build.sh <game_name> <distribution>
 # Example: ./build.sh hwn arch
 # Example: ./build.sh tcm debian
-#
 
 # Enable strict mode
 set -euo pipefail
@@ -45,6 +43,9 @@ fi
 readonly GAME_NAME=$1
 readonly DISTRO=$2
 
+log_info "Current branch: $(git rev-parse --abbrev-ref HEAD)"
+log_info "Current commit: $(git rev-parse HEAD)"
+
 # Validate distribution
 if [ ! -d "$DISTRO" ]; then
   log_error "Distribution: '$DISTRO' not found"
@@ -67,13 +68,17 @@ if [ ! -f "$DISTRO/$GAME_NAME/Dockerfile" ]; then
   exit 1
 fi
 
-# Build the Docker image
+# Use a unique tag with commit SHA to avoid caching issues
+readonly COMMIT_SHA=$(git rev-parse --short HEAD)
+readonly IMAGE_TAG="${GAME_NAME}:${DISTRO}-${COMMIT_SHA}"
+
+# Build the Docker image, using the repository root as context
 log_info "Building Docker image for $GAME_NAME using $DISTRO..."
-docker build -t "$GAME_NAME" -f "$DISTRO/$GAME_NAME/Dockerfile" .
+docker build --no-cache -t "$IMAGE_TAG" -f "$DISTRO/$GAME_NAME/Dockerfile" ../
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
-  log_success "Successfully built Docker image: $GAME_NAME"
+  log_success "Successfully built Docker image: $IMAGE_TAG"
 else
   log_error "Docker build failed"
   exit 1
@@ -81,7 +86,7 @@ fi
 
 # Create temporary container to copy files
 log_info "Creating temporary container to copy built binary..."
-CONTAINER_ID=$(docker create "$GAME_NAME")
+CONTAINER_ID=$(docker create "$IMAGE_TAG")
 
 # Create dist directory if it doesn't exist
 mkdir -p "../dist/$DISTRO"
@@ -106,4 +111,3 @@ fi
 echo
 log_success "Build process completed successfully!"
 log_info "Binary location: dist/$DISTRO/ssbd"
-

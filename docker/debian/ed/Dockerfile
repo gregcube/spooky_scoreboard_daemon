@@ -17,14 +17,14 @@ RUN apt update && apt install -y \
   libxft-dev \
   libxpm-dev
 
-# Clone and compile spooky scoreboard daemon.
-RUN git clone --recurse-submodules https://github.com/gregcube/spooky_scoreboard_daemon.git ssbd
+# Copy code from the build context.
+COPY . /ssbd
 
 # Prepare vcpkg dependencies.
-RUN cd ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
+RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
 
 # Build spooky scoreboard daemon.
-RUN cd ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
+RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]
