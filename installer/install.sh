@@ -42,7 +42,9 @@ install() {
 
   [[ -d /etc/wpa_supplicant ]] && {
     cp -r /etc/wpa_supplicant /mnt/rootfs/etc
-    systemctl start wpa_supplicant@wlp2s0
+    systemctl enable wpa_supplicant@wlp2s0 >/dev/null 2>&1
+    systemctl start wpa_supplicant@wlp2s0 >/dev/null 2>&1
+    systemctl restart systemd-networkd >/dev/null 2>&1
   }
 
   echo -n "Waiting for internet connection"
