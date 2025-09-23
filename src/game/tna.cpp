@@ -50,6 +50,17 @@ const Json::Value TNA::processLastGameScores()
   return scores;
 }
 
+bool TNA::processAchievements()
+{
+  // Load achievements from server.
+  // Check if achievements have been unlocked for each player.
+  // Scan log for achievements for each player.
+  // Update achievements JSON object for each player.
+  // Send updated achievements to server.
+  // Return true if any achievements were unlocked, otherwise false.
+  return false;
+}
+
 uint32_t TNA::getGamesPlayed()
 {
   YAML::Node config = YAML::LoadFile("/tna/game/config/tna.yaml");

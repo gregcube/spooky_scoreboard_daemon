@@ -29,10 +29,13 @@ private:
   const std::string auditsFile = "tna.yaml";
   const std::string highScoresFile = "tna.yaml";
   const std::string lastScoresFile = "tna.yaml";
+  const std::string logPath = "/tna/game/logs";
+  const std::regex logFileRegex = std::regex(R"(tna_log_\d{8}_\d{6}\.txt)");
 
 public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
+  bool processAchievements() override;
   uint32_t getGamesPlayed() override;
 
   const std::string& getGameName() override { return gameName; }
@@ -41,6 +44,8 @@ public:
   const std::string& getAuditsFile() override { return auditsFile; }
   const std::string& getHighScoresFile() override { return highScoresFile; }
   const std::string& getLastScoresFile() override { return lastScoresFile; }
+  const std::string& getLogPath() override { return logPath; }
+  const std::regex& getLogFileRegex() override { return logFileRegex; }
 };
 
 #endif

@@ -25,22 +25,27 @@ class ED: public GameBase
 private:
   const std::string gameName = "Evil Dead";
   const std::string gamePath = "/game/audits";
+  const std::string logPath = "/game/logs";
   const std::string tmpPath = "/game/tmp";
   const std::string auditsFile = "_game_audits.json";
   const std::string highScoresFile = "highscores.json";
   const std::string lastScoresFile = "lastgamescores.json";
+  const std::regex logFileRegex = std::regex(R"(ed_log_\d{8}_\d{6}\.txt)");
 
 public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
+  bool processAchievements() override;
   uint32_t getGamesPlayed() override;
 
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
+  const std::string& getLogPath() override { return logPath; }
   const std::string& getTmpPath() override { return tmpPath; }
   const std::string& getAuditsFile() override { return auditsFile; }
   const std::string& getHighScoresFile() override { return highScoresFile; }
   const std::string& getLastScoresFile() override { return lastScoresFile; }
+  const std::regex& getLogFileRegex() override { return logFileRegex; }
 
   /**
    * @brief Overrides the base class method to send sway commands.

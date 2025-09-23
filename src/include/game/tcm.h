@@ -29,18 +29,23 @@ private:
   const std::string auditsFile = "_game_audits.json";
   const std::string highScoresFile = "highscores.tcm";
   const std::string lastScoresFile = "highscores.tcm";
+  const std::string logPath = "/game/logs";
+  const std::regex logFileRegex = std::regex(R"(tcm_log_\d{8}_\d{6}\.txt)");
 
 public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
+  bool processAchievements() override;
   uint32_t getGamesPlayed() override;
 
   const std::string& getGameName() override { return gameName; }
   const std::string& getGamePath() override { return gamePath; }
   const std::string& getTmpPath() override { return tmpPath; }
+  const std::string& getLogPath() override { return logPath; }
   const std::string& getAuditsFile() override { return auditsFile; }
   const std::string& getHighScoresFile() override { return highScoresFile; }
   const std::string& getLastScoresFile() override { return lastScoresFile; }
+  const std::regex& getLogFileRegex() override { return logFileRegex; }
 
   /**
    * @brief Overrides the base class method to send i3 commands.

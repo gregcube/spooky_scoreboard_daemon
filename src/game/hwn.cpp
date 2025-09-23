@@ -80,6 +80,17 @@ const Json::Value HWN::processLastGameScores()
   return scores;
 }
 
+bool HWN::processAchievements()
+{
+  // Load achievements from server.
+  // Check if achievements have been unlocked for each player.
+  // Scan log for achievements for each player.
+  // Update achievements JSON object for each player.
+  // Send updated achievements to server.
+  // Return true if any achievements were unlocked, otherwise false.
+  return false;
+}
+
 uint32_t HWN::getGamesPlayed()
 {
   std::ifstream ifs("/game/_game_audits.json");

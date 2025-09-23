@@ -107,6 +107,17 @@ uint32_t ED::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
+bool ED::processAchievements()
+{
+  // Load achievements from server.
+  // Check if achievements have been unlocked for each player.
+  // Scan log for achievements for each player.
+  // Update achievements JSON object for each player.
+  // Send updated achievements to server.
+  // Return true if any achievements were unlocked, otherwise false.
+  return false;
+}
+
 int ED::sendswaycmd()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);

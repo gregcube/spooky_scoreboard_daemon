@@ -37,10 +37,12 @@
 struct players {
   uint8_t numPlayers{0};
   std::array<std::string, 4> player{};
+  std::map<int, Json::Value> achievements;
 
   void reset() {
     numPlayers = 0;
     std::fill(player.begin(), player.end(), "");
+    achievements.clear();
   }
 };
 

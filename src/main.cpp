@@ -189,11 +189,13 @@ static void startPlayerThread(int index)
  *
  * @param playerName The name of the player to add
  * @param position The position (1-4) where the player should be added
+ * @param achievements The JSON object containing the player's achievements
  */
-void addPlayer(const char* playerName, int position)
+void addPlayer(const char* playerName, int position, const Json::Value& achievements)
 {
   if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
     playerList.player[position - 1] = playerName;
+    playerList.achievements[position - 1] = achievements;
     startPlayerThread(position - 1);
     ++playerList.numPlayers;
   }
@@ -234,7 +236,7 @@ void playerLogin(const vector<char>& uuid, int position)
 
   Json::Reader reader;
   reader.parse(curlHandle->responseData, root);
-  addPlayer(root["message"].asString().c_str(), position);
+  addPlayer(root["message"]["username"].asString().c_str(), position, root["message"]["achievements"]);
 }
 
 /**
@@ -328,6 +330,10 @@ static void processEvent(char* buf, ssize_t bytes)
       if (strcmp(evt->name, game->getLastScoresFile().c_str()) == 0) {
         processLastGameScoresEvent();
       }
+
+      if (regex_match(evt->name, game->getLogFileRegex())) {
+        game->processAchievements();
+      }
     }
 
     ptr += sizeof(struct inotify_event) + evt->len;
@@ -347,10 +353,15 @@ static void watch()
     exit(EXIT_FAILURE);
   }
 
-  if ((wd = inotify_add_watch(
-    fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
+  wd = inotify_add_watch(fd, game->getGamePath().c_str(), IN_CLOSE_WRITE);
+  if (wd == -1) {
+    cerr << "Failed inotify_add_watch() on game path." << endl;
+    exit(EXIT_FAILURE);
+  }
 
-    cerr << "Failed inotify_add_watch()." << endl;
+  wd = inotify_add_watch(fd, game->getLogPath().c_str(), IN_CLOSE_WRITE);
+  if (wd == -1) {
+    cerr << "Failed inotify_add_watch() on log directory." << endl;
     exit(EXIT_FAILURE);
   }
 

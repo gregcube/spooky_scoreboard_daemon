@@ -21,6 +21,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <regex>
 
 #include <X11/Xlib.h>
 #include <json/json.h>
@@ -55,6 +56,19 @@ public:
   virtual const Json::Value processLastGameScores() = 0;
 
   /**
+   * @brief Process achievements.
+   *
+   * The derived game class must override this function, processing
+   * achievements for the game.  The achievements parameter is a JSON object
+   * containing the current achievements state.  The function should update
+   * this object with any new achievements unlocked during the last game.
+   *
+   * @param achievements A reference to a JSON object containing achievements.
+   * @return True if any achievements were unlocked, otherwise false.
+   */
+  virtual bool processAchievements() = 0;
+
+  /**
    * @brief Retrieves the game name.
    *
    * The derived game class must override this function, returning the game name.
@@ -73,6 +87,17 @@ public:
    * @return A constant reference to a string containing a file system path.
    */
   virtual const std::string& getGamePath() = 0;
+
+  /**
+   * @brief Retrieves a file system path for game log files.
+   *
+   * The derived game class must override this function, returning the file
+   * system path to where game log files are stored.  The games log file is
+   * monitored for achievements for example.
+   *
+   * @return A constant reference to a string containing a file system path.
+   */
+  virtual const std::string& getLogPath() = 0;
 
   /**
    * @brief Retrieves a file system path for temporary files.
@@ -112,6 +137,17 @@ public:
    * last games scores file. Often times it's the same as the high scores file.
    */
   virtual const std::string& getLastScoresFile() = 0;
+
+  /**
+   * @brief Retrieves the regex pattern for log filenames.
+   *
+   * The derived game class must override this function, returning a regex
+   * pattern that matches the games log filenames.  This is used to monitor
+   * the log directory for new log files to process achievements.
+   *
+   * @return A constant reference to a regex object.
+   */
+  virtual const std::regex& getLogFileRegex() = 0;
 
   /**
    * @brief Sends an i3 command for the specified window.
