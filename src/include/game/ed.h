@@ -28,7 +28,7 @@ private:
   const std::string tmpPath = "/game/tmp";
   const std::string auditsFile = "_game_audits.json";
   const std::string highScoresFile = "highscores.json";
-  const std::string lastScoresFile = "lastgamescores.json";
+  const std::string lastScoresFile = "lastscores.json";
 
 public:
   const Json::Value processHighScores() override;

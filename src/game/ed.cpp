@@ -70,7 +70,7 @@ const Json::Value ED::processHighScores()
 
 const Json::Value ED::processLastGameScores()
 {
-  std::ifstream ifs("/game/audits/lastgamescores.json");
+  std::ifstream ifs("/game/audits/lastscores.json");
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to open last game scores file.");
   }
