@@ -58,8 +58,8 @@ and we can work together to get your machine online.
 4. **System Installation**
    - Select your game at the boot prompt; press enter to continue.
    - Wait for the system to boot.
-   - *miniPC only*: Enter your WiFi SSID and password.
    - Select `Install` at the menu screen.
+   - *miniPC only*: Enter your WiFi SSID and password.
    - When prompted enter your 4-digit alphanumeric registration code.
 
 5. **Obtain Your Registration Code**
@@ -74,6 +74,13 @@ and we can work together to get your machine online.
 
 7. **Final Step**
    - Start up your machine as normal and hope for the best!
+
+---
+
+## Update Instructions
+
+- If you have an existing installation, you can update the daemon by downloading the latest installer and
+  follow steps 0-4 as above. Select `Update` at the menu screen instead of `Install`.
 
 ---
 

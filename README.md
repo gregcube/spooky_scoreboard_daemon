@@ -9,7 +9,8 @@ Connect your Spooky Pinball machine to the Internet and join the
 What is it?
 -----------
 
-Spooky Scoreboard consists of both a web platform and this daemon.
+Spooky Scoreboard consists of both a web platform and this small, lightweight
+daemon. It compiles to a single ~6MB binary.
 
 The daemon runs in the background on your Spooky pinball machine, periodically
 sending data to the web server. This data includes highscores and game audit
@@ -63,3 +64,10 @@ Demo
 ----
 
 [![Demo Video](https://img.youtube.com/vi/XXriBZilOks/0.jpg)](https://www.youtube.com/watch?v=XXriBZilOks)
+
+
+Acknowledgements
+----------------
+
+Shoutout to Ben Heck for taking my Evil Dead request, making last scores available.
+
