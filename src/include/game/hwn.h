@@ -23,12 +23,12 @@
 class HWN: public GameBase
 {
 private:
-  const std::string gameName = "Halloween";
-  const std::string gamePath = "/game";
-  const std::string tmpPath = "/game/tmp";
-  const std::string auditsFile = "_game_audits.json";
-  const std::string highScoresFile = "highscores.config";
-  const std::string lastScoresFile = "highscores.config";
+  inline static const std::string gameName = "Halloween";
+  inline static const std::string gamePath = "/game";
+  inline static const std::string tmpPath = "/game/tmp";
+  inline static const std::string auditsFile = "_game_audits.json";
+  inline static const std::string highScoresFile = "highscores.config";
+  inline static const std::string lastScoresFile = "highscores.config";
 
 public:
   const Json::Value processHighScores() override;

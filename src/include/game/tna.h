@@ -23,12 +23,12 @@
 class TNA: public GameBase
 {
 private:
-  const std::string gameName = "Total Nuclear Annihilation";
-  const std::string tmpPath = "/tna/game/tmp";
-  const std::string gamePath = "/tna/game/config";
-  const std::string auditsFile = "tna.yaml";
-  const std::string highScoresFile = "tna.yaml";
-  const std::string lastScoresFile = "tna.yaml";
+  inline static const std::string gameName = "Total Nuclear Annihilation";
+  inline static const std::string tmpPath = "/tna/game/tmp";
+  inline static const std::string gamePath = "/tna/game/config";
+  inline static const std::string auditsFile = "tna.yaml";
+  inline static const std::string highScoresFile = "tna.yaml";
+  inline static const std::string lastScoresFile = "tna.yaml";
 
 public:
   const Json::Value processHighScores() override;

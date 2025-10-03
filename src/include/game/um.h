@@ -23,7 +23,7 @@
 class UM: public HWN
 {
 private:
-  const std::string gameName = "Ultraman";
+  inline static const std::string gameName = "Ultraman";
 
 public:
   const std::string& getGameName() override { return gameName; }

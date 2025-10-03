@@ -23,12 +23,12 @@
 class TCM: public GameBase
 {
 private:
-  const std::string gameName = "Texas Chainsaw Massacre";
-  const std::string gamePath = "/game/audits";
-  const std::string tmpPath = "/game/tmp";
-  const std::string auditsFile = "_game_audits.json";
-  const std::string highScoresFile = "highscores.tcm";
-  const std::string lastScoresFile = "highscores.tcm";
+  inline static const std::string gameName = "Texas Chainsaw Massacre";
+  inline static const std::string gamePath = "/game/audits";
+  inline static const std::string tmpPath = "/game/tmp";
+  inline static const std::string auditsFile = "_game_audits.json";
+  inline static const std::string highScoresFile = "highscores.tcm";
+  inline static const std::string lastScoresFile = "highscores.tcm";
 
 public:
   const Json::Value processHighScores() override;
