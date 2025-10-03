@@ -9,7 +9,7 @@
 set -e
 set -o pipefail
 
-version="0.1.0-1"
+version="0.1.1-1"
 echo "Starting Spooky Scoreboard Installer..."
 
 cleanup() {

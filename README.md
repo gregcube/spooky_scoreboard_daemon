@@ -10,7 +10,7 @@ What is it?
 -----------
 
 Spooky Scoreboard consists of both a web platform and this small, lightweight
-daemon. It compiles to a single ~6MB binary.
+daemon. It compiles to a single ~1MB binary.
 
 The daemon runs in the background on your Spooky pinball machine, periodically
 sending data to the web server. This data includes highscores and game audit
