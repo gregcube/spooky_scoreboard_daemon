@@ -19,20 +19,20 @@
 
 #include "GameBase.h"
 
-#include "game/hwn.h"
-#include "game/um.h"
-#include "game/tna.h"
-#include "game/tcm.h"
-#include "game/ed.h"
+#include "game/EvilDead.h"
+#include "game/Halloween.h"
+#include "game/TexasChainsawMassacre.h"
+#include "game/TotalNuclearAnnihilation.h"
+#include "game/Ultraman.h"
 
 using namespace std;
 
 std::map<std::string, GameFactoryFunction> gameFactories = {
-  {"tna", []() { return make_unique<TNA>(); }},
-  {"hwn", []() { return make_unique<HWN>(); }},
-  {"tcm", []() { return make_unique<TCM>(); }},
-  {"um",  []() { return make_unique<UM>();  }},
-  {"ed",  []() { return make_unique<ED>();  }}
+  {"tna", []() { return make_unique<TotalNuclearAnnihilation>(); }},
+  {"hwn", []() { return make_unique<Halloween>(); }},
+  {"tcm", []() { return make_unique<TexasChainsawMassacre>(); }},
+  {"um",  []() { return make_unique<Ultraman>(); }},
+  {"ed",  []() { return make_unique<EvilDead>(); }}
 };
 
 std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)

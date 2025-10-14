@@ -15,20 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _TCM_H
-#define _TCM_H
+#pragma once
 
 #include "GameBase.h"
 
-class TCM: public GameBase
+class EvilDead: public GameBase
 {
 private:
-  inline static const std::string gameName = "Texas Chainsaw Massacre";
+  inline static const std::string gameName = "Evil Dead";
   inline static const std::string gamePath = "/game/audits";
   inline static const std::string tmpPath = "/game/tmp";
   inline static const std::string auditsFile = "_game_audits.json";
-  inline static const std::string highScoresFile = "highscores.tcm";
-  inline static const std::string lastScoresFile = "highscores.tcm";
+  inline static const std::string highScoresFile = "highscores.json";
+  inline static const std::string lastScoresFile = "lastscores.json";
 
 public:
   const Json::Value processHighScores() override;
@@ -43,17 +42,11 @@ public:
   const std::string& getLastScoresFile() override { return lastScoresFile; }
 
   /**
-   * @brief Overrides the base class method to send i3 commands.
-   *
-   * TCM uses the i3 window manager.
-   * This function sends two commands, focus & floating enable, to ensure
-   * the player login window is displayed on screen.
+   * @brief Overrides the base class method to send sway commands.
    *
    * @return An integer status code.
    *
-   * @see GameBase::sendi3cmd
+   * @see GameBase::sendswaycmd
    */
-  int sendi3cmd() override;
+  int sendswaycmd() override;
 };
-
-#endif

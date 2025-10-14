@@ -15,20 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _ED_H
-#define _ED_H
+#pragma once
 
 #include "GameBase.h"
 
-class ED: public GameBase
+class TotalNuclearAnnihilation: public GameBase
 {
 private:
-  inline static const std::string gameName = "Evil Dead";
-  inline static const std::string gamePath = "/game/audits";
-  inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string auditsFile = "_game_audits.json";
-  inline static const std::string highScoresFile = "highscores.json";
-  inline static const std::string lastScoresFile = "lastscores.json";
+  inline static const std::string gameName = "Total Nuclear Annihilation";
+  inline static const std::string tmpPath = "/tna/game/tmp";
+  inline static const std::string gamePath = "/tna/game/config";
+  inline static const std::string auditsFile = "tna.yaml";
+  inline static const std::string highScoresFile = "tna.yaml";
+  inline static const std::string lastScoresFile = "tna.yaml";
 
 public:
   const Json::Value processHighScores() override;
@@ -41,15 +40,4 @@ public:
   const std::string& getAuditsFile() override { return auditsFile; }
   const std::string& getHighScoresFile() override { return highScoresFile; }
   const std::string& getLastScoresFile() override { return lastScoresFile; }
-
-  /**
-   * @brief Overrides the base class method to send sway commands.
-   *
-   * @return An integer status code.
-   *
-   * @see GameBase::sendswaycmd
-   */
-  int sendswaycmd() override;
 };
-
-#endif

@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _X11_H
-#define _X11_H
+#pragma once
 
 void x11Init();
 void openPlayerWindows();
@@ -26,4 +25,3 @@ void hidePlayerWindow(int index);
 void drawPlayerWindow(int index);
 void runTimer(int secs, int index);
 
-#endif

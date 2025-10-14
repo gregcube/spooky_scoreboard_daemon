@@ -1,5 +1,4 @@
-#ifndef _VERSION_H
-#define _VERSION_H
+#pragma once
 
 namespace Version {
   inline constexpr const char* MAJOR = "0";
@@ -9,4 +8,3 @@ namespace Version {
   inline constexpr const char* FULL  = "0.1.1-1";
 }
 
-#endif

@@ -15,12 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _HWN_H
-#define _HWN_H
+#pragma once
 
 #include "GameBase.h"
 
-class HWN: public GameBase
+class Halloween: public GameBase
 {
 private:
   inline static const std::string gameName = "Halloween";
@@ -43,4 +42,3 @@ public:
   const std::string& getLastScoresFile() override { return lastScoresFile; }
 };
 
-#endif

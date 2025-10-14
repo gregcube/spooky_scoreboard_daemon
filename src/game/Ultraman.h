@@ -15,12 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _UM_H
-#define _UM_H
+#pragma once
 
-#include "game/hwn.h"
+#include "game/Halloween.h"
 
-class UM: public HWN
+class Ultraman: public Halloween
 {
 private:
   inline static const std::string gameName = "Ultraman";
@@ -29,4 +28,3 @@ public:
   const std::string& getGameName() override { return gameName; }
 };
 
-#endif

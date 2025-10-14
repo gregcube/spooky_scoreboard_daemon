@@ -15,35 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _CURL_HANDLER_H
-#define _CURL_HANDLER_H
+#include <iostream>
+#include <fstream>
+#include <stdexcept>
 
-#include <string>
-#include <optional>
+#include <json/json.h>
 
-#include <curl/curl.h>
+#include "game/Ultraman.h"
 
-class CurlHandler
-{
-public:
-  long responseCode;
-  std::string responseData;
+// vim: set ts=2 sw=2 expandtab:
 
-  CurlHandler(const std::string& url);
-  ~CurlHandler(void);
-
-  long get(const std::string& path);
-  long post(
-    const std::string& path,
-    const std::optional<std::string>& data = std::nullopt,
-    const std::string& query = "");
-
-private:
-  CURL* curl;
-  const std::string baseUrl;
-
-  long execute(const std::string& url);
-  static size_t writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output);
-};
-
-#endif

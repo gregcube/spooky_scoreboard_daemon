@@ -15,20 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _TNA_H
-#define _TNA_H
+#pragma once
 
 #include "GameBase.h"
 
-class TNA: public GameBase
+class TexasChainsawMassacre: public GameBase
 {
 private:
-  inline static const std::string gameName = "Total Nuclear Annihilation";
-  inline static const std::string tmpPath = "/tna/game/tmp";
-  inline static const std::string gamePath = "/tna/game/config";
-  inline static const std::string auditsFile = "tna.yaml";
-  inline static const std::string highScoresFile = "tna.yaml";
-  inline static const std::string lastScoresFile = "tna.yaml";
+  inline static const std::string gameName = "Texas Chainsaw Massacre";
+  inline static const std::string gamePath = "/game/audits";
+  inline static const std::string tmpPath = "/game/tmp";
+  inline static const std::string auditsFile = "_game_audits.json";
+  inline static const std::string highScoresFile = "highscores.tcm";
+  inline static const std::string lastScoresFile = "highscores.tcm";
 
 public:
   const Json::Value processHighScores() override;
@@ -41,6 +40,17 @@ public:
   const std::string& getAuditsFile() override { return auditsFile; }
   const std::string& getHighScoresFile() override { return highScoresFile; }
   const std::string& getLastScoresFile() override { return lastScoresFile; }
-};
 
-#endif
+  /**
+   * @brief Overrides the base class method to send i3 commands.
+   *
+   * TCM uses the i3 window manager.
+   * This function sends two commands, focus & floating enable, to ensure
+   * the player login window is displayed on screen.
+   *
+   * @return An integer status code.
+   *
+   * @see GameBase::sendi3cmd
+   */
+  int sendi3cmd() override;
+};

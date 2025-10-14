@@ -18,9 +18,9 @@
 #include <iostream>
 
 #include "yaml-cpp/yaml.h"
-#include "game/tna.h"
+#include "game/TotalNuclearAnnihilation.h"
 
-const Json::Value TNA::processHighScores()
+const Json::Value TotalNuclearAnnihilation::processHighScores()
 {
   Json::Value scores;
   YAML::Node tnaNode = YAML::LoadFile((gamePath + "/" + highScoresFile).c_str());
@@ -39,7 +39,7 @@ const Json::Value TNA::processHighScores()
   return scores;
 }
 
-const Json::Value TNA::processLastGameScores()
+const Json::Value TotalNuclearAnnihilation::processLastGameScores()
 {
   Json::Value scores;
   YAML::Node lastScoresNode = YAML::LoadFile((gamePath + "/" + lastScoresFile))["LastScoreData"];
@@ -50,7 +50,7 @@ const Json::Value TNA::processLastGameScores()
   return scores;
 }
 
-uint32_t TNA::getGamesPlayed()
+uint32_t TotalNuclearAnnihilation::getGamesPlayed()
 {
   YAML::Node config = YAML::LoadFile("/tna/game/config/tna.yaml");
   return config["Audits"]["Games Played"].as<uint32_t>();

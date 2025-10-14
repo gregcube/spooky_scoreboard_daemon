@@ -21,9 +21,9 @@
 
 #include <json/json.h>
 
-#include "game/hwn.h"
+#include "game/Halloween.h"
 
-const Json::Value HWN::processHighScores()
+const Json::Value Halloween::processHighScores()
 {
   std::ifstream ifs((gamePath + "/" + highScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -57,7 +57,7 @@ const Json::Value HWN::processHighScores()
   return scores;
 }
 
-const Json::Value HWN::processLastGameScores()
+const Json::Value Halloween::processLastGameScores()
 {
   std::ifstream ifs((gamePath + "/" + lastScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -80,7 +80,7 @@ const Json::Value HWN::processLastGameScores()
   return scores;
 }
 
-uint32_t HWN::getGamesPlayed()
+uint32_t Halloween::getGamesPlayed()
 {
   std::ifstream ifs("/game/_game_audits.json");
 

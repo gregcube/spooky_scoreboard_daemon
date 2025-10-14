@@ -24,9 +24,9 @@
 #include <sys/un.h>
 #include <json/json.h>
 
-#include "game/ed.h"
+#include "game/EvilDead.h"
 
-const Json::Value ED::processHighScores()
+const Json::Value EvilDead::processHighScores()
 {
   std::ifstream ifs((gamePath + "/" + highScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -68,7 +68,7 @@ const Json::Value ED::processHighScores()
   return scores;
 }
 
-const Json::Value ED::processLastGameScores()
+const Json::Value EvilDead::processLastGameScores()
 {
   std::ifstream ifs((gamePath + "/" + lastScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -86,7 +86,7 @@ const Json::Value ED::processLastGameScores()
   return scores;
 }
 
-uint32_t ED::getGamesPlayed()
+uint32_t EvilDead::getGamesPlayed()
 {
   std::ifstream ifs("/game/audits/_game_audits.json");
 
@@ -107,7 +107,7 @@ uint32_t ED::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
-int ED::sendswaycmd()
+int EvilDead::sendswaycmd()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sd < 0) {

@@ -15,51 +15,33 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _QR_CODE_H
-#define _QR_CODE_H
+#pragma once
 
-#include <memory>
-#include <cstddef>
+#include <string>
+#include <optional>
 
-#include "main.h"
-#include "CurlHandler.h"
+#include <curl/curl.h>
 
-class QrCode
+class CurlHandler
 {
 public:
-  /**
-   * @brief Constructs a QrCode object.
-   */
-  QrCode();
+  long responseCode;
+  std::string responseData;
 
-  /**
-   * @brief Destructor that deletes the temporary QR code file.
-   */
-  ~QrCode();
+  CurlHandler(const std::string& url);
+  ~CurlHandler(void);
 
-  /**
-   * @brief Fetches machine QR code from the server.
-   *
-   * @return A reference to this instance.
-   */
-  QrCode* get();
-
-  /**
-   * @brief Writes machine QR code to an output file stream.
-   */
-  void write();
-
-  /**
-   * @brief Returns file system path to QR code.
-   *
-   * @return Path to QR code (in qrCodePath).
-   */
-  const std::string getPath() { return qrCodePath; }
-
+  long get(const std::string& path);
+  long post(
+    const std::string& path,
+    const std::optional<std::string>& data = std::nullopt,
+    const std::string& query = "");
 
 private:
-  const std::unique_ptr<CurlHandler> ch;
-  const std::string qrCodePath;
+  CURL* curl;
+  const std::string baseUrl;
+
+  long execute(const std::string& url);
+  static size_t writeCallback(const char* ptr, size_t size, size_t nmemb, std::string* output);
 };
 
-#endif

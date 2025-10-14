@@ -12,6 +12,8 @@ find_package(jsoncpp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
 
 file(GLOB GAME_SOURCES src/game/*.cpp)
+file(GLOB GAME_INCLUDES src/game/*.h)
+file(GLOB FONT_SOURCES src/font/*.h)
 
 add_executable(ssbd
   src/main.cpp
@@ -21,10 +23,12 @@ add_executable(ssbd
   src/QrScanner.cpp
   src/GameBase.cpp
   ${GAME_SOURCES}
+  ${GAME_INCLUDES}
+  ${FONT_SOURCES}
 )
 
 target_include_directories(ssbd PRIVATE
-  src/include
+  src/
   /usr/include/freetype2
 )
 

@@ -14,9 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-#ifndef _GAME_BASE_H
-#define _GAME_BASE_H
+#pragma once
 
 #include <string>
 #include <memory>
@@ -136,4 +134,3 @@ public:
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;
 extern std::map<std::string, GameFactoryFunction> gameFactories;
 
-#endif

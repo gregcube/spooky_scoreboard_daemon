@@ -24,9 +24,9 @@
 #include <sys/un.h>
 #include <json/json.h>
 
-#include "game/tcm.h"
+#include "game/TexasChainsawMassacre.h"
 
-const Json::Value TCM::processHighScores()
+const Json::Value TexasChainsawMassacre::processHighScores()
 {
   std::ifstream ifs((gamePath + "/" + highScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -60,7 +60,7 @@ const Json::Value TCM::processHighScores()
   return scores;
 }
 
-const Json::Value TCM::processLastGameScores()
+const Json::Value TexasChainsawMassacre::processLastGameScores()
 {
   std::ifstream ifs((gamePath + "/" + lastScoresFile).c_str());
   if (!ifs.is_open()) {
@@ -83,7 +83,7 @@ const Json::Value TCM::processLastGameScores()
   return scores;
 }
 
-uint32_t TCM::getGamesPlayed()
+uint32_t TexasChainsawMassacre::getGamesPlayed()
 {
   std::ifstream ifs("/game/audits/_game_audits.json");
 
@@ -104,7 +104,7 @@ uint32_t TCM::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
-int TCM::sendi3cmd()
+int TexasChainsawMassacre::sendi3cmd()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sd < 0) {

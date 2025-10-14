@@ -15,8 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _MAIN_H
-#define _MAIN_H
+#pragma once
 
 #include <string>
 #include <array>
@@ -52,4 +51,3 @@ extern std::string machineId, machineUrl, token;
 
 extern void playerLogin(const std::vector<char>& uuid, int position);
 
-#endif

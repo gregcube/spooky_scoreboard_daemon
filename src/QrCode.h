@@ -15,46 +15,48 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef _QR_SCANNER_H
-#define _QR_SCANNER_H
+#pragma once
 
 #include <memory>
+#include <cstddef>
 
-class QrScanner
+#include "main.h"
+#include "CurlHandler.h"
+
+class QrCode
 {
 public:
   /**
-   * @brief Construct a QrScanner instance.
+   * @brief Constructs a QrCode object.
+   */
+  QrCode();
+
+  /**
+   * @brief Destructor that deletes the temporary QR code file.
+   */
+  ~QrCode();
+
+  /**
+   * @brief Fetches machine QR code from the server.
    *
-   * @param qrdev Pointer to a null-terminated string that specifies
-   *              the path to the QR scanner device.
+   * @return A reference to this instance.
    */
-  QrScanner(const char* qrdev) : qrDevice(qrdev) {};
+  QrCode* get();
 
   /**
-   * @brief Start the QR code scanner.
+   * @brief Writes machine QR code to an output file stream.
    */
-  void start();
+  void write();
 
   /**
-   * @brief Stop the QR code scanner.
-   */
-  void stop();
-
-  /**
-   * @brief Scan and process QR code data.
+   * @brief Returns file system path to QR code.
    *
-   * This function runs in a dedicated thread and performs ongoing scans.
-   * A player is logged into the machine if a valid user QR code is scanned.
+   * @return Path to QR code (in qrCodePath).
    */
-  void scan();
+  const std::string getPath() { return qrCodePath; }
+
 
 private:
-  int ttyQR = -1;
-  int pipes[2] = { -1, -1 };
-  const char* qrDevice;
-  std::thread scanThread;
-  bool isStarted(int fd);
+  const std::unique_ptr<CurlHandler> ch;
+  const std::string qrCodePath;
 };
-
-#endif 

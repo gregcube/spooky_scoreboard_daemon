@@ -1,0 +1,15 @@
+{
+    "name": "spooky-scoreboard-daemon",
+    "version-string": "1.0.0",
+    "description": "A daemon for managing the scoreboard in Spooky-themed games.",
+    "dependencies": [
+        "yaml-cpp",
+        "gtest",
+        "jsoncpp",
+        "curl",
+        "libxpm",
+        "libxft",
+        "fontconfig",
+        "pthread"
+    ]
+}
