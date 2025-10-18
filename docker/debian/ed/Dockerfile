@@ -21,7 +21,7 @@ RUN apt update && apt install -y \
 COPY . /ssbd
 
 # Prepare vcpkg dependencies.
-RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
+RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
 # Build spooky scoreboard daemon.
 RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd

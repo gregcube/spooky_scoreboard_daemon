@@ -36,12 +36,12 @@ RUN pacman -S --noconfirm \
 COPY . /ssbd
 
 # Prepare vcpkg dependencies.
-RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install yaml-cpp jsoncpp
+RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
 # Patch yaml-cpp.
 # Otherwise we can't link it on arch linux.
 # Likely because it's an older version of cmake.
-RUN cd /ssbd/vcpkg/installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../../../docker/arch/hwn/yaml-cpp.patch
+RUN cd /ssbd/vcpkg_installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../../docker/arch/hwn/yaml-cpp.patch
 
 # Build spooky scoreboard daemon.
 RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd

@@ -4,12 +4,6 @@
     "description": "A daemon for managing the scoreboard in Spooky-themed games.",
     "dependencies": [
         "yaml-cpp",
-        "gtest",
-        "jsoncpp",
-        "curl",
-        "libxpm",
-        "libxft",
-        "fontconfig",
-        "pthread"
+        "jsoncpp"
     ]
 }
