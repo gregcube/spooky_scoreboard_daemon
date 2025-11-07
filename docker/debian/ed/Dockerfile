@@ -1,6 +1,7 @@
 FROM debian:bookworm
 
 # Install build tools and dependencies.
+# Note: curl package is built via vcpkg, not system packages
 RUN apt update && apt install -y \
   git \
   curl \
@@ -11,8 +12,10 @@ RUN apt update && apt install -y \
   gcc \
   make \
   build-essential \
+  pkg-config \
+  libssl-dev \
+  zlib1g-dev \
   libx11-dev \
-  libcurl4-openssl-dev \
   libfontconfig-dev \
   libxft-dev \
   libxpm-dev
@@ -24,7 +27,10 @@ COPY . /ssbd
 RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
 # Build spooky scoreboard daemon.
-RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
+# Use vcpkg toolchain file to ensure all dependencies are found via vcpkg
+RUN cd /ssbd && mkdir build && cd build && \
+    cmake .. -DCMAKE_TOOLCHAIN_FILE=/ssbd/vcpkg/scripts/buildsystems/vcpkg.cmake && \
+    make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]

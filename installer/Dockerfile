@@ -1,6 +1,12 @@
 FROM debian:latest
 
 RUN useradd -m -d /home/ssb ssb
+
+# Enable non-free-firmware repository for firmware-realtek
+RUN echo "deb http://deb.debian.org/debian trixie main non-free-firmware" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security trixie-security main non-free-firmware" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian trixie-updates main non-free-firmware" >> /etc/apt/sources.list
+
 RUN apt update && apt install -y \
     git \
     zip \
@@ -20,6 +26,9 @@ RUN apt update && apt install -y \
     linux-image-amd64 \
     util-linux \
     firmware-realtek \
+    systemd \
+    systemd-sysv \
+    dbus \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/ssb
@@ -30,7 +39,7 @@ RUN ls -la /home/ssb
 
 RUN cd spooky_scoreboard_daemon/vcpkg && \
        ./bootstrap-vcpkg.sh && \
-       ./vcpkg install jsoncpp yaml-cpp
+       ./vcpkg install
 
 RUN mkdir spooky_scoreboard_daemon/build && \
     cd spooky_scoreboard_daemon/build && \
