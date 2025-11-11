@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         dist: [arch, debian]
         game: [hwn, tcm, ed]
@@ -20,6 +21,8 @@ jobs:
             game: hwn
           - dist: arch
             game: ed
+          - dist: arch # Temp exclusion; archive.archlinux.org is throwing 500 errors.
+            game: hwn
 
     steps:
       - name: Checkout code
