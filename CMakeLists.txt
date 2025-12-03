@@ -6,11 +6,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(SpookyScoreboardDaemon)
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion)
+option(USE_VCPKG_CURL "Use vcpkg CURL::libcurl" OFF)
 
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux" ${CMAKE_PREFIX_PATH})
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
-find_package(CURL CONFIG REQUIRED)
 
 file(GLOB GAME_SOURCES src/game/*.cpp)
 file(GLOB GAME_INCLUDES src/game/*.h)
@@ -36,14 +36,19 @@ target_include_directories(ssbd PRIVATE
 target_link_libraries(ssbd PRIVATE
   jsoncpp_static
   yaml-cpp::yaml-cpp
-  CURL::libcurl
   X11
   Xft
   Xpm
   fontconfig
   pthread
-  dl
 )
+
+if(USE_VCPKG_CURL)
+  find_package(CURL CONFIG REQUIRED)
+  target_link_libraries(ssbd PRIVATE CURL::libcurl)
+else()
+  target_link_libraries(ssbd PRIVATE curl)
+endif()
 
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_compile_definitions(DEBUG)

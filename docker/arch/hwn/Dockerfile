@@ -31,7 +31,6 @@ RUN pacman -S --noconfirm \
   libxft \
   libxpm \
   patch \
-  openssl \
   zlib \
   perl
 
@@ -48,9 +47,7 @@ RUN cd /ssbd/vcpkg_installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../..
 
 # Build spooky scoreboard daemon.
 # Use vcpkg toolchain file to ensure all dependencies are found via vcpkg
-RUN cd /ssbd && mkdir build && cd build && \
-    cmake .. -DCMAKE_TOOLCHAIN_FILE=/ssbd/vcpkg/scripts/buildsystems/vcpkg.cmake && \
-    make && strip ssbd
+RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]

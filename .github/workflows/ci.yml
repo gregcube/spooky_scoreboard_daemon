@@ -21,8 +21,6 @@ jobs:
             game: hwn
           - dist: arch
             game: ed
-          - dist: arch # Temp exclusion; archive.archlinux.org is throwing 500 errors.
-            game: hwn
 
     steps:
       - name: Checkout code

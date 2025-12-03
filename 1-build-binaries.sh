@@ -28,7 +28,7 @@ readonly TEMP_DIR="${SCRIPT_DIR}/.build-temp"
 # Build matrix: game -> distribution mapping
 # Format: "game:distro" pairs
 readonly BUILD_MATRIX=(
-  # "hwn:arch"      # Halloween on Arch Linux - TEMPORARILY DISABLED (archive.archlinux.org having 500 errors)
+  "hwn:arch"      # Halloween on Arch Linux
   "tcm:debian"    # Texas Chainsaw Massacre on Debian
   "ed:debian"     # Evil Dead on Debian
 )
