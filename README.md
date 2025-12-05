@@ -25,13 +25,17 @@ option to make their machines publicly visible, thereby showcasing highscores
 and participating in leaderboards, or a private setting where only the operator
 has access to top scores.
 
-Players can log into a machine via their player profile QR code.
+Players can log into a machine via their player profile QR code; select
+your position (player 1-4) and scan the code.
 Scan the on-screen QR code to easily access machine leaderboards.
 Player scores are saved and displayed, with the exception being if a
 player profile is set to private.
-All players are automatically logged out after each game.
+All players are automatically logged out after each game. Players can
+manually logout via the web app.
 
 Refer to [INSTALL.md](https://github.com/gregcube/spooky_scoreboard_daemon/blob/master/INSTALL.md) for instructions on installing the Spooky Scoreboard daemon on your machine.
+
+Visit [spookyscoreboard.com](https://spookyscoreboard.com) to register your player or operator account.
 
 Supported Games
 ---------------
@@ -52,7 +56,7 @@ You will need a USB QR code scanner/ reader. The following have been tested and 
 - [Symcode MJ-3300](https://amzn.to/4fuNqTx)
 - [Symcode MJ-390](https://amzn.to/40QrH4D)*
 
-Ensure the QR reader is set to USB-COM RS232 mode.
+Ensure the QR reader interface settings are set to USB-COM mode. Check the manual for configuration codes.
 
 **Linux fails to recognize the device when connected via the USB extension cable that
 is accessible inside the coin door. It does work however when connected directly
@@ -69,5 +73,5 @@ Demo
 Acknowledgements
 ----------------
 
-Shoutout to Ben Heck for taking my Evil Dead request, making last scores available.
+Shoutout to Ben Heck for taking code requests.
 

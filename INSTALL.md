@@ -7,6 +7,7 @@
   - Wired (Ethernet) connection for UP-supported games.
   - WiFi connection for miniPC-supported games.
 - A compatible QR reader/scanner
+  - Ensure QR reader is set to USB-COM mode. Check the manual.
 - A supported Spooky pinball machine
 
 **Tip**: Use a USB hub for connecting the QR scanner and keyboard. Connect the
