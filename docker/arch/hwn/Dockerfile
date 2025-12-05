@@ -47,7 +47,7 @@ RUN cd /ssbd/vcpkg_installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../..
 
 # Build spooky scoreboard daemon.
 # Use vcpkg toolchain file to ensure all dependencies are found via vcpkg
-RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
+RUN cd /ssbd && mkdir build && cd build && cmake .. -DUSE_VCPKG_CURL=OFF && make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]

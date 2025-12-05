@@ -6,7 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(SpookyScoreboardDaemon)
 add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion)
-option(USE_VCPKG_CURL "Use vcpkg CURL::libcurl" OFF)
+option(USE_VCPKG_CURL "Use vcpkg CURL::libcurl" ON)
 
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux" ${CMAKE_PREFIX_PATH})
 find_package(jsoncpp CONFIG REQUIRED)
