@@ -5,6 +5,7 @@
     "dependencies": [
         "curl",
         "yaml-cpp",
-        "jsoncpp"
+        "jsoncpp",
+        "ixwebsocket"
     ]
 }

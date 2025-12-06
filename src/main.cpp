@@ -30,6 +30,7 @@
 #include "main.h"
 #include "x11.h"
 #include "CurlHandler.h"
+#include "WebSocketHandler.h"
 #include "QrScanner.h"
 #include "version.h"
 
@@ -47,9 +48,9 @@ unique_ptr<GameBase> game = nullptr;
 unique_ptr<CurlHandler> curlHandle = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
 unique_ptr<QrCode> qrCode = nullptr;
+unique_ptr<WebSocketHandler> webSocket = nullptr;
 
 string machineId, machineUrl, token;
-thread ping;
 mutex mtx;
 
 /**
@@ -70,12 +71,6 @@ static void cleanup()
     qrScanner.reset();
   }
 
-  // Wait for ping thread to complete.
-  if (ping.joinable()) {
-    cout << "Waiting for ping thread..." << endl;
-    ping.join();
-  }
-
   // Cleanup X11 resources.
   closePlayerWindows();
 
@@ -89,6 +84,7 @@ static void cleanup()
   // Reset pointers.
   if (game) game.reset();
   if (qrCode) qrCode.reset();
+  if (webSocket) webSocket.reset();
 
   cout << "Cleanup complete." << endl;
 }
@@ -123,36 +119,6 @@ static void loadMachineId()
 
   token = root["token"].asString();
   machineId = root["uuid"].asString();
-}
-
-/**
- * Sends a ping to the server to indicate the machine is online.
- * This is called periodically by the ping thread.
- *
- * @param ch The CurlHandler instance to use for the request
- */
-static void sendPing(const unique_ptr<CurlHandler>& ch)
-{
-#ifdef DEBUG
-  cout << "Sending ping..." << endl;
-#endif
-  long rc;
-  if ((rc = ch->post("/api/v1/ping")) != 200) {
-    cerr << "Ping failed: " << rc << endl;
-  }
-}
-
-/**
- * Thread function that periodically sends pings to the server.
- * Runs every 10 seconds while the program is running.
- */
-static void pingThread()
-{
-  const auto ch = make_unique<CurlHandler>(BASE_URL);
-  while (isRunning.load()) {
-    sendPing(ch);
-    this_thread::sleep_for(chrono::seconds(10));
-  }
 }
 
 /**
@@ -248,6 +214,7 @@ static void uploadScores(const Json::Value& scores, ScoreType type)
   cout << "Uploading scores..." << endl;
 
   try {
+    Json::Value msg;
     Json::StreamWriterBuilder writerBuilder;
     writerBuilder["indentation"] = "";
 
@@ -258,11 +225,10 @@ static void uploadScores(const Json::Value& scores, ScoreType type)
     case ScoreType::Mode: query += "mode"; break;
     }
 
-#ifdef DEBUG
-    cout << "Scores: " << Json::writeString(writerBuilder, scores) << endl;
-#endif
-
-    curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
+    msg["scores"] = scores;
+    msg["query"] = query;
+    webSocket->send(msg);
+    //curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;
@@ -549,8 +515,18 @@ int main(int argc, char** argv)
   }
 
   if (run || reg) {
+    // todo: Remove when websockets are fully implemented.
     curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
     curlHandle = make_unique<CurlHandler>(BASE_URL);
+
+    try {
+      webSocket = make_unique<WebSocketHandler>(WS_URL);
+      webSocket->connect();
+    }
+    catch (const runtime_error& e) {
+      cerr << e.what() << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   atexit(cleanup);
@@ -586,11 +562,10 @@ int main(int argc, char** argv)
       qrCode->get()->write();
       getMachineUrl();
 
-      // Initialize player windows and ping thread.
+      // Initialize player windows.
       // Player windows are opened, but remain hidden
       // off screen until a user logs in.
       openPlayerWindows();
-      ping = thread(pingThread);
 
       // Start main loop and watch for action.
       watch();

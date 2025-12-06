@@ -17,38 +17,30 @@
 
 #pragma once
 
-#include <string>
-#include <array>
-#include <atomic>
-#include <vector>
+#include <ixwebsocket/IXWebSocket.h>
+#include <json/json.h>
 
-#include "GameBase.h"
-#include "QrCode.h"
+class WebSocketHandler
+{
+public:
+  WebSocketHandler(const std::string& uri);
+  ~WebSocketHandler();
 
-#define MAX_UUID_LEN 36
+  void connect();
+  void send(const Json::Value& msg);
 
-#ifdef DEBUG
-#define BASE_URL "https://ssb.local:8443"
-#define WS_URL "ws://ssb.local:8444"
-#else
-#define BASE_URL "https://spookyscoreboard.com"
-#endif
+  bool isConnected() const { return connected.load(); }
+  std::string getLastError() const { return lastError; }
 
-struct players {
-  uint8_t numPlayers{0};
-  std::array<std::string, 4> player{};
+private:
+  std::string baseUri;
+  ix::WebSocket ws;
 
-  void reset() {
-    numPlayers = 0;
-    std::fill(player.begin(), player.end(), "");
-  }
+  std::atomic<bool> connected{false};
+  std::string lastError;
+
+  void setupCallbacks();
 };
 
-extern players playerList;
-extern std::atomic<bool> isRunning;
-extern std::unique_ptr<GameBase> game;
-extern std::unique_ptr<QrCode> qrCode;
-extern std::string machineId, machineUrl, token;
-
-extern void playerLogin(const std::vector<char>& uuid, int position);
+// vim: set ts=2 sw=2 expandtab:
 

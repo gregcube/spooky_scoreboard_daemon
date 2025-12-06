@@ -11,6 +11,7 @@ option(USE_VCPKG_CURL "Use vcpkg CURL::libcurl" ON)
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg_installed/x64-linux" ${CMAKE_PREFIX_PATH})
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(yaml-cpp CONFIG REQUIRED)
+find_package(ixwebsocket CONFIG REQUIRED)
 
 file(GLOB GAME_SOURCES src/game/*.cpp)
 file(GLOB GAME_INCLUDES src/game/*.h)
@@ -23,6 +24,7 @@ add_executable(ssbd
   src/QrCode.cpp
   src/QrScanner.cpp
   src/GameBase.cpp
+  src/WebSocketHandler.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}
@@ -36,6 +38,7 @@ target_include_directories(ssbd PRIVATE
 target_link_libraries(ssbd PRIVATE
   jsoncpp_static
   yaml-cpp::yaml-cpp
+  ixwebsocket::ixwebsocket
   X11
   Xft
   Xpm
