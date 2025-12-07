@@ -31,6 +31,7 @@
 #include "x11.h"
 #include "CurlHandler.h"
 #include "WebSocketHandler.h"
+#include "RegistrationHandler.h"
 #include "QrScanner.h"
 #include "version.h"
 
@@ -370,46 +371,6 @@ static void getMachineUrl()
 }
 
 /**
- * Registers a new machine with the server using the provided registration code.
- * Creates the configuration file with the server's response.
- *
- * @param regCode The registration code to use
- */
-static void registerMachine(const string& regCode)
-{
-  Json::Reader reader;
-  Json::Value response, code = regCode;
-
-  cout << "Registering machine..." << endl;
-  long rc = curlHandle->post("/api/v1/register", code.toStyledString());
-
-  if (reader.parse(curlHandle->responseData, response) == false) {
-    cerr << "Invalid JSON response from server." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if (rc != 200) {
-    cout << response["message"].asString() << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  ofstream file("/.ssbd.json");
-  if (!file.is_open()) {
-    cerr << "Failed to write /.ssbd.json." << endl;
-    cout << "Copy/paste the below into /.ssbd.json" << endl;
-    cout << response["message"] << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  Json::StreamWriterBuilder writer;
-  file << Json::writeString(writer, response["message"]);
-  file.close();
-
-  cout << "File /.ssbd.json saved." << endl;
-  cout << "Machine registered." << endl;
-}
-
-/**
  * Prints usage information for the program.
  */
 static void printUsage()
@@ -534,7 +495,9 @@ int main(int argc, char** argv)
   signal(SIGTERM, signalHandler);
 
   if (reg) {
-    registerMachine(regCode);
+    cout << "Registering machine..." << endl;
+    make_unique<RegistrationHandler>(webSocket)->registerMachine(regCode);
+    exit(EXIT_SUCCESS);
   }
 
   if (run && (game = GameBase::create(gameName)) != nullptr) {

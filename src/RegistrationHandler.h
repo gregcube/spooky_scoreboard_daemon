@@ -17,34 +17,21 @@
 
 #pragma once
 
-#include <ixwebsocket/IXWebSocket.h>
+#include <string>
 #include <json/json.h>
 
-class WebSocketHandler
+#include "WebSocketHandler.h"
+
+class RegistrationHandler
 {
 public:
-  typedef std::function<void(const Json::Value&)> Callback;
+  RegistrationHandler(const std::unique_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
 
-  WebSocketHandler(const std::string& uri);
-  ~WebSocketHandler();
-
-  void connect();
-  void send(const Json::Value& msg, Callback callback = nullptr);
-
-  bool isConnected() const { return connected.load(); }
-  std::string getLastError() const { return lastError; }
+  void registerMachine(const std::string& regcode);
+  void writeConfig(const Json::Value& config);
 
 private:
-  std::string baseUri;
-  ix::WebSocket ws;
-
-  std::atomic<bool> connected{false};
-  std::string lastError;
-  std::mutex mtx;
-  std::map<std::string, Callback> callbacks;
-
-  void setupCallbacks();
-  int validate(const Json::Value& response);
+  const std::unique_ptr<WebSocketHandler>& webSocket;
 };
 
 // vim: set ts=2 sw=2 expandtab:

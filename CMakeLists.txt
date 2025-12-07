@@ -25,6 +25,7 @@ add_executable(ssbd
   src/QrScanner.cpp
   src/GameBase.cpp
   src/WebSocketHandler.cpp
+  src/RegistrationHandler.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}
@@ -44,6 +45,7 @@ target_link_libraries(ssbd PRIVATE
   Xpm
   fontconfig
   pthread
+  uuid
 )
 
 if(USE_VCPKG_CURL)

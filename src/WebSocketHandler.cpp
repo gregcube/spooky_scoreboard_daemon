@@ -16,9 +16,12 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
+#include <uuid/uuid.h>
 #include "WebSocketHandler.h"
 
-WebSocketHandler::WebSocketHandler(const std::string& uri) : baseUri(uri)
+using namespace std;
+
+WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
   ws.setPingInterval(10);
@@ -47,15 +50,25 @@ void WebSocketHandler::setupCallbacks()
       connected.store(false);
       break;
 
-    case ix::WebSocketMessageType::Message:
+    case ix::WebSocketMessageType::Message: {
+      Json::Value response;
+      Json::Reader reader;
+
+      if (reader.parse(msg->str, response) && validate(response) == 0) {
+        string request_id = response["request_id"].asString();
+        lock_guard<mutex> lock(mtx);
+
+        auto it = callbacks.find(request_id);
+        it->second(response);
+        callbacks.erase(it);
+      }
       break;
+    }
 
     case ix::WebSocketMessageType::Ping:
-      std::cout << "Ping: " + msg->str << std::endl;
       break;
 
     case ix::WebSocketMessageType::Pong:
-      std::cout << "Pong: " + msg->str << std::endl;
       break;
 
     case ix::WebSocketMessageType::Fragment:
@@ -64,35 +77,72 @@ void WebSocketHandler::setupCallbacks()
   });
 }
 
+int WebSocketHandler::validate(const Json::Value& response)
+{
+  int rc = response["status"].asInt();
+  if (rc != 200) {
+    cerr << "Error: " << rc << endl << response["body"] << endl;
+    return 1;
+  }
+
+  string request_id = response["request_id"].asString();
+  uuid_t uuid;
+
+  if (request_id.empty() ||
+      uuid_parse(request_id.c_str(), uuid) != 0 ||
+      callbacks.find(request_id) == callbacks.end()) {
+
+    cerr << "Error: Missing or invalid request id." << endl;
+    return 1;
+  }
+
+  return 0;
+}
+
 void WebSocketHandler::connect()
 {
   connected.store(false);
   lastError.clear();
   ws.start();
 
-  auto timeout = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-  while (std::chrono::steady_clock::now() < timeout) {
+  auto timeout = chrono::steady_clock::now() + chrono::seconds(10);
+  while (chrono::steady_clock::now() < timeout) {
     if (connected.load()) return;
     if (!lastError.empty()) break;
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    this_thread::sleep_for(chrono::milliseconds(50));
   }
 
   if (!connected.load()) {
-    std::string error = lastError.empty() ? "timeout or unknown error." : lastError;
-    throw std::runtime_error("Websocket failed to connect: " + error);
+    string error = lastError.empty() ? "timeout or unknown error." : lastError;
+    throw runtime_error("Websocket failed to connect: " + error);
   }
 }
 
-void WebSocketHandler::send(const Json::Value& msg)
+void WebSocketHandler::send(const Json::Value& msg, Callback callback)
 {
   if (!connected.load()) return;
 
   // todo: Add http headers using WebSocketHttpHeaders.
 
+  Json::Value sendmsg = msg;
+
+  if (callback) {
+    uuid_t uuid;
+    string reqid(37, '\0');
+
+    uuid_generate_random(uuid);
+    uuid_unparse_lower(uuid, &reqid[0]);
+    reqid.resize(36);
+    sendmsg["request_id"] = reqid;
+
+    lock_guard<mutex> lock(mtx);
+    callbacks[reqid] = callback;
+  }
+
   Json::StreamWriterBuilder writerBuilder;
   writerBuilder["indentation"] = "";
 
-  ws.send(Json::writeString(writerBuilder, msg));
+  ws.send(Json::writeString(writerBuilder, sendmsg));
 }
 
 // vim: set ts=2 sw=2 expandtab:
