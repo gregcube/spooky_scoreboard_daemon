@@ -482,6 +482,8 @@ int main(int argc, char** argv)
     curlHandle = make_unique<CurlHandler>(BASE_URL);
 
     try {
+      if (run) loadMachineId();
+
       webSocket = make_shared<WebSocketHandler>(WS_URL);
       webSocket->connect();
     }
@@ -505,7 +507,6 @@ int main(int argc, char** argv)
     cout << game->getGameName() << endl;
 
     isRunning.store(true);
-    loadMachineId();
 
     // Upload and exit immediately if requested.
     if (upload) {

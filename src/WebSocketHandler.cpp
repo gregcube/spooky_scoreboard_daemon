@@ -17,6 +17,8 @@
 
 #include <iostream>
 #include <uuid/uuid.h>
+
+#include "main.h"
 #include "WebSocketHandler.h"
 
 using namespace std;
@@ -25,6 +27,17 @@ WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
   ws.setPingInterval(10);
+
+  ix::WebSocketHttpHeaders headers;
+  headers["Content-Type"] = "application/json; charset=utf-8";
+
+  if (!machineId.empty() && !token.empty()) {
+    headers["Authorization"] = "Bearer " + token;
+    headers["X-Machine-Uuid"] = machineId;
+  }
+
+  ws.setExtraHeaders(headers);
+
   setupCallbacks();
 }
 
@@ -122,8 +135,6 @@ void WebSocketHandler::send(const Json::Value& msg, Callback callback)
 {
   if (!connected.load()) return;
 
-  // todo: Add http headers using WebSocketHttpHeaders.
-
   Json::Value sendmsg = msg;
 
   if (callback) {
@@ -141,7 +152,6 @@ void WebSocketHandler::send(const Json::Value& msg, Callback callback)
 
   Json::StreamWriterBuilder writerBuilder;
   writerBuilder["indentation"] = "";
-
   ws.send(Json::writeString(writerBuilder, sendmsg));
 }
 

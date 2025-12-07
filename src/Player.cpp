@@ -46,6 +46,8 @@ void Player::login(const std::vector<char>& uuid, int position)
   Json::Value req;
   req["path"] = "/api/v1/login";
   req["method"] = "POST";
+  req["body"].append(uuid_str);
+  req["body"].append(position);
 
   webSocket->send(req);
 }
