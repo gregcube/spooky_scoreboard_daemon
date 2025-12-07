@@ -24,6 +24,7 @@
 
 #include "GameBase.h"
 #include "QrCode.h"
+#include "WebSocketHandler.h"
 
 #define MAX_UUID_LEN 36
 
@@ -32,6 +33,7 @@
 #define WS_URL "ws://ssb.local:8444"
 #else
 #define BASE_URL "https://spookyscoreboard.com"
+#define WS_URL "wss://spookyscoreboard.com:4444"
 #endif
 
 struct players {
@@ -48,6 +50,7 @@ extern players playerList;
 extern std::atomic<bool> isRunning;
 extern std::unique_ptr<GameBase> game;
 extern std::unique_ptr<QrCode> qrCode;
+extern std::shared_ptr<WebSocketHandler> webSocket;
 extern std::string machineId, machineUrl, token;
 
 extern void playerLogin(const std::vector<char>& uuid, int position);

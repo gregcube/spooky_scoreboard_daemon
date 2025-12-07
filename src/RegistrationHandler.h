@@ -25,13 +25,13 @@
 class RegistrationHandler
 {
 public:
-  RegistrationHandler(const std::unique_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
+  RegistrationHandler(const std::shared_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
 
   void registerMachine(const std::string& regcode);
   void writeConfig(const Json::Value& config);
 
 private:
-  const std::unique_ptr<WebSocketHandler>& webSocket;
+  const std::shared_ptr<WebSocketHandler> webSocket;
 };
 
 // vim: set ts=2 sw=2 expandtab:

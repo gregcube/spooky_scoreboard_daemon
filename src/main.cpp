@@ -30,7 +30,6 @@
 #include "main.h"
 #include "x11.h"
 #include "CurlHandler.h"
-#include "WebSocketHandler.h"
 #include "RegistrationHandler.h"
 #include "QrScanner.h"
 #include "version.h"
@@ -49,7 +48,7 @@ unique_ptr<GameBase> game = nullptr;
 unique_ptr<CurlHandler> curlHandle = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
 unique_ptr<QrCode> qrCode = nullptr;
-unique_ptr<WebSocketHandler> webSocket = nullptr;
+shared_ptr<WebSocketHandler> webSocket = nullptr;
 
 string machineId, machineUrl, token;
 mutex mtx;
@@ -481,7 +480,7 @@ int main(int argc, char** argv)
     curlHandle = make_unique<CurlHandler>(BASE_URL);
 
     try {
-      webSocket = make_unique<WebSocketHandler>(WS_URL);
+      webSocket = make_shared<WebSocketHandler>(WS_URL);
       webSocket->connect();
     }
     catch (const runtime_error& e) {
