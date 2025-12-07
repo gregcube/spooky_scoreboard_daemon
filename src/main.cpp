@@ -48,7 +48,9 @@ unique_ptr<GameBase> game = nullptr;
 unique_ptr<CurlHandler> curlHandle = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
 unique_ptr<QrCode> qrCode = nullptr;
+
 shared_ptr<WebSocketHandler> webSocket = nullptr;
+shared_ptr<Player> playerHandler = nullptr;
 
 string machineId, machineUrl, token;
 mutex mtx;
@@ -513,6 +515,9 @@ int main(int argc, char** argv)
     }
 
     try {
+      // Instantiate player class.
+      playerHandler = make_shared<Player>(webSocket);
+
       // Start QR scanner.
       qrScanner = make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();

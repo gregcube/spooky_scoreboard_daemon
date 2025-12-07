@@ -61,7 +61,7 @@ void QrScanner::scan()
       int position = buf[sizeof(buf) - 1] - '0';
 
       std::cout << "QR code detected." << std::endl;
-      playerLogin(uuid, position);
+      playerHandler->login(uuid, position);
       uuid.clear();
 
       std::this_thread::sleep_for(std::chrono::seconds(3));
