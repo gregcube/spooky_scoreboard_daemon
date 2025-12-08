@@ -22,7 +22,6 @@
 #include <future>
 
 #include "main.h"
-#include "CurlHandler.h"
 
 class QrCode
 {

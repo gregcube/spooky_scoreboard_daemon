@@ -28,7 +28,6 @@
 
 #include "main.h"
 #include "x11.h"
-#include "CurlHandler.h"
 #include "RegistrationHandler.h"
 #include "QrScanner.h"
 #include "version.h"
@@ -36,12 +35,10 @@
 using namespace std;
 
 players playerList;
-static CURLcode curlCode;
 
 atomic<bool> isRunning(false);
 
 unique_ptr<GameBase> game = nullptr;
-unique_ptr<CurlHandler> curlHandle = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
 unique_ptr<QrCode> qrCode = nullptr;
 
@@ -71,13 +68,6 @@ static void cleanup()
 
   // Cleanup X11 resources.
   closePlayerWindows();
-
-  // Clean up curl resources.
-  if (curlCode) {
-    cout << "Cleaning up curl..." << endl;
-    curl_global_cleanup();
-    curlHandle.reset();
-  }
 
   // Reset pointers.
   if (game) game.reset();
@@ -334,10 +324,6 @@ int main(int argc, char** argv)
   }
 
   if (run || reg) {
-    // todo: Remove when websockets are fully implemented.
-    curlCode = curl_global_init(CURL_GLOBAL_DEFAULT);
-    curlHandle = make_unique<CurlHandler>(BASE_URL);
-
     try {
       if (run) loadMachineId();
 

@@ -3,7 +3,6 @@
     "version-string": "1.0.0",
     "description": "A daemon for managing the scoreboard in Spooky-themed games.",
     "dependencies": [
-        "curl",
         "yaml-cpp",
         "jsoncpp",
         "ixwebsocket"
