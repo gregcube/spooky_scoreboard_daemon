@@ -56,7 +56,9 @@ void Player::login(const vector<char>& uuid, int position)
   req["body"].append(position);
 
   webSocket->send(req, [this, position](const Json::Value& response) {
-    this->add(response["message"].asString(), position);
+    Json::Value user_data;
+    Json::Reader().parse(response["body"].asString(), user_data);
+    this->add(user_data["message"]["username"].asString(), position);
   });
 }
 
