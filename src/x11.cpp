@@ -418,7 +418,7 @@ void openPlayerWindows()
     &pixmap_qr, NULL, NULL);
 
   if (rc != XpmSuccess) {
-    cerr << "Failed to create pixmap." << XpmGetErrorString(rc) << endl;
+    cerr << "Failed to create pixmap: " << XpmGetErrorString(rc) << endl;
   }
 
   // Load TTF fonts.

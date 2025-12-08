@@ -25,8 +25,8 @@
 
 using namespace std;
 
-QrCode::QrCode() :
-  ch(make_unique<CurlHandler>(BASE_URL)),
+QrCode::QrCode(const shared_ptr<WebSocketHandler>& ws) :
+  webSocket(ws),
   qrCodePath(game->getTmpPath() + "/qrcode.xpm") {}
 
 QrCode::~QrCode()
@@ -36,18 +36,24 @@ QrCode::~QrCode()
   }
 }
 
-QrCode* QrCode::get()
+future<void> QrCode::download()
 {
-  long rc;
+  auto promise = make_shared<std::promise<void>>();
+  auto future = promise->get_future();
 
-  if ((rc = ch->post("/api/v1/qr")) != 200) {
-    throw runtime_error("Unable to download QR code.");
-  }
+  Json::Value req;
+  req["path"] = "/api/v1/qr";
+  req["method"] = "POST"; // todo: should use GET perhaps(?)
 
-  return this;
+  webSocket->send(req, [this, promise](const Json::Value& response) {
+    this->write(response["body"].asString());
+    promise->set_value();
+  });
+
+  return future;
 }
 
-void QrCode::write()
+void QrCode::write(const string& data)
 {
   ofstream xpm(qrCodePath);
 
@@ -55,7 +61,9 @@ void QrCode::write()
     throw runtime_error("Unable to write QR code.");
   }
  
-  xpm << ch->responseData;
+  xpm << data;
   xpm.close(); 
 }
+
+// vim: set ts=2 sw=2 expandtab:
 

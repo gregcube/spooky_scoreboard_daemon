@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <cstddef>
+#include <future>
 
 #include "main.h"
 #include "CurlHandler.h"
@@ -29,7 +30,7 @@ public:
   /**
    * @brief Constructs a QrCode object.
    */
-  QrCode();
+  QrCode(const std::shared_ptr<WebSocketHandler>& ws);
 
   /**
    * @brief Destructor that deletes the temporary QR code file.
@@ -38,15 +39,8 @@ public:
 
   /**
    * @brief Fetches machine QR code from the server.
-   *
-   * @return A reference to this instance.
    */
-  QrCode* get();
-
-  /**
-   * @brief Writes machine QR code to an output file stream.
-   */
-  void write();
+  std::future<void> download();
 
   /**
    * @brief Returns file system path to QR code.
@@ -57,6 +51,15 @@ public:
 
 
 private:
-  const std::unique_ptr<CurlHandler> ch;
+  const std::shared_ptr<WebSocketHandler> webSocket;
   const std::string qrCodePath;
+
+  /**
+   * @brief Writes machine QR code to an output file stream.
+   */
+  void write(const std::string& data);
 };
+
+
+// vim: set ts=2 sw=2 expandtab:
+
