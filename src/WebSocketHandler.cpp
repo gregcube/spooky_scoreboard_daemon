@@ -172,7 +172,12 @@ void WebSocketHandler::startPingThread()
         //std::cout << "Ping: " << response << std::endl;
       });
 
-      std::this_thread::sleep_for(std::chrono::seconds(10));
+      {
+        unique_lock<std::mutex> lock(pingMtx);
+        pingCv.wait_for(lock, chrono::seconds(10), [this]() {
+          return !pingThreadRunning.load() || !connected.load();
+        });
+      }
     }
   });
 }
@@ -180,6 +185,7 @@ void WebSocketHandler::startPingThread()
 void WebSocketHandler::stopPingThread()
 {
   pingThreadRunning.store(false);
+  pingCv.notify_one();
   if (pingThread.joinable()) pingThread.join();
 }
 

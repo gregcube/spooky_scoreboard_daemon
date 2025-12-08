@@ -36,7 +36,7 @@ using namespace std;
 
 players playerList;
 
-atomic<bool> isRunning(false);
+atomic<bool> isRunning{false};
 
 unique_ptr<GameBase> game = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
@@ -54,14 +54,13 @@ mutex mtx;
  */
 static void cleanup()
 {
-  cout << "Cleaning up..." << endl;
+  cout << "Exiting." << endl << "Cleaning up..." << endl;
 
   // Signal all threads to stop.
   isRunning.store(false);
 
   // Stop QR scanner if running.
   if (qrScanner) {
-    cout << "Stopping QR scanner..." << endl;
     qrScanner->stop();
     qrScanner.reset();
   }
@@ -243,7 +242,6 @@ static void printUsage()
 static void signalHandler(int signum)
 {
   cout << "Signal " << signum << " received." << endl;
-  cleanup();
   exit(signum);
 }
 
@@ -325,7 +323,10 @@ int main(int argc, char** argv)
 
   if (run || reg) {
     try {
-      if (run) loadMachineId();
+      if (run) {
+        loadMachineId();
+        isRunning.store(true);
+      }
 
       webSocket = make_shared<WebSocketHandler>(WS_URL);
       webSocket->connect();
@@ -348,8 +349,6 @@ int main(int argc, char** argv)
 
   if (run && (game = GameBase::create(gameName)) != nullptr) {
     cout << game->getGameName() << endl;
-
-    isRunning.store(true);
 
     // Upload and exit immediately if requested.
     if (upload) {

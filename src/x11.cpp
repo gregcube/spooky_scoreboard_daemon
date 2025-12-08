@@ -318,8 +318,6 @@ void hidePlayerWindow(int index)
 void closePlayerWindows()
 {
   if (display != nullptr) {
-    cout << "Cleaning up X11 resources..." << endl;
-
     for (int i = 0; i < 4; i++) {
       // Hide all windows.
       if (window[i] != None) {
@@ -389,8 +387,6 @@ void closePlayerWindows()
     XSync(display, False);
     XCloseDisplay(display);
     display = nullptr;
-
-    cout << "X11 cleanup complete." << endl;
   }
 }
 
