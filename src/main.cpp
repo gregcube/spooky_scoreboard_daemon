@@ -19,7 +19,6 @@
 #include <csignal>
 #include <iostream>
 #include <fstream>
-#include <thread>
 #include <mutex>
 
 #include <unistd.h>
@@ -34,15 +33,12 @@
 #include "QrScanner.h"
 #include "version.h"
 
-#define TIMER_DEFAULT 15
-
 using namespace std;
 
 players playerList;
 static CURLcode curlCode;
 
 atomic<bool> isRunning(false);
-vector<bool> playerThread(4, false);
 
 unique_ptr<GameBase> game = nullptr;
 unique_ptr<CurlHandler> curlHandle = nullptr;
@@ -121,88 +117,6 @@ static void loadMachineId()
 
   token = root["token"].asString();
   machineId = root["uuid"].asString();
-}
-
-/**
- * Run each player window/ countdown in a separate thread.
- *
- * @param index Player position index. Should be 0-3.
- */
-static void startPlayerThread(int index)
-{
-  {
-    lock_guard<mutex> lock(mtx);
-
-    if (playerThread[index]) {
-      cout << "Thread for player " << index << " is running." << endl;
-      return;
-    }
-
-    playerThread[index] = true;
-  }
-
-  thread([index]() {
-    showPlayerWindow(index);
-    runTimer(TIMER_DEFAULT, index);
-    hidePlayerWindow(index);
-    {
-      lock_guard<mutex> lock(mtx);
-      playerThread[index] = false;
-    }
-  }).detach();
-}
-
-/**
- * Adds a player to the player list at the specified position.
- *
- * @param playerName The name of the player to add
- * @param position The position (1-4) where the player should be added
- */
-void addPlayer(const char* playerName, int position)
-{
-  if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
-    playerList.player[position - 1] = playerName;
-    startPlayerThread(position - 1);
-    ++playerList.numPlayers;
-  }
-}
-
-/**
- * Handles player login by sending the UUID to the server and updating the player list.
- *
- * @param uuid The player's UUID
- * @param position The position (1-4) where the player should be logged in
- */
-void playerLogin(const vector<char>& uuid, int position)
-{
-  if (uuid.size() != MAX_UUID_LEN || position < 1 || position > 4) {
-    return;
-  }
-
-  // Show player window if position is already occupied.
-  if (!playerList.player[position - 1].empty()) {
-    cout << "Player " << position << " already logged in, showing window..." << endl;
-    startPlayerThread(position - 1);
-    return;
-  }
-
-  cout << "Logging in player " << position << "..." << endl;
-
-  Json::Value root;
-  root.append(uuid.data());
-  root.append(position);
-
-  long rc = curlHandle->post("/api/v1/login", root.toStyledString());
-  if (rc != 200) {
-    cerr << "Login failed with code: " << rc << endl;
-    return;
-  }
-
-  root.clear();
-
-  Json::Reader reader;
-  reader.parse(curlHandle->responseData, root);
-  addPlayer(root["message"].asString().c_str(), position);
 }
 
 /**

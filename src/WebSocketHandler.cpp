@@ -169,6 +169,7 @@ void WebSocketHandler::startPingThread()
 
       this->send(req, [this](const Json::Value& response) {
         // todo: Check response for "OK"
+        std::cout << "Ping: " << response << std::endl;
       });
 
       std::this_thread::sleep_for(std::chrono::seconds(10));

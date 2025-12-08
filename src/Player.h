@@ -24,9 +24,14 @@ public:
   Player(const std::shared_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
 
   void login(const std::vector<char>& uuid, int position);
+  void add(const std::string username, int position);
 
 private:
   std::shared_ptr<WebSocketHandler> webSocket;
+  std::vector<bool> playerThread = std::vector<bool>(4, false);
+  std::mutex mtx;
+
+  void startPlayerThread(int index);
 };
 
 

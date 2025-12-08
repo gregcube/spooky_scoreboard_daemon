@@ -17,6 +17,8 @@
 
 #pragma once
 
+#define TIMER_DEFAULT 15
+
 void x11Init();
 void openPlayerWindows();
 void closePlayerWindows();

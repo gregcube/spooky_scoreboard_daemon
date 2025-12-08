@@ -19,29 +19,35 @@
 #include <uuid/uuid.h>
 
 #include "main.h"
+#include "x11.h"
 #include "Player.h"
 
+using namespace std;
 
-void Player::login(const std::vector<char>& uuid, int position)
+void Player::login(const vector<char>& uuid, int position)
 {
   if (uuid.size() != MAX_UUID_LEN) {
-    std::cerr << "Invalid UUID packet size: " << uuid.size() << std::endl;
+    cerr << "Invalid UUID packet size: " << uuid.size() << endl;
     return;
   }
 
   uuid_t uuid_parsed;
-  std::string uuid_str(uuid.begin(), uuid.begin() + MAX_UUID_LEN);
+  string uuid_str(uuid.begin(), uuid.begin() + MAX_UUID_LEN);
   if (uuid_parse(uuid_str.c_str(), uuid_parsed) != 0) {
-    std::cerr << "Invalid UUID format: " << uuid_str << std::endl;
+    cerr << "Invalid UUID format: " << uuid_str << endl;
     return;
   }
 
   if (position < 1 || position > 4) {
-    std::cerr << "Invalid player position: " << position << std::endl;
+    cerr << "Invalid player position: " << position << endl;
     return;
   }
 
-  std::cout << "Player login: " << uuid_str << " at position " << position << std::endl;
+  // Show player window if position is already occupied.
+  if (!playerList.player[position - 1].empty()) {
+    startPlayerThread(position - 1);
+    return;
+  }
 
   Json::Value req;
   req["path"] = "/api/v1/login";
@@ -49,10 +55,47 @@ void Player::login(const std::vector<char>& uuid, int position)
   req["body"].append(uuid_str);
   req["body"].append(position);
 
-  webSocket->send(req, [this](const Json::Value& response) {
-    // todo: Move addPlayer() to this class.
-    std::cout << response << std::endl;
+  webSocket->send(req, [this, position](const Json::Value& response) {
+    this->add(response["message"].asString(), position);
   });
+}
+
+void Player::add(const string username, int position)
+{
+  if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
+    playerList.player[position - 1] = username;
+    startPlayerThread(position - 1);
+    ++playerList.numPlayers;
+  }
+}
+
+/**
+ * Run each player window/ countdown in a separate thread.
+ *
+ * @param index Player position index. Should be 0-3.
+ */
+void Player::startPlayerThread(int index)
+{
+  {
+    lock_guard<mutex> lock(mtx);
+
+    if (playerThread[index]) {
+      cout << "Thread for player " << index << " is running." << endl;
+      return;
+    }
+
+    playerThread[index] = true;
+  }
+
+  thread([this, index]() {
+    showPlayerWindow(index);
+    runTimer(TIMER_DEFAULT, index);
+    hidePlayerWindow(index);
+    {
+      lock_guard<mutex> lock(mtx);
+      playerThread[index] = false;
+    }
+  }).detach();
 }
 
 // vim: set ts=2 sw=2 expandtab:
