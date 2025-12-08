@@ -43,6 +43,7 @@ WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
 
 WebSocketHandler::~WebSocketHandler()
 {
+  stopPingThread();
   ws.stop();
 }
 
@@ -52,15 +53,16 @@ void WebSocketHandler::setupCallbacks()
     switch (msg->type) {
     case ix::WebSocketMessageType::Error:
       lastError = msg->errorInfo.reason.empty() ? "Connection failed" : msg->errorInfo.reason;
-      connected.store(false);
       break;
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
+      startPingThread();
       break;
 
     case ix::WebSocketMessageType::Close:
       connected.store(false);
+      stopPingThread();
       break;
 
     case ix::WebSocketMessageType::Message: {
@@ -153,6 +155,31 @@ void WebSocketHandler::send(const Json::Value& msg, Callback callback)
   Json::StreamWriterBuilder writerBuilder;
   writerBuilder["indentation"] = "";
   ws.send(Json::writeString(writerBuilder, sendmsg));
+}
+
+void WebSocketHandler::startPingThread()
+{
+  if (pingThreadRunning.exchange(true)) return;
+
+  pingThread = std::thread([this]() {
+    while (pingThreadRunning.load() && connected.load()) {
+      Json::Value req;
+      req["path"] = "/api/v1/ping";
+      req["method"] = "POST";
+
+      this->send(req, [this](const Json::Value& response) {
+        // todo: Check response for "OK"
+      });
+
+      std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+  });
+}
+
+void WebSocketHandler::stopPingThread()
+{
+  pingThreadRunning.store(false);
+  if (pingThread.joinable()) pingThread.join();
 }
 
 // vim: set ts=2 sw=2 expandtab:

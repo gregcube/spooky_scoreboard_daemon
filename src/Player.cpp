@@ -49,7 +49,10 @@ void Player::login(const std::vector<char>& uuid, int position)
   req["body"].append(uuid_str);
   req["body"].append(position);
 
-  webSocket->send(req);
+  webSocket->send(req, [this](const Json::Value& response) {
+    // todo: Move addPlayer() to this class.
+    std::cout << response << std::endl;
+  });
 }
 
 // vim: set ts=2 sw=2 expandtab:

@@ -39,11 +39,15 @@ private:
   ix::WebSocket ws;
 
   std::atomic<bool> connected{false};
+  std::atomic<bool> pingThreadRunning{false};
+  std::thread pingThread;
   std::string lastError;
   std::mutex mtx;
   std::map<std::string, Callback> callbacks;
 
   void setupCallbacks();
+  void startPingThread();
+  void stopPingThread();
   int validate(const Json::Value& response);
 };
 
