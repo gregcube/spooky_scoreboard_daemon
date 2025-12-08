@@ -46,7 +46,6 @@ shared_ptr<WebSocketHandler> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
 string machineId, token;
-mutex mtx;
 
 /**
  * Performs cleanup of all resources and threads.
