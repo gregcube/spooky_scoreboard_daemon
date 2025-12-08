@@ -17,6 +17,7 @@
 
 #include <map>
 
+#include "main.h"
 #include "GameBase.h"
 
 #include "game/EvilDead.h"
@@ -45,4 +46,32 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
 
   return nullptr;
 }
+
+void GameBase::setUrl(WebSocketHandler* ws)
+{
+  if (!ws) return;
+
+  Json::Value req;
+  req["path"] = "/api/v1/url";
+  req["method"] = "GET";
+
+  ws->send(req, [this](const Json::Value& response) {
+    Json::Value msg;
+    Json::Reader().parse(response["body"].asString(), msg);
+    size_t len = msg["message"].asString().size();
+    gameUrl = msg["message"].asString().substr(8, len - 8);
+  });
+}
+
+const std::string GameBase::getUrl()
+{
+  return !gameUrl.empty() ? gameUrl : "";
+}
+
+void GameBase::uploadScores(const Json::Value& scores, WebSocketHandler* ws)
+{
+  if (!ws) return;
+}
+
+// vim: set ts=2 sw=2 expandtab:
 

@@ -48,7 +48,7 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocketHandler> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
-string machineId, machineUrl, token;
+string machineId, token;
 mutex mtx;
 
 /**
@@ -261,31 +261,6 @@ static void printSupportedGames()
 }
 
 /**
- * Retrieves the machine's URL from the server.
- */
-static void getMachineUrl()
-{
-  Json::Reader reader;
-  Json::Value response;
-
-  cout << "Retrieving machine URL..." << endl;
-  long rc = curlHandle->get("/api/v1/url");
-
-  if (reader.parse(curlHandle->responseData, response) == false) {
-    cerr << "Invalid JSON response from server." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  if (rc != 200) {
-    cout << response["message"].asString() << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  size_t len = response["message"].asString().size();
-  machineUrl = response["message"].asString().substr(8, len - 8);
-}
-
-/**
  * Prints usage information for the program.
  */
 static void printUsage()
@@ -442,7 +417,7 @@ int main(int argc, char** argv)
       // which redirects to leaderboard page.
       qrCode = make_unique<QrCode>();
       qrCode->get()->write();
-      getMachineUrl();
+      game->setUrl(webSocket.get());
 
       // Initialize player windows.
       // Player windows are opened, but remain hidden

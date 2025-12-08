@@ -53,7 +53,7 @@ extern std::unique_ptr<GameBase> game;
 extern std::unique_ptr<QrCode> qrCode;
 extern std::shared_ptr<WebSocketHandler> webSocket;
 extern std::shared_ptr<Player> playerHandler;
-extern std::string machineId, machineUrl, token;
+extern std::string machineId, token;
 
 extern void playerLogin(const std::vector<char>& uuid, int position);
 

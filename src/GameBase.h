@@ -23,12 +23,19 @@
 #include <X11/Xlib.h>
 #include <json/json.h>
 
+#include "WebSocketHandler.h"
+
 class GameBase
 {
 public:
   virtual ~GameBase() = default;
 
   static std::unique_ptr<GameBase> create(const std::string& gameName);
+
+  void setUrl(WebSocketHandler* ws);
+  const std::string getUrl();
+
+  void uploadScores(const Json::Value& scores, WebSocketHandler* ws);
 
   virtual uint32_t getGamesPlayed() = 0;
 
@@ -129,8 +136,14 @@ public:
    * @return An integer status code.
    */
   virtual int sendswaycmd() { return 0; }
+
+private:
+  std::string gameUrl;
+
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;
 extern std::map<std::string, GameFactoryFunction> gameFactories;
+
+// vim: set ts=2 sw=2 expandtab:
 
