@@ -35,7 +35,8 @@ public:
   void setUrl(WebSocketHandler* ws);
   const std::string getUrl();
 
-  void uploadScores(const Json::Value& scores, WebSocketHandler* ws);
+  enum class ScoreType { High, Last, Mode };
+  void uploadScores(const Json::Value& scores, ScoreType type, WebSocketHandler* ws);
 
   virtual uint32_t getGamesPlayed() = 0;
 

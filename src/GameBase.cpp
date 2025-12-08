@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <iostream>
 #include <map>
 
 #include "main.h"
@@ -43,7 +44,6 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
   if (it != gameFactories.end()) {
     return (it->second)();
   }
-
   return nullptr;
 }
 
@@ -68,9 +68,37 @@ const std::string GameBase::getUrl()
   return !gameUrl.empty() ? gameUrl : "";
 }
 
-void GameBase::uploadScores(const Json::Value& scores, WebSocketHandler* ws)
+void GameBase::uploadScores(const Json::Value& scores,
+                            ScoreType type,
+                            WebSocketHandler* ws)
 {
   if (!ws) return;
+
+  cout << "Uploading scores..." << endl;
+
+  try {
+    Json::Value req;
+
+    string query = "type=";
+    switch (type) {
+    case ScoreType::High: query += "classic"; break;
+    case ScoreType::Last: query += "last"; break;
+    case ScoreType::Mode: query += "mode"; break;
+    }
+
+    req["path"] = "/api/v1/score";
+    req["method"] = "POST";
+    req["query"] = query;
+    req["body"] = scores;
+
+    webSocket->send(req, [this](const Json::Value& response) {
+      //cout << "Scores response = " << response << endl;
+    });
+  }
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
+  }
+
 }
 
 // vim: set ts=2 sw=2 expandtab:

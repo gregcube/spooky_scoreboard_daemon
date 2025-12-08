@@ -120,38 +120,6 @@ static void loadMachineId()
 }
 
 /**
- * Uploads high scores to the server.
- *
- * @param scores The JSON object containing the scores to upload
- */
-enum class ScoreType { High, Last, Mode };
-static void uploadScores(const Json::Value& scores, ScoreType type)
-{
-  cout << "Uploading scores..." << endl;
-
-  try {
-    Json::Value msg;
-    Json::StreamWriterBuilder writerBuilder;
-    writerBuilder["indentation"] = "";
-
-    string query = "type=";
-    switch (type) {
-    case ScoreType::High: query += "classic"; break;
-    case ScoreType::Last: query += "last"; break;
-    case ScoreType::Mode: query += "mode"; break;
-    }
-
-    msg["scores"] = scores;
-    msg["query"] = query;
-    webSocket->send(msg);
-    //curlHandle->post("/api/v1/score", Json::writeString(writerBuilder, scores), query);
-  }
-  catch (const runtime_error& e) {
-    cerr << "Exception: " << e.what() << endl;
-  }
-}
-
-/**
  * Processes high scores from the game and uploads them if they've changed.
  * Maintains the last uploaded score to avoid duplicate uploads.
  */
@@ -162,7 +130,7 @@ static void processHighScoresEvent()
   try {
     Json::Value currentScore = game->processHighScores();
     if (currentScore != lastScore) {
-      uploadScores(currentScore, ScoreType::High);
+      game->uploadScores(currentScore, game->ScoreType::High, webSocket.get());
       lastScore = currentScore;
     }
   }
@@ -177,7 +145,7 @@ static void processHighScoresEvent()
 static void processLastGameScoresEvent()
 {
   try {
-    uploadScores(game->processLastGameScores(), ScoreType::Last);
+    game->uploadScores(game->processLastGameScores(), game->ScoreType::Last, webSocket.get());
     playerList.reset();
   }
   catch (const runtime_error& e) {
@@ -400,7 +368,7 @@ int main(int argc, char** argv)
     // Upload and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
-      uploadScores(scores, ScoreType::High);
+      game->uploadScores(scores, game->ScoreType::High, webSocket.get());
       exit(EXIT_SUCCESS);
     }
 
