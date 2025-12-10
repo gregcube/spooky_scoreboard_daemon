@@ -33,7 +33,7 @@ public:
   static std::unique_ptr<GameBase> create(const std::string& gameName);
 
   void setUrl(WebSocketHandler* ws);
-  const std::string getUrl();
+  std::string getUrl() const { return !gameUrl.empty() ? gameUrl : ""; }
 
   enum class ScoreType { High, Last, Mode };
   void uploadScores(const Json::Value& scores, ScoreType type, WebSocketHandler* ws);

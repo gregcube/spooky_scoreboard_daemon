@@ -63,14 +63,7 @@ void GameBase::setUrl(WebSocketHandler* ws)
   });
 }
 
-const std::string GameBase::getUrl()
-{
-  return !gameUrl.empty() ? gameUrl : "";
-}
-
-void GameBase::uploadScores(const Json::Value& scores,
-                            ScoreType type,
-                            WebSocketHandler* ws)
+void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocketHandler* ws)
 {
   if (!ws) return;
 
