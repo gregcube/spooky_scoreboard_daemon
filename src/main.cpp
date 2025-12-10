@@ -322,13 +322,11 @@ int main(int argc, char** argv)
 
   if (run || reg) {
     try {
-      if (run) {
-        loadMachineId();
-        isRunning.store(true);
-      }
+      if (run) loadMachineId();
 
       webSocket = make_shared<WebSocketHandler>(WS_URL);
       webSocket->connect();
+      isRunning.store(true);
     }
     catch (const runtime_error& e) {
       cerr << e.what() << endl;

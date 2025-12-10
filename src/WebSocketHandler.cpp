@@ -26,7 +26,8 @@ using namespace std;
 WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
-  ws.setPingInterval(10);
+  ws.setPingInterval(45);
+  ws.disableAutomaticReconnection();
 
   ix::WebSocketHttpHeaders headers;
   headers["Content-Type"] = "application/json; charset=utf-8";
@@ -37,7 +38,6 @@ WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
   }
 
   ws.setExtraHeaders(headers);
-
   setupCallbacks();
 }
 
@@ -52,7 +52,7 @@ void WebSocketHandler::setupCallbacks()
   ws.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
     switch (msg->type) {
     case ix::WebSocketMessageType::Error:
-      lastError = msg->errorInfo.reason.empty() ? "Connection failed" : msg->errorInfo.reason;
+      lastError = msg->errorInfo.reason.empty() ? "Connection failed." : msg->errorInfo.reason;
       break;
 
     case ix::WebSocketMessageType::Open:
@@ -63,6 +63,7 @@ void WebSocketHandler::setupCallbacks()
     case ix::WebSocketMessageType::Close:
       connected.store(false);
       stopPingThread();
+      if (msg->closeInfo.code == 4001) lastError = "Authentication failed.";
       break;
 
     case ix::WebSocketMessageType::Message: {
@@ -71,8 +72,8 @@ void WebSocketHandler::setupCallbacks()
 
       if (reader.parse(msg->str, response) && validate(response) == 0) {
         string request_id = response["request_id"].asString();
-        lock_guard<mutex> lock(mtx);
 
+        lock_guard<mutex> lock(callbacksMtx);
         auto it = callbacks.find(request_id);
         it->second(response);
         callbacks.erase(it);
@@ -129,7 +130,7 @@ void WebSocketHandler::connect()
 
   if (!connected.load()) {
     string error = lastError.empty() ? "timeout or unknown error." : lastError;
-    throw runtime_error("Websocket failed to connect: " + error);
+    throw runtime_error("Socket failed to connect: " + error);
   }
 }
 
@@ -148,7 +149,7 @@ void WebSocketHandler::send(const Json::Value& msg, Callback callback)
     reqid.resize(36);
     sendmsg["request_id"] = reqid;
 
-    lock_guard<mutex> lock(mtx);
+    lock_guard<mutex> lock(callbacksMtx);
     callbacks[reqid] = callback;
   }
 
@@ -186,7 +187,9 @@ void WebSocketHandler::stopPingThread()
 {
   pingThreadRunning.store(false);
   pingCv.notify_one();
-  if (pingThread.joinable()) pingThread.join();
+  if (pingThread.joinable() && pingThread.get_id() != this_thread::get_id()) {
+    pingThread.join();
+  }
 }
 
 // vim: set ts=2 sw=2 expandtab:

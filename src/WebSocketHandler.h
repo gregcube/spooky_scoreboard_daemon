@@ -40,9 +40,10 @@ private:
 
   std::atomic<bool> connected{false};
   std::atomic<bool> pingThreadRunning{false};
+
   std::thread pingThread;
   std::string lastError;
-  std::mutex mtx, pingMtx;
+  std::mutex callbacksMtx, pingMtx;
   std::map<std::string, Callback> callbacks;
   std::condition_variable pingCv;
 
