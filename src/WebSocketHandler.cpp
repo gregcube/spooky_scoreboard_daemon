@@ -39,12 +39,22 @@ WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
 
   ws.setExtraHeaders(headers);
   setupCallbacks();
+  initDispatchers();
 }
 
 WebSocketHandler::~WebSocketHandler()
 {
   stopPingThread();
   ws.stop();
+}
+
+void WebSocketHandler::initDispatchers()
+{
+  cmdDispatchers["logout"] = [this](const Json::Value& payload) {
+    if (payload.isMember("position")) playerHandler->logout(payload["position"].asInt());
+  };
+
+  // todo: Respond to other server commands.
 }
 
 void WebSocketHandler::setupCallbacks()
@@ -68,24 +78,17 @@ void WebSocketHandler::setupCallbacks()
 
     case ix::WebSocketMessageType::Message: {
       Json::Value json;
-      Json::Reader reader;
+      if (!Json::Reader().parse(msg->str, json)) break;
 
-      if (!reader.parse(msg->str, json)) {
-        cerr << "Failed parsing json from server." << endl;
+      // API response.
+      if (json.isMember("request_id")) {
+        if (validate(json) == 0) processApiResponse(json);
         break;
       }
 
-      if (json.isMember("request_id") && validate(json) == 0) {
-        lock_guard<mutex> lock(callbacksMtx);
-        auto it = callbacks.find(json["request_id"].asString());
-        if (it != callbacks.end()) {
-          it->second(json);
-          callbacks.erase(it);
-        }
-      }
-      // todo: Build something better for handling server-side push messages.
-      else if (json.isMember("uuid") && json["uuid"].asString() == machineId) {
-        playerHandler->logout(json["position"].asInt());
+      // Server command.
+      if (json.isMember("uuid") && json["uuid"].asString() == machineId) {
+        processCmd(json);
       }
       break;
     }
@@ -100,6 +103,28 @@ void WebSocketHandler::setupCallbacks()
       break;
     }
   });
+}
+
+void WebSocketHandler::processApiResponse(const Json::Value& json)
+{
+  lock_guard<mutex> lock(callbacksMtx);
+  auto it = callbacks.find(json["request_id"].asString());
+  if (it != callbacks.end()) {
+    it->second(json);
+    callbacks.erase(it);
+  }
+}
+
+void WebSocketHandler::processCmd(const Json::Value& payload)
+{
+  const string& cmd = payload["cmd"].asString();
+  auto it = cmdDispatchers.find(cmd);
+  if (it != cmdDispatchers.end()) {
+    it->second(payload);
+  }
+  else {
+    cerr << "Unknown command: " << cmd << endl;
+  }
 }
 
 int WebSocketHandler::validate(const Json::Value& response)

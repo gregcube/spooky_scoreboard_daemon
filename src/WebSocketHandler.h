@@ -31,9 +31,6 @@ public:
   void connect();
   void send(const Json::Value& msg, Callback callback = nullptr);
 
-  bool isConnected() const { return connected.load(); }
-  std::string getLastError() const { return lastError; }
-
 private:
   std::string baseUri;
   ix::WebSocket ws;
@@ -46,10 +43,14 @@ private:
   std::mutex callbacksMtx, pingMtx;
   std::map<std::string, Callback> callbacks;
   std::condition_variable pingCv;
+  std::unordered_map<std::string, Callback> cmdDispatchers;
 
   void setupCallbacks();
   void startPingThread();
   void stopPingThread();
+  void initDispatchers();
+  void processApiResponse(const Json::Value& json);
+  void processCmd(const Json::Value& payload);
   int validate(const Json::Value& response);
 };
 

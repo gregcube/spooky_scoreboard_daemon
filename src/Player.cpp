@@ -69,6 +69,7 @@ void Player::login(const vector<char>& uuid, int position)
 void Player::logout(int position)
 {
   if (!playerList.player[position - 1].empty()) {
+    cout << "Player " << position << " logging out." << endl;
     playerList.player[position - 1] = "";
     --playerList.numPlayers;
   }

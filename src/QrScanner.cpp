@@ -64,7 +64,7 @@ void QrScanner::scan()
       playerHandler->login(uuid, position);
       uuid.clear();
 
-      std::this_thread::sleep_for(std::chrono::seconds(3));
+      std::this_thread::sleep_for(std::chrono::seconds(1));
     }
   }
 }
