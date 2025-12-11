@@ -58,16 +58,19 @@ void Player::login(const vector<char>& uuid, int position)
   webSocket->send(req, [this, position](const Json::Value& response) {
     Json::Value user_data;
     Json::Reader().parse(response["body"].asString(), user_data);
-    this->add(user_data["message"]["username"].asString(), position);
+    if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
+      playerList.player[position - 1] = user_data["message"]["username"].asString();
+      startPlayerThread(position - 1);
+      ++playerList.numPlayers;
+    }
   });
 }
 
-void Player::add(const string username, int position)
+void Player::logout(int position)
 {
-  if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
-    playerList.player[position - 1] = username;
-    startPlayerThread(position - 1);
-    ++playerList.numPlayers;
+  if (!playerList.player[position - 1].empty()) {
+    playerList.player[position - 1] = "";
+    --playerList.numPlayers;
   }
 }
 

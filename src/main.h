@@ -55,5 +55,5 @@ extern std::shared_ptr<WebSocketHandler> webSocket;
 extern std::shared_ptr<Player> playerHandler;
 extern std::string machineId, token;
 
-extern void playerLogin(const std::vector<char>& uuid, int position);
+// vim: set ts=2 sw=2 expandtab:
 

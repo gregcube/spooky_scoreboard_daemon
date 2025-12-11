@@ -67,16 +67,25 @@ void WebSocketHandler::setupCallbacks()
       break;
 
     case ix::WebSocketMessageType::Message: {
-      Json::Value response;
+      Json::Value json;
       Json::Reader reader;
 
-      if (reader.parse(msg->str, response) && validate(response) == 0) {
-        string request_id = response["request_id"].asString();
+      if (!reader.parse(msg->str, json)) {
+        cerr << "Failed parsing json from server." << endl;
+        break;
+      }
 
+      if (json.isMember("request_id") && validate(json) == 0) {
         lock_guard<mutex> lock(callbacksMtx);
-        auto it = callbacks.find(request_id);
-        it->second(response);
-        callbacks.erase(it);
+        auto it = callbacks.find(json["request_id"].asString());
+        if (it != callbacks.end()) {
+          it->second(json);
+          callbacks.erase(it);
+        }
+      }
+      // todo: Build something better for handling server-side push messages.
+      else if (json.isMember("uuid") && json["uuid"].asString() == machineId) {
+        playerHandler->logout(json["position"].asInt());
       }
       break;
     }
