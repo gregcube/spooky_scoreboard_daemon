@@ -24,7 +24,7 @@
 
 #include "GameBase.h"
 #include "QrCode.h"
-#include "WebSocketHandler.h"
+#include "WebSocket.h"
 #include "Player.h"
 
 #define MAX_UUID_LEN 36
@@ -51,7 +51,7 @@ extern players playerList;
 extern std::atomic<bool> isRunning;
 extern std::unique_ptr<GameBase> game;
 extern std::unique_ptr<QrCode> qrCode;
-extern std::shared_ptr<WebSocketHandler> webSocket;
+extern std::shared_ptr<WebSocket> webSocket;
 extern std::shared_ptr<Player> playerHandler;
 extern std::string machineId, token;
 

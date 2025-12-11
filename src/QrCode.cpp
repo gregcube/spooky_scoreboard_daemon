@@ -25,7 +25,7 @@
 
 using namespace std;
 
-QrCode::QrCode(const shared_ptr<WebSocketHandler>& ws) :
+QrCode::QrCode(const shared_ptr<WebSocket>& ws) :
   webSocket(ws),
   qrCodePath(game->getTmpPath() + "/qrcode.xpm") {}
 

@@ -17,17 +17,17 @@
 
 #pragma once
 
-#include "WebSocketHandler.h"
+#include "WebSocket.h"
 
 class Player {
 public:
-  Player(const std::shared_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
+  Player(const std::shared_ptr<WebSocket>& ws) : webSocket(ws) {};
 
   void login(const std::vector<char>& uuid, int position);
   void logout(int position);
 
 private:
-  std::shared_ptr<WebSocketHandler> webSocket;
+  std::shared_ptr<WebSocket> webSocket;
   std::vector<bool> playerThread = std::vector<bool>(4, false);
   std::mutex mtx;
 

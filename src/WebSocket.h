@@ -20,13 +20,13 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <json/json.h>
 
-class WebSocketHandler
+class WebSocket
 {
 public:
   typedef std::function<void(const Json::Value&)> Callback;
 
-  WebSocketHandler(const std::string& uri);
-  ~WebSocketHandler();
+  WebSocket(const std::string& uri);
+  ~WebSocket();
 
   void connect();
   void send(const Json::Value& msg, Callback callback = nullptr);

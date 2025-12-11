@@ -28,7 +28,7 @@
 
 #include "main.h"
 #include "x11.h"
-#include "RegistrationHandler.h"
+#include "Register.h"
 #include "QrScanner.h"
 #include "version.h"
 
@@ -42,7 +42,7 @@ unique_ptr<GameBase> game = nullptr;
 unique_ptr<QrScanner> qrScanner = nullptr;
 unique_ptr<QrCode> qrCode = nullptr;
 
-shared_ptr<WebSocketHandler> webSocket = nullptr;
+shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
 string machineId, token;
@@ -324,7 +324,7 @@ int main(int argc, char** argv)
     try {
       if (run) loadMachineId();
 
-      webSocket = make_shared<WebSocketHandler>(WS_URL);
+      webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();
       isRunning.store(true);
     }
@@ -340,7 +340,7 @@ int main(int argc, char** argv)
 
   if (reg) {
     cout << "Registering machine..." << endl;
-    make_unique<RegistrationHandler>(webSocket)->registerMachine(regCode);
+    make_unique<Register>(webSocket)->registerMachine(regCode);
     exit(EXIT_SUCCESS);
   }
 

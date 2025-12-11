@@ -24,8 +24,8 @@ add_executable(ssbd
   src/QrCode.cpp
   src/QrScanner.cpp
   src/GameBase.cpp
-  src/WebSocketHandler.cpp
-  src/RegistrationHandler.cpp
+  src/WebSocket.cpp
+  src/Register.cpp
   src/Player.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}

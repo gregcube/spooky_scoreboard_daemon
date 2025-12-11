@@ -23,7 +23,7 @@
 #include <X11/Xlib.h>
 #include <json/json.h>
 
-#include "WebSocketHandler.h"
+#include "WebSocket.h"
 
 class GameBase
 {
@@ -32,11 +32,11 @@ public:
 
   static std::unique_ptr<GameBase> create(const std::string& gameName);
 
-  void setUrl(WebSocketHandler* ws);
+  void setUrl(WebSocket* ws);
   std::string getUrl() const { return !gameUrl.empty() ? gameUrl : ""; }
 
   enum class ScoreType { High, Last, Mode };
-  void uploadScores(const Json::Value& scores, ScoreType type, WebSocketHandler* ws);
+  void uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws);
 
   virtual uint32_t getGamesPlayed() = 0;
 

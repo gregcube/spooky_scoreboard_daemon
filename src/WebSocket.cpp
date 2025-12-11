@@ -19,11 +19,11 @@
 #include <uuid/uuid.h>
 
 #include "main.h"
-#include "WebSocketHandler.h"
+#include "WebSocket.h"
 
 using namespace std;
 
-WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
+WebSocket::WebSocket(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
   ws.setPingInterval(45);
@@ -42,13 +42,13 @@ WebSocketHandler::WebSocketHandler(const string& uri) : baseUri(uri)
   initDispatchers();
 }
 
-WebSocketHandler::~WebSocketHandler()
+WebSocket::~WebSocket()
 {
   stopPingThread();
   ws.stop();
 }
 
-void WebSocketHandler::initDispatchers()
+void WebSocket::initDispatchers()
 {
   cmdDispatchers["logout"] = [this](const Json::Value& payload) {
     if (payload.isMember("position")) playerHandler->logout(payload["position"].asInt());
@@ -57,7 +57,7 @@ void WebSocketHandler::initDispatchers()
   // todo: Respond to other server commands.
 }
 
-void WebSocketHandler::setupCallbacks()
+void WebSocket::setupCallbacks()
 {
   ws.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
     switch (msg->type) {
@@ -105,7 +105,7 @@ void WebSocketHandler::setupCallbacks()
   });
 }
 
-void WebSocketHandler::processApiResponse(const Json::Value& json)
+void WebSocket::processApiResponse(const Json::Value& json)
 {
   lock_guard<mutex> lock(callbacksMtx);
   auto it = callbacks.find(json["request_id"].asString());
@@ -115,7 +115,7 @@ void WebSocketHandler::processApiResponse(const Json::Value& json)
   }
 }
 
-void WebSocketHandler::processCmd(const Json::Value& payload)
+void WebSocket::processCmd(const Json::Value& payload)
 {
   const string& cmd = payload["cmd"].asString();
   auto it = cmdDispatchers.find(cmd);
@@ -127,7 +127,7 @@ void WebSocketHandler::processCmd(const Json::Value& payload)
   }
 }
 
-int WebSocketHandler::validate(const Json::Value& response)
+int WebSocket::validate(const Json::Value& response)
 {
   int rc = response["status"].asInt();
   if (rc != 200) {
@@ -149,7 +149,7 @@ int WebSocketHandler::validate(const Json::Value& response)
   return 0;
 }
 
-void WebSocketHandler::connect()
+void WebSocket::connect()
 {
   connected.store(false);
   lastError.clear();
@@ -168,7 +168,7 @@ void WebSocketHandler::connect()
   }
 }
 
-void WebSocketHandler::send(const Json::Value& msg, Callback callback)
+void WebSocket::send(const Json::Value& msg, Callback callback)
 {
   if (!connected.load()) return;
 
@@ -192,7 +192,7 @@ void WebSocketHandler::send(const Json::Value& msg, Callback callback)
   ws.send(Json::writeString(writerBuilder, sendmsg));
 }
 
-void WebSocketHandler::startPingThread()
+void WebSocket::startPingThread()
 {
   if (pingThreadRunning.exchange(true)) return;
 
@@ -217,7 +217,7 @@ void WebSocketHandler::startPingThread()
   });
 }
 
-void WebSocketHandler::stopPingThread()
+void WebSocket::stopPingThread()
 {
   pingThreadRunning.store(false);
   pingCv.notify_one();

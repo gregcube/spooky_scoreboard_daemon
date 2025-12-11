@@ -47,7 +47,7 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
   return nullptr;
 }
 
-void GameBase::setUrl(WebSocketHandler* ws)
+void GameBase::setUrl(WebSocket* ws)
 {
   if (!ws) return;
 
@@ -63,7 +63,7 @@ void GameBase::setUrl(WebSocketHandler* ws)
   });
 }
 
-void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocketHandler* ws)
+void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws)
 {
   if (!ws) return;
 

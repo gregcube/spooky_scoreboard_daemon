@@ -19,11 +19,11 @@
 #include <fstream>
 #include <json/json.h>
 
-#include "RegistrationHandler.h"
+#include "Register.h"
 
 using namespace std;
 
-void RegistrationHandler::registerMachine(const string& regcode)
+void Register::registerMachine(const string& regcode)
 {
   if (regcode.empty()) return;
 
@@ -39,7 +39,7 @@ void RegistrationHandler::registerMachine(const string& regcode)
   });
 }
 
-void RegistrationHandler::writeConfig(const Json::Value& config)
+void Register::writeConfig(const Json::Value& config)
 {
   ofstream file("/.ssbd.json");
   if (!file.is_open()) {

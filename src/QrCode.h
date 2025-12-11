@@ -29,7 +29,7 @@ public:
   /**
    * @brief Constructs a QrCode object.
    */
-  QrCode(const std::shared_ptr<WebSocketHandler>& ws);
+  QrCode(const std::shared_ptr<WebSocket>& ws);
 
   /**
    * @brief Destructor that deletes the temporary QR code file.
@@ -50,7 +50,7 @@ public:
 
 
 private:
-  const std::shared_ptr<WebSocketHandler> webSocket;
+  const std::shared_ptr<WebSocket> webSocket;
   const std::string qrCodePath;
 
   /**

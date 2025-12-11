@@ -20,18 +20,18 @@
 #include <string>
 #include <json/json.h>
 
-#include "WebSocketHandler.h"
+#include "WebSocket.h"
 
-class RegistrationHandler
+class Register
 {
 public:
-  RegistrationHandler(const std::shared_ptr<WebSocketHandler>& ws) : webSocket(ws) {};
+  Register(const std::shared_ptr<WebSocket>& ws) : webSocket(ws) {};
 
   void registerMachine(const std::string& regcode);
   void writeConfig(const Json::Value& config);
 
 private:
-  const std::shared_ptr<WebSocketHandler> webSocket;
+  const std::shared_ptr<WebSocket> webSocket;
 };
 
 // vim: set ts=2 sw=2 expandtab:
