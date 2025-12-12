@@ -51,7 +51,7 @@ private:
   void initDispatchers();
   void processApiResponse(const Json::Value& json);
   void processCmd(const Json::Value& payload);
-  int validate(const Json::Value& response);
+  int validateApiResponse(const Json::Value& response);
 };
 
 // vim: set ts=2 sw=2 expandtab:

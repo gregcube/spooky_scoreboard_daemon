@@ -28,12 +28,7 @@ public:
 
 private:
   std::shared_ptr<WebSocket> webSocket;
-  std::vector<bool> playerThread = std::vector<bool>(4, false);
-  std::mutex mtx;
-
-  void startPlayerThread(int index);
 };
-
 
 // vim: set ts=2 sw=2 expandtab:
 

@@ -45,7 +45,7 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
-string machineId, token;
+string machineId, token, serverMessage;
 
 /**
  * Performs cleanup of all resources and threads.
@@ -65,7 +65,7 @@ static void cleanup()
   }
 
   // Cleanup X11 resources.
-  closePlayerWindows();
+  closeWindows();
 
   // Reset pointers.
   if (game) game.reset();
@@ -372,7 +372,7 @@ int main(int argc, char** argv)
       // Initialize player windows.
       // Player windows are opened, but remain hidden
       // off screen until a user logs in.
-      openPlayerWindows();
+      openWindows();
 
       // Start main loop and watch for action.
       watch();

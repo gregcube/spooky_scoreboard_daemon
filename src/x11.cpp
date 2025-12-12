@@ -44,10 +44,10 @@
 
 using namespace std;
 
-Window window[4] = {None, None, None, None};
-GC gc[4] = {nullptr, nullptr, nullptr, nullptr};
-XftDraw* xft_draw[4] = {nullptr, nullptr, nullptr, nullptr};
-Pixmap pixmap_buf[4] = {None, None, None, None};
+Window window[5] = {None, None, None, None, None};
+GC gc[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+XftDraw* xft_draw[5] = {nullptr, nullptr, nullptr, nullptr, nullptr};
+Pixmap pixmap_buf[5] = {None, None, None, None, None};
 Pixmap pixmap_qr = None;
 Colormap colormap = None;
 Display* display = nullptr;
@@ -56,7 +56,9 @@ XftFont* xft_std_font = nullptr;
 XftFont* xft_sub_font = nullptr;
 Visual* visual = nullptr;
 XftColor xft_color = {0, 0, 0, 0, 0};
-mutex x11_mutex;
+
+mutex timer_mtx, thread_mtx;
+vector<bool> windowThread = vector<bool>(5, false);
 
 /**
  * Initializes the X11 display connection and set up the display environment.
@@ -99,18 +101,20 @@ static void loadFont(const char* path, const unsigned char* data, size_t size, F
 }
 
 /**
- * Draws the player window content for a specific player.
+ * Draws the content for a specific window.
  *
- * @param index The index of the window/player to draw (0-3)
+ * @param index The index of the window to draw (0-4).
+ *              0-3: player windows
+ *                4: message window
  */
-void drawPlayerWindow(int index)
+void drawWindow(int index)
 {
-  if (index < 0 || index > 3 || window[index] == None) {
+  if (index < 0 || index > 4 || window[index] == None) {
     cerr << "Invalid window index: " << index << endl;
     return;
   }
 
-  if (playerList.player[index].empty()) {
+  if (index < 4 && playerList.player[index].empty()) {
     cerr << "No player logged in at position: " << index << endl;
     return;
   }
@@ -150,17 +154,25 @@ void drawPlayerWindow(int index)
     X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
     (const FcChar8*)Version::FULL, strlen(Version::FULL));
 
-  // Draw "Player <num>" text.
-  string position = "Player " + to_string(index + 1);
-  XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - static_cast<int>(position.length() * 10), 370,
-    (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
+  if (index < 4) {
+    // Draw "Player <num>" text.
+    string position = "Player " + to_string(index + 1);
+    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+      center_x - static_cast<int>(position.length() * 10), 370,
+      (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
 
-  // Draw player's online name.
-  const string& playerName = playerList.player[index];
-  XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-    center_x - static_cast<int>(static_cast<double>(playerName.length()) * 10.5), 410,
-    (const FcChar8*)playerName.c_str(), static_cast<int>(playerName.length()));
+    // Draw player's online name.
+    const string& playerName = playerList.player[index];
+    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+      center_x - static_cast<int>(static_cast<double>(playerName.length()) * 10.5), 410,
+      (const FcChar8*)playerName.c_str(), static_cast<int>(playerName.length()));
+  }
+  else {
+    // Draw server message.
+    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+      center_x - static_cast<int>(serverMessage.length() * 10), 370,
+      (const FcChar8*)serverMessage.c_str(), static_cast<int>(serverMessage.length()));
+  }
 
   // Copy pixmap buffer to the window.
   XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, X11_WIN_WIDTH, X11_WIN_HEIGHT, 0, 0);
@@ -178,8 +190,7 @@ void drawPlayerWindow(int index)
  */
 void runTimer(int secs, int index)
 {
-  if (index < 0 || index > 3 || window[index] == None) {
-    cerr << "Invalid window index in timer: " << index << endl;
+  if (index < 0 || index > 4 || window[index] == None) {
     return;
   }
 
@@ -200,7 +211,7 @@ void runTimer(int secs, int index)
 
       {
         // Aquire lock to ensure thread-safe access to X11 resources.
-        lock_guard<mutex> lock(x11_mutex);
+        lock_guard<mutex> lock(timer_mtx);
 
         // Create a white rectangle area for count down timer.
         XSetForeground(display, gc[index], WhitePixel(display, DefaultScreen(display)));
@@ -218,7 +229,7 @@ void runTimer(int secs, int index)
           0, X11_WIN_HEIGHT - 60, X11_WIN_WIDTH / 2, 60, 0, X11_WIN_HEIGHT - 60);
 
         // Update window.
-        drawPlayerWindow(index);
+        drawWindow(index);
       }
 
       update_time = current_time;
@@ -241,7 +252,7 @@ static void repositionPlayerWindows(int index = -1)
   XWindowAttributes attr;
 
   // Count visible windows including the one about to be shown.
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     if (XGetWindowAttributes(display, window[i], &attr)) {
       if (attr.map_state == IsViewable || i == index) windows_open++;
     }
@@ -252,7 +263,7 @@ static void repositionPlayerWindows(int index = -1)
   int current_x = (w - total_width) / 2;
 
   // Position each open window.
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     if (XGetWindowAttributes(display, window[i], &attr)) {
       if (attr.map_state == IsViewable || i == index) {
         XMoveWindow(display, window[i], current_x, (h - X11_WIN_HEIGHT) / 2);
@@ -263,22 +274,47 @@ static void repositionPlayerWindows(int index = -1)
 }
 
 /**
+ * Run each window in a separate thread.
+ * Each window has its own countdown timer.
+ */
+void startWindowThread(int index)
+{
+  {
+    lock_guard<mutex> lock(thread_mtx);
+
+    if (windowThread[index]) {
+      cout << "Thread running for window: " << index << endl;
+      return;
+    }
+
+    windowThread[index] = true;
+  }
+
+  thread([index]() {
+    showWindow(index);
+    runTimer(TIMER_DEFAULT, index);
+    hideWindow(index);
+    {
+      lock_guard<mutex> lock(thread_mtx);
+      windowThread[index] = false;
+    }
+  }).detach();
+}
+
+/**
  * Show a player window by mapping it and raising it above other windows.
  * Also sends an i3 command for games that require it.
  *
- * @param index The index of the window to show (0-3)
+ * @param index The index of the window to show (0-4)
  */
-void showPlayerWindow(int index)
+void showWindow(int index)
 {
-  if (index < 0 || index > 3 || window[index] == None) {
-    cerr << "Invalid window index in show: " << index << endl;
-    return;
-  }
+  if (index < 0 || index > 4 || window[index] == None) return;
 
-  cout << "Showing player window: " << index + 1 << endl;
+  cout << "Showing window: " << index + 1 << endl;
 
   {
-    lock_guard<mutex> lock(x11_mutex);
+    lock_guard<mutex> lock(timer_mtx);
     XMapWindow(display, window[index]);
     repositionPlayerWindows(index);
     XRaiseWindow(display, window[index]);
@@ -292,19 +328,16 @@ void showPlayerWindow(int index)
 /**
  * Hide a player window by unmapping it from the screen.
  *
- * @param index The index of the window to hide (0-3)
+ * @param index The index of the window to hide (0-4)
  */
-void hidePlayerWindow(int index)
+void hideWindow(int index)
 {
-  if (index < 0 || index > 3 || window[index] == None) {
-    cerr << "Invalid window index in hide: " << index << endl;
-    return;
-  }
+  if (index < 0 || index > 4 || window[index] == None) return;
 
-  cout << "Hiding player window: " << index << endl;
+  cout << "Hiding window: " << index << endl;
 
   {
-    lock_guard<mutex> lock(x11_mutex);
+    lock_guard<mutex> lock(timer_mtx);
     XUnmapWindow(display, window[index]);
     repositionPlayerWindows();
   }
@@ -315,10 +348,10 @@ void hidePlayerWindow(int index)
 /**
  * Closes and cleans up all windows and X11 resources.
  */
-void closePlayerWindows()
+void closeWindows()
 {
   if (display != nullptr) {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       // Hide all windows.
       if (window[i] != None) {
         XUnmapWindow(display, window[i]);
@@ -375,7 +408,7 @@ void closePlayerWindows()
     remove((game->getTmpPath() + "/roboto.ttf").c_str());
 
     // Destroy windows.
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       if (window[i] != None) {
         XDestroyWindow(display, window[i]);
         window[i] = None;
@@ -393,7 +426,7 @@ void closePlayerWindows()
 /**
  * Creates and initializes all player windows.
  */
-void openPlayerWindows()
+void openWindows()
 {
   if (display == nullptr) x11Init();
 
@@ -452,7 +485,7 @@ void openPlayerWindows()
     "black",
     &xft_color);
 
-  // Create all 4 windows.
+  // Create 4 player windows.
   for (int i = 0; i < 4; i++) {
     // Calculate window position to ensure all windows are visible in a row.
     int x = (w - (4 * ww + 30)) / 2 + i * (ww + 10);
@@ -523,6 +556,75 @@ void openPlayerWindows()
     // Force a sync to ensure window creation is complete.
     XSync(display, False);
   }
+
+  // todo: Refactor all this later
+  // Create message window.
+  int x = 0;
+  int y = (h - wh) / 2;
+
+  // Create window.
+  window[4] = XCreateSimpleWindow(
+    display, RootWindow(display, screen),
+    x, y, ww, wh, 0, BlackPixel(display, screen), WhitePixel(display, screen));
+
+  // Set window hints.
+  XSizeHints hints;
+  memset(&hints, 0, sizeof(XSizeHints));
+  hints.flags = PSize | PMinSize | PMaxSize | PPosition;
+  hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
+  hints.height = hints.base_height = hints.min_height = hints.max_height = wh;
+  hints.x = x;
+  hints.y = y;
+  XSetWMNormalHints(display, window[4], &hints);
+
+  // Set window title.
+  XStoreName(display, window[4], string("Spooky Scoreboard Message").c_str());
+
+  // Set window to stay on top when it is mapped to screen.
+  Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+  Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+  XChangeProperty(
+    display,
+    window[4],
+    wm_state,
+    XA_ATOM,
+    32,
+    PropModeReplace,
+    (unsigned char*)&wm_state_above,
+    1);
+
+  // Create graphics context for this window.
+  gc[4] = XCreateGC(display, window[4], 0, NULL);
+  if (!gc[4]) {
+    cerr << "Failed to create GC for window 4" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Setup pixmap buffer for this window.
+  // This will act as a double-buffer for drawing text and QR code.
+  pixmap_buf[4] = XCreatePixmap(display, window[4],
+    X11_WIN_WIDTH, X11_WIN_HEIGHT,
+    DefaultDepth(display, screen));
+
+  if (pixmap_buf[4] == None) {
+    cerr << "Failed to create pixmap buffer window 4" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Create XftDraw for this window.
+  xft_draw[4] = XftDrawCreate(
+    display,
+    pixmap_buf[4],
+    visual,
+    colormap);
+
+  if (!xft_draw[4]) {
+    cerr << "Failed to create XftDraw for pixmap buffer 4" << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Force a sync to ensure window creation is complete.
+  XSync(display, False);
 }
 
 // vim: set ts=2 sw=2 expandtab:

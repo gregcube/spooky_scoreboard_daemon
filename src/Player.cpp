@@ -45,7 +45,7 @@ void Player::login(const vector<char>& uuid, int position)
 
   // Show player window if position is already occupied.
   if (!playerList.player[position - 1].empty()) {
-    startPlayerThread(position - 1);
+    startWindowThread(position - 1);
     return;
   }
 
@@ -60,8 +60,8 @@ void Player::login(const vector<char>& uuid, int position)
     Json::Reader().parse(response["body"].asString(), user_data);
     if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
       playerList.player[position - 1] = user_data["message"]["username"].asString();
-      startPlayerThread(position - 1);
       ++playerList.numPlayers;
+      startWindowThread(position - 1);
     }
   });
 }
@@ -73,35 +73,6 @@ void Player::logout(int position)
     playerList.player[position - 1] = "";
     --playerList.numPlayers;
   }
-}
-
-/**
- * Run each player window/ countdown in a separate thread.
- *
- * @param index Player position index. Should be 0-3.
- */
-void Player::startPlayerThread(int index)
-{
-  {
-    lock_guard<mutex> lock(mtx);
-
-    if (playerThread[index]) {
-      cout << "Thread for player " << index << " is running." << endl;
-      return;
-    }
-
-    playerThread[index] = true;
-  }
-
-  thread([this, index]() {
-    showPlayerWindow(index);
-    runTimer(TIMER_DEFAULT, index);
-    hidePlayerWindow(index);
-    {
-      lock_guard<mutex> lock(mtx);
-      playerThread[index] = false;
-    }
-  }).detach();
 }
 
 // vim: set ts=2 sw=2 expandtab:

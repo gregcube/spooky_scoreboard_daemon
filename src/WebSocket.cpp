@@ -19,6 +19,7 @@
 #include <uuid/uuid.h>
 
 #include "main.h"
+#include "x11.h"
 #include "WebSocket.h"
 
 using namespace std;
@@ -50,8 +51,17 @@ WebSocket::~WebSocket()
 
 void WebSocket::initDispatchers()
 {
+  // Logs the user out.
   cmdDispatchers["logout"] = [this](const Json::Value& payload) {
     if (payload.isMember("position")) playerHandler->logout(payload["position"].asInt());
+  };
+
+  // Displays a message on the screen.
+  cmdDispatchers["message"] = [this](const Json::Value& payload) {
+    if (payload.isMember("message")) {
+      serverMessage = payload["message"].asString();
+      startWindowThread(4);
+    }
   };
 
   // todo: Respond to other server commands.
@@ -82,7 +92,7 @@ void WebSocket::setupCallbacks()
 
       // API response.
       if (json.isMember("request_id")) {
-        if (validate(json) == 0) processApiResponse(json);
+        if (validateApiResponse(json) == 0) processApiResponse(json);
         break;
       }
 
@@ -127,7 +137,7 @@ void WebSocket::processCmd(const Json::Value& payload)
   }
 }
 
-int WebSocket::validate(const Json::Value& response)
+int WebSocket::validateApiResponse(const Json::Value& response)
 {
   int rc = response["status"].asInt();
   if (rc != 200) {
