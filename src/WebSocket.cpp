@@ -20,6 +20,7 @@
 
 #include "main.h"
 #include "x11.h"
+#include "Register.h"
 #include "WebSocket.h"
 
 using namespace std;
@@ -64,7 +65,18 @@ void WebSocket::initDispatchers()
     }
   };
 
+  // Rotate authorization token.
+  cmdDispatchers["token_rotate"] = [this](const Json::Value& payload) {
+    if (payload.isMember("token") && payload.isMember("uuid")) {
+      cout << "Payload = " << payload << endl;
+      // todo: Consider moving token rotation somewhere else.
+      //unique_ptr<Register> registerHandler = make_unique<Register>(webSocket);
+      //registerHandler->writeConfig(payload);
+    }
+  };
+
   // todo: Respond to other server commands.
+  // todo: Sign and verify payload signatures.
 }
 
 void WebSocket::setupCallbacks()
@@ -77,7 +89,6 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
-      startPingThread();
       break;
 
     case ix::WebSocketMessageType::Close:
@@ -202,7 +213,7 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
   ws.send(Json::writeString(writerBuilder, sendmsg));
 }
 
-void WebSocket::startPingThread()
+void WebSocket::startPing()
 {
   if (pingThreadRunning.exchange(true)) return;
 

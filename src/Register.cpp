@@ -30,7 +30,7 @@ void Register::registerMachine(const string& regcode)
   Json::Value msg;
   msg["path"] = "/api/v1/register";
   msg["method"] = "POST";
-  msg["body"] = regcode;
+  msg["body"]["code"] = regcode;
 
   webSocket->send(msg, [this](const Json::Value& response) {
     Json::Value config;

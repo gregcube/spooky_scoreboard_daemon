@@ -28,6 +28,7 @@ public:
   WebSocket(const std::string& uri);
   ~WebSocket();
 
+  void startPing();
   void connect();
   void send(const Json::Value& msg, Callback callback = nullptr);
 
@@ -46,7 +47,6 @@ private:
   std::unordered_map<std::string, Callback> cmdDispatchers;
 
   void setupCallbacks();
-  void startPingThread();
   void stopPingThread();
   void initDispatchers();
   void processApiResponse(const Json::Value& json);

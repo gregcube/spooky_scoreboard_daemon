@@ -374,6 +374,9 @@ int main(int argc, char** argv)
       // off screen until a user logs in.
       openWindows();
 
+      // Start ping thread.
+      webSocket->startPing();
+
       // Start main loop and watch for action.
       watch();
     }
