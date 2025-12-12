@@ -2,5 +2,7 @@
 .build-temp/*
 build/*
 pkg/*
-
 installer-output/
+sample/
+scripts/
+vcpkg_installed/
