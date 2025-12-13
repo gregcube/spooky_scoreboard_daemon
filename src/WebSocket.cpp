@@ -30,23 +30,14 @@ WebSocket::WebSocket(const string& uri) : baseUri(uri)
   ws.setUrl(uri);
   ws.setPingInterval(45);
   ws.disableAutomaticReconnection();
-
-  ix::WebSocketHttpHeaders headers;
-  headers["Content-Type"] = "application/json; charset=utf-8";
-
-  if (!machineId.empty() && !token.empty()) {
-    headers["Authorization"] = "Bearer " + token;
-    headers["X-Machine-Uuid"] = machineId;
-  }
-
-  ws.setExtraHeaders(headers);
+  setHeaders();
   setupCallbacks();
   initDispatchers();
 }
 
 WebSocket::~WebSocket()
 {
-  stopPingThread();
+  stopPing();
   ws.stop();
 }
 
@@ -68,15 +59,46 @@ void WebSocket::initDispatchers()
   // Rotate authorization token.
   cmdDispatchers["token_rotate"] = [this](const Json::Value& payload) {
     if (payload.isMember("token") && payload.isMember("uuid")) {
-      cout << "Payload = " << payload << endl;
-      // todo: Consider moving token rotation somewhere else.
-      //unique_ptr<Register> registerHandler = make_unique<Register>(webSocket);
-      //registerHandler->writeConfig(payload);
+      Json::Value config = payload;
+      config.removeMember("cmd");
+      rotateToken(config);
     }
   };
 
-  // todo: Respond to other server commands.
   // todo: Sign and verify payload signatures.
+}
+
+void WebSocket::setHeaders()
+{
+  ix::WebSocketHttpHeaders headers;
+  headers["Content-Type"] = "application/json; charset=utf-8";
+
+  if (!machineId.empty() && !token.empty()) {
+    headers["Authorization"] = "Bearer " + token;
+    headers["X-Machine-Uuid"] = machineId;
+  }
+
+  ws.setExtraHeaders(headers);
+}
+
+void WebSocket::rotateToken(const Json::Value& config)
+{
+  Register(webSocket).writeConfig(config);
+  thread([this]() {
+    this_thread::sleep_for(chrono::milliseconds(100));
+    reconnect();
+  })
+  .detach();
+}
+
+void WebSocket::reconnect()
+{
+  stopPing();
+  ws.stop();
+  loadMachineId();
+  setHeaders();
+  connect();
+  startPing();
 }
 
 void WebSocket::setupCallbacks()
@@ -93,7 +115,7 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Close:
       connected.store(false);
-      stopPingThread();
+      stopPing();
       if (msg->closeInfo.code == 4001) lastError = "Authentication failed.";
       break;
 
@@ -238,7 +260,7 @@ void WebSocket::startPing()
   });
 }
 
-void WebSocket::stopPingThread()
+void WebSocket::stopPing()
 {
   pingThreadRunning.store(false);
   pingCv.notify_one();

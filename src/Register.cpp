@@ -54,7 +54,6 @@ void Register::writeConfig(const Json::Value& config)
   file.close();
 
   cout << "File /.ssbd.json saved." << endl;
-  cout << "Machine registered." << endl;
 }
 
 // vim: set ts=2 sw=2 expandtab:

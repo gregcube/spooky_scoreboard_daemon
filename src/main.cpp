@@ -79,7 +79,7 @@ static void cleanup()
  * Loads the machine ID and token from the configuration file.
  * The file is expected to be at /.ssbd.json and contain a valid UUID and token.
  */
-static void loadMachineId()
+void loadMachineId()
 {
   ifstream file("/.ssbd.json");
   if (!file.is_open()) {

@@ -28,8 +28,8 @@ public:
   WebSocket(const std::string& uri);
   ~WebSocket();
 
-  void startPing();
   void connect();
+  void startPing();
   void send(const Json::Value& msg, Callback callback = nullptr);
 
 private:
@@ -46,11 +46,14 @@ private:
   std::condition_variable pingCv;
   std::unordered_map<std::string, Callback> cmdDispatchers;
 
+  void reconnect();
   void setupCallbacks();
-  void stopPingThread();
+  void setHeaders();
+  void stopPing();
   void initDispatchers();
   void processApiResponse(const Json::Value& json);
   void processCmd(const Json::Value& payload);
+  void rotateToken(const Json::Value& config);
   int validateApiResponse(const Json::Value& response);
 };
 

@@ -56,5 +56,7 @@ extern std::shared_ptr<Player> playerHandler;
 extern std::string machineId, token;
 extern std::string serverMessage;
 
+void loadMachineId();
+
 // vim: set ts=2 sw=2 expandtab:
 
