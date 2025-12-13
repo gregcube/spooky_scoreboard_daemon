@@ -172,12 +172,6 @@ void WebSocket::processCmd(const Json::Value& payload)
 
 int WebSocket::validateApiResponse(const Json::Value& response)
 {
-  int rc = response["status"].asInt();
-  if (rc != 200) {
-    cerr << "Error: " << rc << endl << response["body"] << endl;
-    return 1;
-  }
-
   string request_id = response["request_id"].asString();
   uuid_t uuid;
 

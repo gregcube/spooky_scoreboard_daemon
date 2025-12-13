@@ -17,28 +17,47 @@
 
 #include <iostream>
 #include <fstream>
+#include <future>
+
 #include <json/json.h>
 
 #include "Register.h"
 #include "Config.h"
 
-using namespace std;
-
-void Register::registerMachine(const string& regcode)
+std::future<void> Register::registerMachine(const std::string& regcode)
 {
-  if (regcode.empty()) return;
+  auto promise = std::make_shared<std::promise<void>>();
+  auto future = promise->get_future();
+
+  if (regcode.empty()) {
+    promise->set_exception(std::make_exception_ptr(std::runtime_error("Missing registration code.")));
+    return future;
+  }
 
   Json::Value msg;
   msg["path"] = "/api/v1/register";
   msg["method"] = "POST";
   msg["body"]["code"] = regcode;
 
-  webSocket->send(msg, [this](const Json::Value& response) {
-    Json::Value config;
-    Json::Reader().parse(response["body"].asString(), config);
-    Config::save(config["message"]);
-    cout << "Machine registered." << endl;
+  webSocket->send(msg, [promise](const Json::Value& response) {
+    try {
+      if (response["status"].asInt() != 200) {
+        throw std::runtime_error("Registration failed.");
+      }
+
+      Json::Value config;
+      Json::Reader().parse(response["body"].asString(), config);
+      Config::save(config["message"]);
+
+      std::cout << "Machine registered." << std::endl;
+      promise->set_value();
+    }
+    catch (const std::exception& e) {
+      promise->set_exception(std::current_exception());
+    }
   });
+
+  return future;
 }
 
 // vim: set ts=2 sw=2 expandtab:

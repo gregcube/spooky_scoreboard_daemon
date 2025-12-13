@@ -309,8 +309,14 @@ int main(int argc, char** argv)
 
   if (reg) {
     cout << "Registering machine..." << endl;
-    make_unique<Register>(webSocket)->registerMachine(regCode);
-    exit(EXIT_SUCCESS);
+    try {
+      Register(webSocket).registerMachine(regCode).get();
+      exit(EXIT_SUCCESS);
+    }
+    catch (const runtime_error& e) {
+      cerr << e.what() << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   if (run && (game = GameBase::create(gameName)) != nullptr) {
