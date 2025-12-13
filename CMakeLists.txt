@@ -27,6 +27,7 @@ add_executable(ssbd
   src/WebSocket.cpp
   src/Register.cpp
   src/Player.cpp
+  src/Config.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}

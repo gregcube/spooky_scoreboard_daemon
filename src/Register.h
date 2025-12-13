@@ -26,9 +26,7 @@ class Register
 {
 public:
   Register(const std::shared_ptr<WebSocket>& ws) : webSocket(ws) {};
-
   void registerMachine(const std::string& regcode);
-  void writeConfig(const Json::Value& config);
 
 private:
   const std::shared_ptr<WebSocket> webSocket;

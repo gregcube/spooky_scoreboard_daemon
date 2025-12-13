@@ -20,7 +20,7 @@
 
 #include "main.h"
 #include "x11.h"
-#include "Register.h"
+#include "Config.h"
 #include "WebSocket.h"
 
 using namespace std;
@@ -73,9 +73,9 @@ void WebSocket::setHeaders()
   ix::WebSocketHttpHeaders headers;
   headers["Content-Type"] = "application/json; charset=utf-8";
 
-  if (!machineId.empty() && !token.empty()) {
-    headers["Authorization"] = "Bearer " + token;
-    headers["X-Machine-Uuid"] = machineId;
+  if (!Config::machineId.empty() && !Config::token.empty()) {
+    headers["Authorization"] = "Bearer " + Config::token;
+    headers["X-Machine-Uuid"] = Config::machineId;
   }
 
   ws.setExtraHeaders(headers);
@@ -83,7 +83,7 @@ void WebSocket::setHeaders()
 
 void WebSocket::rotateToken(const Json::Value& config)
 {
-  Register(webSocket).writeConfig(config);
+  Config::save(config);
   thread([this]() {
     this_thread::sleep_for(chrono::milliseconds(100));
     reconnect();
@@ -95,7 +95,7 @@ void WebSocket::reconnect()
 {
   stopPing();
   ws.stop();
-  loadMachineId();
+  Config::load();
   setHeaders();
   connect();
   startPing();
@@ -130,7 +130,7 @@ void WebSocket::setupCallbacks()
       }
 
       // Server command.
-      if (json.isMember("uuid") && json["uuid"].asString() == machineId) {
+      if (json.isMember("uuid") && json["uuid"].asString() == Config::machineId) {
         processCmd(json);
       }
       break;

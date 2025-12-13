@@ -15,31 +15,23 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <iostream>
-#include <fstream>
+#pragma once
+
+#include <string>
 #include <json/json.h>
 
-#include "Register.h"
-#include "Config.h"
-
-using namespace std;
-
-void Register::registerMachine(const string& regcode)
+class Config
 {
-  if (regcode.empty()) return;
+public:
+  static void load();
+  static void save(const Json::Value& config);
 
-  Json::Value msg;
-  msg["path"] = "/api/v1/register";
-  msg["method"] = "POST";
-  msg["body"]["code"] = regcode;
+  static std::string machineId;
+  static std::string token;
 
-  webSocket->send(msg, [this](const Json::Value& response) {
-    Json::Value config;
-    Json::Reader().parse(response["body"].asString(), config);
-    Config::save(config["message"]);
-    cout << "Machine registered." << endl;
-  });
-}
+private:
+  static constexpr const char* path = "/.ssbd.json";
+};
 
 // vim: set ts=2 sw=2 expandtab:
 

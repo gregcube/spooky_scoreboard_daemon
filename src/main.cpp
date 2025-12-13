@@ -28,6 +28,7 @@
 
 #include "main.h"
 #include "x11.h"
+#include "Config.h"
 #include "Register.h"
 #include "QrScanner.h"
 #include "version.h"
@@ -45,7 +46,7 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
-string machineId, token, serverMessage;
+string serverMessage;
 
 /**
  * Performs cleanup of all resources and threads.
@@ -73,38 +74,6 @@ static void cleanup()
   if (webSocket) webSocket.reset();
 
   cout << "Cleanup complete." << endl;
-}
-
-/**
- * Loads the machine ID and token from the configuration file.
- * The file is expected to be at /.ssbd.json and contain a valid UUID and token.
- */
-void loadMachineId()
-{
-  ifstream file("/.ssbd.json");
-  if (!file.is_open()) {
-    cerr << "Failed to open /.ssbd.json." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  Json::Value root;
-  Json::Reader reader;
-
-  if (reader.parse(file, root) == false) {
-    file.close();
-    cerr << "Failed to parse /.ssbd.json." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  file.close();
-
-  if (root["uuid"].asString().size() != MAX_UUID_LEN) {
-    cerr << "Failed to read machine uuid." << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  token = root["token"].asString();
-  machineId = root["uuid"].asString();
 }
 
 /**
@@ -322,7 +291,7 @@ int main(int argc, char** argv)
 
   if (run || reg) {
     try {
-      if (run) loadMachineId();
+      if (run) Config::load();
 
       webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();

@@ -53,10 +53,7 @@ extern std::unique_ptr<GameBase> game;
 extern std::unique_ptr<QrCode> qrCode;
 extern std::shared_ptr<WebSocket> webSocket;
 extern std::shared_ptr<Player> playerHandler;
-extern std::string machineId, token;
 extern std::string serverMessage;
-
-void loadMachineId();
 
 // vim: set ts=2 sw=2 expandtab:
 
