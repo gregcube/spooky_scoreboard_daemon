@@ -14,6 +14,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 #pragma once
 
 #include <string>
@@ -140,7 +141,6 @@ public:
 
 private:
   std::string gameUrl;
-
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

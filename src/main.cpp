@@ -18,8 +18,6 @@
 #include <cstdint>
 #include <csignal>
 #include <iostream>
-#include <fstream>
-#include <mutex>
 
 #include <unistd.h>
 #include <signal.h>
@@ -71,10 +69,10 @@ static void cleanup()
   // Reset pointers.
   if (game) game.reset();
   if (qrCode) qrCode.reset();
-  if (webSocket) webSocket.reset();
   if (playerHandler) playerHandler.reset();
+  if (webSocket) webSocket.reset();
 
-  cout << "Cleanup complete." << endl;
+  cout << "Done." << endl;
 }
 
 /**

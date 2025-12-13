@@ -17,8 +17,6 @@
 
 #pragma once
 
-#include <memory>
-#include <cstddef>
 #include <future>
 
 #include "main.h"

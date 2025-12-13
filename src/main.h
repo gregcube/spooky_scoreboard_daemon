@@ -20,7 +20,6 @@
 #include <string>
 #include <array>
 #include <atomic>
-#include <vector>
 
 #include "GameBase.h"
 #include "QrCode.h"

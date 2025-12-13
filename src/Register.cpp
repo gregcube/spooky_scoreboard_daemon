@@ -16,9 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
-#include <fstream>
-#include <future>
-
 #include <json/json.h>
 
 #include "Register.h"

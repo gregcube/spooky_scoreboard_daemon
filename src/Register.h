@@ -18,7 +18,7 @@
 #pragma once
 
 #include <string>
-#include <json/json.h>
+#include <future>
 
 #include "WebSocket.h"
 

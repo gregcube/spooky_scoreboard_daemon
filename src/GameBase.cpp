@@ -44,6 +44,7 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
   if (it != gameFactories.end()) {
     return (it->second)();
   }
+
   return nullptr;
 }
 

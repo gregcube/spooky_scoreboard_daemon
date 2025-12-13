@@ -18,7 +18,6 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <cstdio>
 
 #include "main.h"
 #include "QrCode.h"
