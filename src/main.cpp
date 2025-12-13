@@ -72,6 +72,7 @@ static void cleanup()
   if (game) game.reset();
   if (qrCode) qrCode.reset();
   if (webSocket) webSocket.reset();
+  if (playerHandler) playerHandler.reset();
 
   cout << "Cleanup complete." << endl;
 }
@@ -289,10 +290,13 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  atexit(cleanup);
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
+
   if (run || reg) {
     try {
       if (run) Config::load();
-
       webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();
       isRunning.store(true);
@@ -303,20 +307,18 @@ int main(int argc, char** argv)
     }
   }
 
-  atexit(cleanup);
-  signal(SIGINT, signalHandler);
-  signal(SIGTERM, signalHandler);
-
   if (reg) {
     cout << "Registering machine..." << endl;
+
     try {
       Register(webSocket).registerMachine(regCode).get();
-      exit(EXIT_SUCCESS);
     }
     catch (const runtime_error& e) {
       cerr << e.what() << endl;
       exit(EXIT_FAILURE);
     }
+
+    exit(EXIT_SUCCESS);
   }
 
   if (run && (game = GameBase::create(gameName)) != nullptr) {
