@@ -56,10 +56,12 @@ void GameBase::setUrl(WebSocket* ws)
   req["method"] = "GET";
 
   ws->send(req, [this](const Json::Value& response) {
-    Json::Value msg;
-    Json::Reader().parse(response["body"].asString(), msg);
-    size_t len = msg["message"].asString().size();
-    gameUrl = msg["message"].asString().substr(8, len - 8);
+    if (response["status"].asInt() == 200) {
+      Json::Value msg;
+      Json::Reader().parse(response["body"].asString(), msg);
+      size_t len = msg["message"].asString().size();
+      gameUrl = msg["message"].asString().substr(8, len - 8);
+    }
   });
 }
 
@@ -85,7 +87,9 @@ void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocket
     req["body"] = scores;
 
     webSocket->send(req, [this](const Json::Value& response) {
-      //cout << "Scores response = " << response << endl;
+      if (response["status"].asInt() != 200) {
+        cerr << "Failed to upload scores." << endl;
+      }
     });
   }
   catch (const runtime_error& e) {

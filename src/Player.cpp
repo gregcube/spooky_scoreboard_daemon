@@ -56,12 +56,17 @@ void Player::login(const vector<char>& uuid, int position)
   req["body"].append(position);
 
   webSocket->send(req, [this, position](const Json::Value& response) {
-    Json::Value user_data;
-    Json::Reader().parse(response["body"].asString(), user_data);
-    if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
-      playerList.player[position - 1] = user_data["message"]["username"].asString();
-      ++playerList.numPlayers;
-      startWindowThread(position - 1);
+    if (response["status"].asInt() == 200) {
+      if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
+        Json::Value user_data;
+        Json::Reader().parse(response["body"].asString(), user_data);
+        playerList.player[position - 1] = user_data["message"]["username"].asString();
+        ++playerList.numPlayers;
+        startWindowThread(position - 1);
+      }
+    }
+    else {
+      cerr << "Failed to login." << endl;
     }
   });
 }

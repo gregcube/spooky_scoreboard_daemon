@@ -240,8 +240,9 @@ void WebSocket::startPing()
       req["method"] = "POST";
 
       this->send(req, [this](const Json::Value& response) {
-        // todo: Check response for "OK"
-        //std::cout << "Ping: " << response << std::endl;
+        if (response["status"].asInt() != 200) {
+          cerr << "Ping failed." << endl;
+        }
       });
 
       {
