@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <uuid/uuid.h>
 
 #include "Config.h"
 
@@ -45,7 +46,8 @@ void Config::load()
   machineId = root["uuid"].asString();
   token = root["token"].asString();
 
-  if (machineId.size() != 36) {
+  uuid_t uuid;
+  if (machineId.empty() || uuid_parse(machineId.c_str(), uuid) != 0) {
     cerr << "Invalid machine UUID." << endl;
     exit(EXIT_FAILURE);
   }
