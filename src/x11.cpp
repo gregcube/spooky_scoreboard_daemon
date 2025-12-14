@@ -114,10 +114,7 @@ void drawWindow(int index)
     return;
   }
 
-  if (index < 4 && playerList.player[index].empty()) {
-    cerr << "No player logged in at position: " << index << endl;
-    return;
-  }
+  if (index < 4 && playerList.player[index].empty()) return;
 
   int screen = DefaultScreen(display);
   int center_x = X11_WIN_WIDTH / 2;

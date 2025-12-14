@@ -17,7 +17,7 @@
 
 #pragma once
 
-#include <memory>
+class Player; // Forward declaration.
 
 class QrScanner
 {
@@ -28,7 +28,12 @@ public:
    * @param qrdev Pointer to a null-terminated string that specifies
    *              the path to the QR scanner device.
    */
-  QrScanner(const char* qrdev) : qrDevice(qrdev) {};
+  explicit QrScanner(const char* qrdev);
+
+  /**
+   * @brief Deconstructor.
+   */
+  ~QrScanner();
 
   /**
    * @brief Start the QR code scanner.
@@ -40,6 +45,7 @@ public:
    */
   void stop();
 
+private:
   /**
    * @brief Scan and process QR code data.
    *
@@ -48,11 +54,15 @@ public:
    */
   void scan();
 
-private:
-  int ttyQR = -1;
-  int pipes[2] = { -1, -1 };
   const char* qrDevice;
+  int ttyQR = -1;
+
+  std::atomic<bool> run{false};
+  std::mutex mtx;
+  std::condition_variable cv;
+
   std::thread scanThread;
-  bool isStarted(int fd);
 };
+
+// vim: set ts=2 sw=2 expandtab:
 
