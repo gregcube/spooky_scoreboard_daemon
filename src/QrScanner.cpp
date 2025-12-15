@@ -51,10 +51,7 @@ void QrScanner::start()
 void QrScanner::stop()
 {
   if (!run.exchange(false)) return;
-
-  cv.notify_one();
   if (scanThread.joinable()) scanThread.join();
-
   if (ttyQR >= 0) {
     close(ttyQR);
     ttyQR = -1;

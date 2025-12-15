@@ -56,9 +56,6 @@ private:
   int ttyQR = -1;
 
   std::atomic<bool> run{false};
-  std::mutex mtx;
-  std::condition_variable cv;
-
   std::thread scanThread;
 };
 
