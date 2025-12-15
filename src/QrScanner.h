@@ -17,8 +17,6 @@
 
 #pragma once
 
-class Player; // Forward declaration.
-
 class QrScanner
 {
 public:

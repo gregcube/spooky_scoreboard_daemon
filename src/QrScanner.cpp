@@ -26,8 +26,6 @@
 #include "main.h"
 #include "QrScanner.h"
 
-extern std::shared_ptr<Player> playerHandler;
-
 QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev) {}
 
 QrScanner::~QrScanner()
