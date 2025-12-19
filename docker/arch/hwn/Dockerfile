@@ -18,21 +18,14 @@ RUN dnf install -y \
   gcc \
   gcc-c++ \
   make \
-  mpfr \
   mpfr-devel \
   pkgconfig \
-  libffi \
   libffi-devel \
-  libX11 \
   libX11-devel \
-  fontconfig \
   fontconfig-devel \
-  libXft \
   libXft-devel \
-  libXpm \
   libXpm-devel \
   patch \
-  zlib \
   zlib-devel \
   perl \
   perl-IPC-Cmd \
