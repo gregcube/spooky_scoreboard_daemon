@@ -29,7 +29,6 @@ WebSocket::WebSocket(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
   ws.setPingInterval(45);
-  ws.disableAutomaticReconnection();
   setHeaders();
   setupCallbacks();
   initDispatchers();
@@ -83,6 +82,7 @@ void WebSocket::setHeaders()
 
 void WebSocket::rotateToken(const Json::Value& config)
 {
+  cout << "Updating token." << endl;
   Config::save(config);
   thread([this]() {
     this_thread::sleep_for(chrono::milliseconds(100));
