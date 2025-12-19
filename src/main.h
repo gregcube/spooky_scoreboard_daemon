@@ -29,10 +29,8 @@
 #define MAX_UUID_LEN 36
 
 #ifdef DEBUG
-#define BASE_URL "https://ssb.local:8443"
-#define WS_URL "wss://ssb.local:8444"
+#define WS_URL "wss://ssb.local:4444"
 #else
-#define BASE_URL "https://spookyscoreboard.com"
 #define WS_URL "wss://spookyscoreboard.com:4444"
 #endif
 

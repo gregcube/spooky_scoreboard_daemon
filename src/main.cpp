@@ -337,12 +337,11 @@ int main(int argc, char** argv)
       qrScanner = make_unique<QrScanner>("/dev/ttyQR");
       qrScanner->start();
 
-      // Fetch the machine's QR code and URL.
-      // The code and URL are displayed when a user logs in,
+      // Fetch the machine's QR code.
+      // The code is displayed when a user logs in,
       // which redirects to leaderboard page.
       qrCode = make_unique<QrCode>(webSocket);
       qrCode->download().get();
-      game->setUrl(webSocket.get());
 
       // Initialize player windows.
       // Player windows are opened, but remain hidden

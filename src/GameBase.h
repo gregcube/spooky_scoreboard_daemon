@@ -33,9 +33,6 @@ public:
 
   static std::unique_ptr<GameBase> create(const std::string& gameName);
 
-  void setUrl(WebSocket* ws);
-  std::string getUrl() const { return !gameUrl.empty() ? gameUrl : ""; }
-
   enum class ScoreType { High, Last, Mode };
   void uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws);
 
@@ -138,9 +135,6 @@ public:
    * @return An integer status code.
    */
   virtual int sendswaycmd() { return 0; }
-
-private:
-  std::string gameUrl;
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

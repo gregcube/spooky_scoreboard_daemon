@@ -48,24 +48,6 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
   return nullptr;
 }
 
-void GameBase::setUrl(WebSocket* ws)
-{
-  if (!ws) return;
-
-  Json::Value req;
-  req["path"] = "/api/v1/url";
-  req["method"] = "GET";
-
-  ws->send(req, [this](const Json::Value& response) {
-    if (response["status"].asInt() == 200) {
-      Json::Value msg;
-      Json::Reader().parse(response["body"].asString(), msg);
-      size_t len = msg["message"].asString().size();
-      gameUrl = msg["message"].asString().substr(8, len - 8);
-    }
-  });
-}
-
 void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws)
 {
   if (!ws) return;

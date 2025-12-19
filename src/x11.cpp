@@ -136,15 +136,9 @@ void drawWindow(int index)
   XftDrawString8(xft_draw[index], &xft_color, xft_hdr_font,
     center_x - 140, 90, (const FcChar8*)"Scoreboard", 10);
 
-  // Draw machine url.
-  string url = game->getUrl();
-  XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-    center_x - static_cast<int>(static_cast<double>(url.size()) * 5.5), 130,
-    (const FcChar8*)url.c_str(), static_cast<int>(url.size()));
-
   // Copy QR code pixmap to pixmap buffer.
   XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145,
-    (X11_WIN_WIDTH - 145) / 2, (X11_WIN_HEIGHT - 145) / 2);
+    (X11_WIN_WIDTH - 145) / 2, (X11_WIN_HEIGHT - 200) / 2);
 
   // Draw version number in bottom right corner.
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
