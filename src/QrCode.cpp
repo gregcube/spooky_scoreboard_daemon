@@ -18,7 +18,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <filesystem>
+#include <sys/stat.h>
 
 #include "main.h"
 #include "QrCode.h"
@@ -31,7 +31,8 @@ QrCode::QrCode(const shared_ptr<WebSocket>& ws) :
 
 QrCode::~QrCode()
 {
-  if (filesystem::exists(qrCodePath) && remove(qrCodePath.c_str()) != 0) {
+  struct stat buf;
+  if (stat(qrCodePath.c_str(), &buf) == 0 && remove(qrCodePath.c_str()) != 0) {
     cerr << "Failed to delete " << qrCodePath << endl;
   }
 }
