@@ -1,38 +1,42 @@
-# This is the oldest image available.
-# Halloween runs an old, out-dated version of arch for some reason.
-FROM archlinux/archlinux:base-20201020.6556
-
-# Set the ALA mirror for June 1, 2017.
-RUN echo "Server = https://archive.archlinux.org/repos/2017/06/01/\$repo/os/\$arch" > /etc/pacman.d/mirrorlist
-
-# Remove signature checks.
-# Some packages fail verification, likely because they're old.
-RUN sed -i '/^#*SigLevel/s/.*/SigLevel = Never/' /etc/pacman.conf
+# Halloween with the UP computer runs a very old version of archlinux from 2017.
+# The archlinux image from 2017 is no longer available.
+# Build with Fedora 26 for glibc 2.25 and other required, older libraries.
+FROM fedora:26
 
 # Update package database.
-RUN pacman -Syyu --noconfirm
+RUN dnf update -y
 
-# Install build tools and dependencies
-RUN pacman -S --noconfirm \
+# Install build tools and dependencies.
+RUN dnf install -y \
   git \
   curl \
   zip \
   unzip \
   tar \
   cmake \
-  ninja \
+  ninja-build \
   gcc \
+  gcc-c++ \
   make \
   mpfr \
-  pkg-config \
+  mpfr-devel \
+  pkgconfig \
   libffi \
-  libx11 \
+  libffi-devel \
+  libX11 \
+  libX11-devel \
   fontconfig \
-  libxft \
-  libxpm \
+  fontconfig-devel \
+  libXft \
+  libXft-devel \
+  libXpm \
+  libXpm-devel \
   patch \
   zlib \
-  perl
+  zlib-devel \
+  perl \
+  perl-IPC-Cmd \
+  libuuid-devel
 
 # Copy code from the build context.
 COPY . /ssbd
@@ -40,14 +44,8 @@ COPY . /ssbd
 # Prepare vcpkg dependencies.
 RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
-# Patch yaml-cpp.
-# Otherwise we can't link it on arch linux.
-# Likely because it's an older version of cmake.
-RUN cd /ssbd/vcpkg_installed/x64-linux/share/yaml-cpp && patch -p0 < ../../../../docker/arch/hwn/yaml-cpp.patch
-
 # Build spooky scoreboard daemon.
-# Use vcpkg toolchain file to ensure all dependencies are found via vcpkg
-RUN cd /ssbd && mkdir build && cd build && cmake .. -DUSE_VCPKG_CURL=OFF && make && strip ssbd
+RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]
