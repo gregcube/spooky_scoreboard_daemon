@@ -362,6 +362,10 @@ int main(int argc, char** argv)
       cerr << e.what() << endl;
       exit(EXIT_FAILURE);
     }
+    catch (const future_error& e) {
+      cerr << e.what() << endl;
+      exit(EXIT_FAILURE);
+    }
   }
 
   return 0;
