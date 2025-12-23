@@ -29,7 +29,6 @@ public:
   ~WebSocket();
 
   void connect();
-  void startPing();
   void send(const Json::Value& msg, Callback callback = nullptr);
 
 private:
@@ -49,6 +48,7 @@ private:
   void reconnect();
   void setupCallbacks();
   void setHeaders();
+  void startPing();
   void stopPing();
   void initDispatchers();
   void processApiResponse(const Json::Value& json);

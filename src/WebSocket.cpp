@@ -93,12 +93,10 @@ void WebSocket::rotateToken(const Json::Value& config)
 
 void WebSocket::reconnect()
 {
-  stopPing();
   ws.stop();
   Config::load();
   setHeaders();
   connect();
-  startPing();
 }
 
 void WebSocket::setupCallbacks()
@@ -111,6 +109,7 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
+      if (!Config::machineId.empty() && !Config::token.empty()) startPing();
       break;
 
     case ix::WebSocketMessageType::Close:
