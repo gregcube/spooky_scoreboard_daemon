@@ -54,6 +54,7 @@ private:
 
   const char* qrDevice;
   int ttyQR = -1;
+  int wakePipe[2] = {-1, -1};
 
   std::atomic<bool> run{false};
   std::thread scanThread;

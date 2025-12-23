@@ -26,11 +26,17 @@
 #include "main.h"
 #include "QrScanner.h"
 
-QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev) {}
+QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev) {
+  if (pipe(wakePipe) == -1) {
+    throw std::runtime_error("Failed to create wake pipe.");
+  }
+}
 
 QrScanner::~QrScanner()
 {
   stop();
+  if (wakePipe[0] >= 0) close(wakePipe[0]);
+  if (wakePipe[1] >= 0) close(wakePipe[1]);
 }
 
 void QrScanner::start()
@@ -40,9 +46,6 @@ void QrScanner::start()
     throw std::runtime_error("Cannot open QR scanner.");
   }
 
-  int flags = fcntl(ttyQR, F_GETFL, 0);
-  fcntl(ttyQR, F_SETFL, flags | O_NONBLOCK);
-
   run = true;
   scanThread = std::thread(&QrScanner::scan, this);
   std::cout << "QR scanner started." << std::endl;
@@ -51,6 +54,7 @@ void QrScanner::start()
 void QrScanner::stop()
 {
   if (!run.exchange(false)) return;
+  if (wakePipe[1] >= 0) write(wakePipe[1], "", 1);
   if (scanThread.joinable()) scanThread.join();
   if (ttyQR >= 0) {
     close(ttyQR);
@@ -66,27 +70,27 @@ void QrScanner::scan()
     fd_set readfds;
     FD_ZERO(&readfds);
     FD_SET(ttyQR, &readfds);
+    FD_SET(wakePipe[0], &readfds);
 
-    timeval timeout{1, 0};
-    int rc = select(ttyQR + 1, &readfds, nullptr, nullptr, &timeout);
+    int rc = select(std::max(ttyQR, wakePipe[0]) + 1, &readfds, nullptr, nullptr, nullptr);
+    if (rc < 0) break;
 
-    if (rc <= 0) continue;
+    // Break loop if wakePipe[1] is written to.
+    if (FD_ISSET(wakePipe[0], &readfds)) break;
+
+    // Data not ready on QR device, loop to next select.
     if (!FD_ISSET(ttyQR, &readfds)) continue;
 
+    // Read QR data.
+    memset(buf, 0, sizeof(buf));
     ssize_t n = read(ttyQR, buf, sizeof(buf));
-    if (n != sizeof(buf)) {
-      // Clear partial read.
-      char discard[64];
-      while (read(ttyQR, discard, sizeof(discard)) > 0);
-      continue;
-    }
+    if (n < 0 || n != sizeof(buf)) continue;
 
     std::vector<char> uuid(buf, buf + MAX_UUID_LEN);
     int position = buf[MAX_UUID_LEN] - '0';
 
     std::cout << "QR code detected." << std::endl;
     playerHandler->login(uuid, position);
-
     std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 }
