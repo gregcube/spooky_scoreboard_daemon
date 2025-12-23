@@ -48,8 +48,13 @@ future<void> QrCode::download()
 
   webSocket->send(req, [this, promise](const Json::Value& response) {
     if (response["status"].asInt() == 200) {
-      this->write(response["body"].asString());
-      promise->set_value();
+      try {
+        this->write(response["body"].asString());
+        promise->set_value();
+      }
+      catch (const runtime_error& e) {
+        promise->set_exception(make_exception_ptr(e));
+      }
     }
   });
 
