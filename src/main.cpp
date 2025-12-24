@@ -86,7 +86,7 @@ static void processHighScoresEvent()
   try {
     Json::Value currentScore = game->processHighScores();
     if (currentScore != lastScore) {
-      game->uploadScores(currentScore, game->ScoreType::High, webSocket.get());
+      game->uploadScores(currentScore, game->ScoreType::High);
       lastScore = currentScore;
     }
   }
@@ -101,7 +101,7 @@ static void processHighScoresEvent()
 static void processLastGameScoresEvent()
 {
   try {
-    game->uploadScores(game->processLastGameScores(), game->ScoreType::Last, webSocket.get());
+    game->uploadScores(game->processLastGameScores(), game->ScoreType::Last);
     playerList.reset();
   }
   catch (const runtime_error& e) {
@@ -325,7 +325,7 @@ int main(int argc, char** argv)
     // Upload and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
-      game->uploadScores(scores, game->ScoreType::High, webSocket.get());
+      game->uploadScores(scores, game->ScoreType::High);
       exit(EXIT_SUCCESS);
     }
 

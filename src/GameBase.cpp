@@ -48,10 +48,8 @@ std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)
   return nullptr;
 }
 
-void GameBase::uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws)
+void GameBase::uploadScores(const Json::Value& scores, ScoreType type)
 {
-  if (!ws) return;
-
   cout << "Uploading scores..." << endl;
 
   try {

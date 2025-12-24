@@ -34,7 +34,7 @@ public:
   static std::unique_ptr<GameBase> create(const std::string& gameName);
 
   enum class ScoreType { High, Last, Mode };
-  void uploadScores(const Json::Value& scores, ScoreType type, WebSocket* ws);
+  void uploadScores(const Json::Value& scores, ScoreType type);
 
   virtual uint32_t getGamesPlayed() = 0;
 
