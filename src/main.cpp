@@ -302,6 +302,7 @@ int main(int argc, char** argv)
       game = GameBase::create(gameName);
       if (!game) throw runtime_error("Failed to load game.");
       cout << game->getGameName() << " v" << Version::FULL << endl;
+      if (run) Config::load();
 
       webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();
@@ -327,8 +328,6 @@ int main(int argc, char** argv)
   }
 
   if (run && !reg) {
-    Config::load();
-
     // Upload and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
