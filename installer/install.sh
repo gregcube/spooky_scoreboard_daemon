@@ -123,15 +123,7 @@ uninstall() {
   rm -f /mnt/rootfs/etc/systemd/system/ssbd.service || true
   rm -f /mnt/rootfs/etc/systemd/network/ssbd.network || true
   rm -f /mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules || true
-
-  case "$game" in
-    hwn|tcm|ed)
-      rm -f /mnt/gamefs/.ssbd.json || true
-      ;;
-    tna)
-      rm -f /mnt/gamefs/.ssbd.json || true
-      ;;
-  esac
+  rm -f /mnt/gamefs/.ssbd.json || true
 
   echo "Completed."
 }
