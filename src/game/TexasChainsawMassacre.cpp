@@ -28,7 +28,7 @@
 
 const Json::Value TexasChainsawMassacre::processHighScores()
 {
-  std::ifstream ifs((gamePath + "/" + highScoresFile).c_str());
+  std::ifstream ifs((scoresPath + "/" + highScoresFile).c_str());
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to process highscores");
   }
@@ -62,7 +62,7 @@ const Json::Value TexasChainsawMassacre::processHighScores()
 
 const Json::Value TexasChainsawMassacre::processLastGameScores()
 {
-  std::ifstream ifs((gamePath + "/" + lastScoresFile).c_str());
+  std::ifstream ifs((scoresPath + "/" + lastScoresFile).c_str());
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to process last game scores");
   }

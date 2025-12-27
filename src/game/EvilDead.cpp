@@ -28,7 +28,7 @@
 
 const Json::Value EvilDead::processHighScores()
 {
-  std::ifstream ifs((gamePath + "/" + highScoresFile).c_str());
+  std::ifstream ifs((scoresPath + "/" + highScoresFile).c_str());
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to open highscores file.");
   }
@@ -70,7 +70,7 @@ const Json::Value EvilDead::processHighScores()
 
 const Json::Value EvilDead::processLastGameScores()
 {
-  std::ifstream ifs((gamePath + "/" + lastScoresFile).c_str());
+  std::ifstream ifs((scoresPath + "/" + lastScoresFile).c_str());
   if (!ifs.is_open()) {
     throw std::runtime_error("Failed to open last game scores file.");
   }

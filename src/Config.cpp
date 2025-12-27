@@ -19,6 +19,7 @@
 #include <fstream>
 #include <uuid/uuid.h>
 
+#include "main.h"
 #include "Config.h"
 
 using namespace std;
@@ -28,6 +29,8 @@ string Config::token;
 
 void Config::load()
 {
+  string path = game->getGamePath() + "/" + configFile;
+
   ifstream file(path);
   if (!file.is_open()) {
     cerr << "Failed to open " << path << endl;
@@ -55,6 +58,8 @@ void Config::load()
 
 void Config::save(const Json::Value& config)
 {
+  string path = game->getGamePath() + "/" + configFile;
+
   ofstream file(path);
   if (!file.is_open()) {
     cerr << "Failed to write " << path << endl;

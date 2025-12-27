@@ -282,22 +282,29 @@ int main(int argc, char** argv)
     }
   }
 
-  if (run && reg) {
-    cerr << "Cannot use -r and -g together" << endl;
-    printUsage();
-    return 1;
-  }
-
   atexit(cleanup);
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  if (run || reg) {
+  // If we're registering a machine, the game must be specified, too.
+  // We need to know where to write the ssbd.json config file, and the rootfs is read-only.
+  // Config can be updated from the server so we need r/w.
+  if (reg && !run) {
+    cerr << "Specify the game you are registering with -g <game>." << endl;
+    exit(EXIT_FAILURE);
+  }
+
+  // Create game pointer.
+  // Create websocket connection.
+  // if we are registering or running.
+  if (reg || run) {
     try {
-      if (run) Config::load();
+      game = GameBase::create(gameName);
+      if (!game) throw runtime_error("Failed to load game.");
+      cout << game->getGameName() << " v" << Version::FULL << endl;
+
       webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();
-      isRunning.store(true);
     }
     catch (const runtime_error& e) {
       cerr << e.what() << endl;
@@ -305,7 +312,7 @@ int main(int argc, char** argv)
     }
   }
 
-  if (reg) {
+  if (reg && run) {
     cout << "Registering machine..." << endl;
 
     try {
@@ -319,8 +326,8 @@ int main(int argc, char** argv)
     exit(EXIT_SUCCESS);
   }
 
-  if (run && (game = GameBase::create(gameName)) != nullptr) {
-    cout << game->getGameName() << endl;
+  if (run && !reg) {
+    Config::load();
 
     // Upload and exit immediately if requested.
     if (upload) {
@@ -330,6 +337,8 @@ int main(int argc, char** argv)
     }
 
     try {
+      isRunning.store(true);
+
       // Instantiate player class.
       playerHandler = make_shared<Player>(webSocket);
 

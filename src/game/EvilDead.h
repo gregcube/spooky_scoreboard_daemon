@@ -23,11 +23,12 @@ class EvilDead: public GameBase
 {
 private:
   inline static const std::string gameName = "Evil Dead";
-  inline static const std::string gamePath = "/game/audits";
+  inline static const std::string gamePath = "/game";
   inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string auditsFile = "_game_audits.json";
+  inline static const std::string scoresPath = "/game/audits";
   inline static const std::string highScoresFile = "highscores.json";
   inline static const std::string lastScoresFile = "lastscores.json";
+  inline static const std::string auditsFile = "_game_audits.json";
 
 public:
   const Json::Value processHighScores() override;

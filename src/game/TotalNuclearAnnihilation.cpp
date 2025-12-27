@@ -23,7 +23,7 @@
 const Json::Value TotalNuclearAnnihilation::processHighScores()
 {
   Json::Value scores;
-  YAML::Node tnaNode = YAML::LoadFile((gamePath + "/" + highScoresFile).c_str());
+  YAML::Node tnaNode = YAML::LoadFile((scoresPath + "/" + highScoresFile).c_str());
   YAML::Node classicScoresNode = tnaNode["ClassicHighScores"];
 
   for (std::size_t i = 0; i < classicScoresNode.size(); i++) {
@@ -42,7 +42,7 @@ const Json::Value TotalNuclearAnnihilation::processHighScores()
 const Json::Value TotalNuclearAnnihilation::processLastGameScores()
 {
   Json::Value scores;
-  YAML::Node lastScoresNode = YAML::LoadFile((gamePath + "/" + lastScoresFile))["LastScoreData"];
+  YAML::Node lastScoresNode = YAML::LoadFile((scoresPath + "/" + lastScoresFile))["LastScoreData"];
   scores.append(lastScoresNode["Player1LastScore"].as<uint32_t>());
   scores.append(lastScoresNode["Player2LastScore"].as<uint32_t>());
   scores.append(lastScoresNode["Player3LastScore"].as<uint32_t>());

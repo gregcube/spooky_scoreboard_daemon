@@ -53,6 +53,7 @@ future<void> QrCode::download()
         promise->set_value();
       }
       catch (const runtime_error& e) {
+        cerr << "Failed to request QR code." << endl;
         promise->set_exception(make_exception_ptr(e));
       }
     }

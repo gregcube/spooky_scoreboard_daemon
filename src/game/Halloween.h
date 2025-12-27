@@ -25,9 +25,10 @@ private:
   inline static const std::string gameName = "Halloween";
   inline static const std::string gamePath = "/game";
   inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string auditsFile = "_game_audits.json";
+  inline static const std::string scoresPath = "/game";
   inline static const std::string highScoresFile = "highscores.config";
   inline static const std::string lastScoresFile = "highscores.config";
+  inline static const std::string auditsFile = "_game_audits.json";
 
 public:
   const Json::Value processHighScores() override;

@@ -30,7 +30,7 @@ public:
   static std::string token;
 
 private:
-  static constexpr const char* path = "/.ssbd.json";
+  static constexpr const char* configFile = ".ssbd.json";
 };
 
 // vim: set ts=2 sw=2 expandtab:
