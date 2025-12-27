@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
+#include <sys/stat.h>
 #include <json/json.h>
 
 #include "main.h"
@@ -193,7 +194,10 @@ static void printUsage()
   cerr << " -g <game> Game name.\n";
   cerr << "           Use -l to list supported games.\n\n";
   cerr << " -r <code> Register pinball machine.\n";
-  cerr << "           Obtain registration code at spookyscoreboard.com.\n\n";
+  cerr << "           Obtain registration code at spookyscoreboard.com.\n";
+  cerr << "           Use with -g <game>.\n\n";
+  cerr << " -o <dir>  Specify path to save configuration file.\n";
+  cerr << "           Use with -r <code>.\n\n";
   cerr << " -u        Upload high scores and exit.\n\n";
   cerr << " -d        Fork to background (daemon mode).\n\n";
   cerr << " -l        List supported games.\n\n";
@@ -226,7 +230,7 @@ int main(int argc, char** argv)
   pid_t pid;
 
   if (argc < 2) {
-    cerr << "Missing parameters: -r <code> or -g <game>" << endl;
+    cerr << "Missing parameters: -r <code> and/or -g <game>" << endl;
     printUsage();
     return 1;
   }
@@ -281,7 +285,8 @@ int main(int argc, char** argv)
       break;
 
     case 'o':
-      configPath = optarg;
+      struct stat st;
+      if (stat(optarg, &st) == 0 && S_ISDIR(st.st_mode)) configPath = optarg;
       break;
     }
   }
@@ -333,7 +338,7 @@ int main(int argc, char** argv)
   }
 
   if (run && !reg) {
-    // Upload and exit immediately if requested.
+    // Upload high scores and exit immediately if requested.
     if (upload) {
       Json::Value scores = game->processHighScores();
       game->uploadScores(scores, game->ScoreType::High);
