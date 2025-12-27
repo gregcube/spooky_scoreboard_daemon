@@ -56,10 +56,8 @@ void Config::load()
   }
 }
 
-void Config::save(const Json::Value& config)
+void Config::save(const Json::Value& config, const string& path)
 {
-  string path = game->getGamePath() + "/" + configFile;
-
   ofstream file(path);
   if (!file.is_open()) {
     cerr << "Failed to write " << path << endl;
@@ -73,6 +71,16 @@ void Config::save(const Json::Value& config)
   file.close();
 
   cout << "Configuration saved." << endl;
+}
+
+void Config::save(const Json::Value& config)
+{
+  save(config, getDefaultPath());
+}
+
+const string Config::getDefaultPath()
+{
+  return game->getGamePath() + "/" + configFile;
 }
 
 // vim: set ts=2 sw=2 expandtab:

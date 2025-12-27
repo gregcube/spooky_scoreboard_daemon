@@ -21,7 +21,7 @@
 #include "Register.h"
 #include "Config.h"
 
-std::future<void> Register::registerMachine(const std::string& regcode)
+std::future<void> Register::registerMachine(const std::string& regcode, const std::string& configPath)
 {
   auto promise = std::make_shared<std::promise<void>>();
   auto future = promise->get_future();
@@ -36,7 +36,7 @@ std::future<void> Register::registerMachine(const std::string& regcode)
   msg["method"] = "POST";
   msg["body"]["code"] = regcode;
 
-  webSocket->send(msg, [promise](const Json::Value& response) {
+  webSocket->send(msg, [promise, configPath](const Json::Value& response) {
     try {
       if (response["status"].asInt() != 200) {
         throw std::runtime_error("Registration failed.");
@@ -44,7 +44,7 @@ std::future<void> Register::registerMachine(const std::string& regcode)
 
       Json::Value config;
       Json::Reader().parse(response["body"].asString(), config);
-      Config::save(config["message"]);
+      Config::save(config["message"], configPath);
 
       std::cout << "Machine registered." << std::endl;
       promise->set_value();

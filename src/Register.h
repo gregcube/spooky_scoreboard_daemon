@@ -26,7 +26,7 @@ class Register
 {
 public:
   Register(const std::shared_ptr<WebSocket>& ws) : webSocket(ws) {};
-  std::future<void> registerMachine(const std::string& regcode);
+  std::future<void> registerMachine(const std::string& regcode, const std::string& configPath);
 
 private:
   const std::shared_ptr<WebSocket> webSocket;

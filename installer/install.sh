@@ -93,7 +93,7 @@ install() {
     err "Invalid code."
   fi
 
-  ./ssbd -r ${code} || err "Failed to register machine."
+  ./ssbd -r ${code} -g ${game} -o /mnt/gamefs/.ssbd.json || err "Failed to register machine."
   echo "Completed."
 }
 
@@ -120,10 +120,18 @@ uninstall() {
   chroot /mnt/rootfs systemctl disable systemd-networkd >/dev/null 2>&1
 
   rm -f /mnt/rootfs/usr/bin/ssbd || true
-  rm -f /mnt/rootfs/.ssbd.json || true
   rm -f /mnt/rootfs/etc/systemd/system/ssbd.service || true
   rm -f /mnt/rootfs/etc/systemd/network/ssbd.network || true
   rm -f /mnt/rootfs/etc/udev/rules.d/99-ttyQR.rules || true
+
+  case "$game" in
+    hwn|tcm|ed)
+      rm -f /mnt/gamefs/.ssbd.json || true
+      ;;
+    tna)
+      rm -f /mnt/gamefs/.ssbd.json || true
+      ;;
+  esac
 
   echo "Completed."
 }
@@ -282,24 +290,27 @@ EOF
 game=$(cut -d ' ' -f1- /proc/cmdline | sed -n 's/.*boot=\([^ ]*\).*/\1/p')
 [[ -z "$game" ]] && err "Invalid selection."
 
-mkdir -p /mnt/rootfs
+mkdir -p /mnt/rootfs /mnt/gamefs
 depends=()
 
 case "$game" in
   hwn)
     label="Halloween"
     rootfs=/dev/mmcblk0p3
+    gamefs=/dev/mmcblk0p4
     dist=arch
     depends+=("https://archive.archlinux.org/packages/l/libxpm/libxpm-3.5.12-2-x86_64.pkg.tar.xz")
     ;;
   tcm)
     label="Texas Chainsaw Massacre"
     rootfs=/dev/mmcblk0p2
+    gamefs=/dev/mmcblk0p3
     dist=debian
     ;;
   ed)
     label="Evil Dead"
     rootfs=/dev/sda3
+    gamefs=/dev/sda4
     dist=debian
     depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
     ;;
@@ -315,6 +326,7 @@ opt=$(<"$tmpfile")
 rm -f "$tmpfile"
 
 mount $rootfs /mnt/rootfs || err "Failed to mount rootfs."
+mount $gamefs /mnt/gamefs || err "Failed to mount gamefs."
 
 # Setup chroot environment
 mount -o bind /dev /mnt/rootfs/dev

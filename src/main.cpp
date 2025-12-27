@@ -222,7 +222,7 @@ static void signalHandler(int signum)
 int main(int argc, char** argv)
 {
   int opt, reg = 0, run = 0, upload = 0;
-  string gameName, regCode;
+  string gameName, regCode, configPath;
   pid_t pid;
 
   if (argc < 2) {
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
   }
 
   for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "r:g:ldhu")) == -1) break;
+    if ((opt = getopt(argc, argv, "r:g:o:ldhu")) == -1) break;
 
     switch (opt) {
     case 'h':
@@ -279,6 +279,10 @@ int main(int argc, char** argv)
 
       if (pid > 0) exit(0);
       break;
+
+    case 'o':
+      configPath = optarg;
+      break;
     }
   }
 
@@ -317,7 +321,8 @@ int main(int argc, char** argv)
     cout << "Registering machine..." << endl;
 
     try {
-      Register(webSocket).registerMachine(regCode).get();
+      if (configPath.empty()) configPath = Config::getDefaultPath();
+      Register(webSocket).registerMachine(regCode, configPath).get();
     }
     catch (const runtime_error& e) {
       cerr << e.what() << endl;

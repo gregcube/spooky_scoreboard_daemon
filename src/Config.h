@@ -24,7 +24,9 @@ class Config
 {
 public:
   static void load();
+  static void save(const Json::Value& config, const std::string& path);
   static void save(const Json::Value& config);
+  static const std::string getDefaultPath();
 
   static std::string machineId;
   static std::string token;
