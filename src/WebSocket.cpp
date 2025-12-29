@@ -22,6 +22,7 @@
 #include "x11.h"
 #include "Config.h"
 #include "WebSocket.h"
+#include "version.h"
 
 using namespace std;
 
@@ -209,6 +210,7 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
   if (!connected.load()) return;
 
   Json::Value sendmsg = msg;
+  sendmsg["version"] = Version::FULL;
 
   if (callback) {
     uuid_t uuid;
