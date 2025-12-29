@@ -16,18 +16,43 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
+
 #include <json/json.h>
+#include <sys/stat.h>
 
 #include "Register.h"
 #include "Config.h"
 
-std::future<void> Register::registerMachine(const std::string& regcode, const std::string& configPath)
+using namespace std;
+
+future<void> Register::registerMachine(const string& regcode, const string& configPath)
 {
-  auto promise = std::make_shared<std::promise<void>>();
+  auto promise = make_shared<std::promise<void>>();
   auto future = promise->get_future();
 
   if (regcode.empty()) {
-    promise->set_exception(std::make_exception_ptr(std::runtime_error("Missing registration code.")));
+    promise->set_exception(make_exception_ptr(runtime_error("Missing registration code.")));
+    return future;
+  }
+
+  if (regcode.size() != 4) {
+    promise->set_exception(make_exception_ptr(runtime_error("Invalid registration code.")));
+    return future;
+  }
+
+  size_t dir_end = configPath.find_last_of('/');
+  if (dir_end == string::npos) {
+    promise->set_exception(make_exception_ptr(runtime_error("Invalid path.")));
+    return future;
+  }
+
+  string dir = configPath.substr(0, dir_end);
+
+  // Halloween is old and std::filesystem isn't available.
+  // Use POSIX C for better compatibility.
+  struct stat st;
+  if (stat(dir.c_str(), &st) != 0 || !S_ISDIR(st.st_mode)) {
+    promise->set_exception(make_exception_ptr(runtime_error("Directory does not exist.")));
     return future;
   }
 
@@ -39,18 +64,18 @@ std::future<void> Register::registerMachine(const std::string& regcode, const st
   webSocket->send(msg, [promise, configPath](const Json::Value& response) {
     try {
       if (response["status"].asInt() != 200) {
-        throw std::runtime_error("Registration failed.");
+        throw runtime_error("Registration failed.");
       }
 
       Json::Value config;
       Json::Reader().parse(response["body"].asString(), config);
       Config::save(config["message"], configPath);
 
-      std::cout << "Machine registered." << std::endl;
+      cout << "Machine registered." << endl;
       promise->set_value();
     }
-    catch (const std::exception& e) {
-      promise->set_exception(std::current_exception());
+    catch (const exception& e) {
+      promise->set_exception(current_exception());
     }
   });
 

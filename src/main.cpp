@@ -22,7 +22,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
-#include <sys/stat.h>
 #include <json/json.h>
 
 #include "main.h"
@@ -285,8 +284,7 @@ int main(int argc, char** argv)
       break;
 
     case 'o':
-      struct stat st;
-      if (stat(optarg, &st) == 0 && S_ISDIR(st.st_mode)) configPath = optarg;
+      configPath = optarg;
       break;
     }
   }
