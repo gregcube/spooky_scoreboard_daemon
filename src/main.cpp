@@ -247,13 +247,8 @@ int main(int argc, char** argv)
       return 0;
 
     case 'r':
-      if (strlen(optarg) == 4) {
-        reg = 1;
-        regCode = optarg;
-      }
-      else {
-        cerr << "Invalid code." << endl;
-      }
+      reg = 1;
+      regCode = optarg;
       break;
 
     case 'g':
@@ -308,7 +303,7 @@ int main(int argc, char** argv)
     try {
       game = GameBase::create(gameName);
       if (!game) throw runtime_error("Failed to load game.");
-      cout << game->getGameName() << " v" << Version::FULL << endl;
+      cout << game->getGameName() << " - SSBd v" << Version::FULL << endl;
       if (run) Config::load();
 
       webSocket = make_shared<WebSocket>(WS_URL);
