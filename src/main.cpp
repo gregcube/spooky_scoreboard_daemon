@@ -304,7 +304,7 @@ int main(int argc, char** argv)
       game = GameBase::create(gameName);
       if (!game) throw runtime_error("Failed to load game.");
       cout << game->getGameName() << " - SSBd v" << Version::FULL << endl;
-      if (run) Config::load();
+      if (run && !reg) Config::load();
 
       webSocket = make_shared<WebSocket>(WS_URL);
       webSocket->connect();
