@@ -20,6 +20,7 @@ cleanup() {
     umount -q /mnt/rootfs/run || true
     umount -q /mnt/rootfs/dev || true
     umount -q /mnt/rootfs || true
+    umount -q /mnt/gamefs || true
   fi
 }
 
@@ -34,16 +35,15 @@ install() {
   echo "Installing for ${label}..."
 
   echo "Setting up network..."
-  [[ "$game" == "ed" ]] && setup_wifi
-  write_ssbd_network "$game"
+  [[ "$iface" == "wlp2s0" ]] && setup_wifi
+  write_ssbd_network "$iface"
   write_resolvconf
-  systemctl enable systemd-networkd >/dev/null 2>&1
-  systemctl start systemd-networkd >/dev/null 2>&1
+  systemctl restart systemd-networkd >/dev/null 2>&1
 
-  [[ -d /etc/wpa_supplicant ]] && {
+  [[ "$iface" == "wlp2s0" ]] && {
     cp -r /etc/wpa_supplicant /mnt/rootfs/etc
-    systemctl enable wpa_supplicant@wlp2s0 >/dev/null 2>&1
-    systemctl start wpa_supplicant@wlp2s0 >/dev/null 2>&1
+    systemctl enable wpa_supplicant@${iface} >/dev/null 2>&1
+    systemctl start wpa_supplicant@${iface} >/dev/null 2>&1
     systemctl restart systemd-networkd >/dev/null 2>&1
   }
 
@@ -76,7 +76,7 @@ install() {
     ed)
       chroot /mnt/rootfs apt-get update >/dev/null 2>&1 || err "Failed to update apt packages"
       chroot /mnt/rootfs apt-get install -y "${depends[@]}" >/dev/null 2>&1 || err "Failed to install packages"
-      chroot /mnt/rootfs systemctl enable wpa_supplicant@wlp2s0
+      chroot /mnt/rootfs systemctl enable wpa_supplicant@${iface}
       ;;
   esac
 
@@ -170,7 +170,7 @@ setup_wifi() {
 
   mkdir -p /etc/wpa_supplicant
 
-  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant-wlp2s0.conf
+  cat <<EOF >/etc/wpa_supplicant/wpa_supplicant-${iface}.conf
 network={
   ssid="$ssid"
   psk="$pass"
@@ -187,18 +187,18 @@ EOF
 
 write_ssbd_network() {
   case "$1" in
-    hwn|tcm) cat <<EOF >/etc/systemd/network/ssbd.network
+    enp1s0) cat <<EOF >/etc/systemd/network/ssbd.network
 [Match]
-Name=enp1s0
+Name=$1
 Type=ether
 
 [Network]
 DHCP=yes
 EOF
     ;;
-    ed) cat <<EOF >/etc/systemd/network/ssbd.network
+    wlp2s0) cat <<EOF >/etc/systemd/network/ssbd.network
 [Match]
-Name=wlp2s0
+Name=$1
 Type=wlan
 
 [Network]
@@ -291,6 +291,7 @@ case "$game" in
     rootfs=/dev/mmcblk0p3
     gamefs=/dev/mmcblk0p4
     dist=arch
+    iface=enp1s0
     depends+=("https://archive.archlinux.org/packages/l/libxpm/libxpm-3.5.12-2-x86_64.pkg.tar.xz")
     ;;
   tcm)
@@ -298,12 +299,14 @@ case "$game" in
     rootfs=/dev/mmcblk0p2
     gamefs=/dev/mmcblk0p3
     dist=debian
+    iface=enp1s0
     ;;
   ed)
     label="Evil Dead"
     rootfs=/dev/sda3
     gamefs=/dev/sda4
     dist=debian
+    iface=wlp2s0
     depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
     ;;
 esac
