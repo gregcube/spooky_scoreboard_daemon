@@ -9,11 +9,10 @@
 set -e
 set -o pipefail
 
-version="0.2.1-1"
+version="0.2.2-1"
 echo "Starting Spooky Scoreboard Installer..."
 
 cleanup() {
-  echo "Cleaning up."
   if mountpoint -q /mnt/rootfs; then
     umount -q /mnt/rootfs/sys || true
     umount -q /mnt/rootfs/proc || true
@@ -70,13 +69,16 @@ install() {
         chroot /mnt/rootfs pacman -U --noconfirm "/${file}" >/dev/null 2>&1 || err "Failed to install ${file}"
         rm "/mnt/rootfs/${file}"
       done
+      # Halloween runs systemd version 232, which is buggy when it comes to reliably
+      # configuring network interfaces. Use dhcpcd instead.
+      chroot /mnt/rootfs systemctl enable dhcpcd@enp1s0.service >/dev/null 2>&1
       ;;
     tcm)
       ;;
     ed)
       chroot /mnt/rootfs apt-get update >/dev/null 2>&1 || err "Failed to update apt packages"
       chroot /mnt/rootfs apt-get install -y "${depends[@]}" >/dev/null 2>&1 || err "Failed to install packages"
-      chroot /mnt/rootfs systemctl enable wpa_supplicant@${iface}
+      chroot /mnt/rootfs systemctl enable wpa_supplicant@${iface} >/dev/null 2>&1
       ;;
   esac
 
@@ -118,6 +120,7 @@ uninstall() {
 
   chroot /mnt/rootfs systemctl disable ssbd >/dev/null 2>&1
   chroot /mnt/rootfs systemctl disable systemd-networkd >/dev/null 2>&1
+  [[ "$game" == "hwn" ]] && chroot /mnt/rootfs systemctl disable dhcpcd@enp1s0.service >/dev/null 2>&1
 
   rm -f /mnt/rootfs/usr/bin/ssbd || true
   rm -f /mnt/rootfs/etc/systemd/system/ssbd.service || true
