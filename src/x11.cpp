@@ -101,6 +101,42 @@ static void loadFont(const char* path, const unsigned char* data, size_t size, F
 }
 
 /**
+ * Create an X11 window.
+ */
+static Window createWindow(int x, int y, int w, int h, const string& title, int scr)
+{
+  Window win = XCreateSimpleWindow(
+    display,
+    RootWindow(display, scr),
+    x, y, w, h, 0, BlackPixel(display, scr), WhitePixel(display, scr));
+
+  XSizeHints hints;
+  memset(&hints, 0, sizeof(XSizeHints));
+  hints.flags = PSize | PMinSize | PMaxSize | PPosition;
+  hints.width = hints.base_width = hints.min_width = hints.max_width = w;
+  hints.height = hints.base_height = hints.min_height = hints.max_height = h;
+  hints.x = x;
+  hints.y = y;
+  XSetWMNormalHints(display, win, &hints);
+
+  XStoreName(display, win, title.c_str());
+
+  Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
+  Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+  XChangeProperty(
+    display,
+    win,
+    wm_state,
+    XA_ATOM,
+    32,
+    PropModeReplace,
+    (unsigned char*)&wm_state_above,
+    1);
+
+  return win;
+}
+
+/**
  * Draws the content for a specific window.
  *
  * @param index The index of the window to draw (0-4).
@@ -477,42 +513,26 @@ void openWindows()
     &xft_color);
 
   // Create 4 player windows.
-  for (int i = 0; i < 4; i++) {
-    // Calculate window position to ensure all windows are visible in a row.
-    int x = (w - (4 * ww + 30)) / 2 + i * (ww + 10);
+  for (int i = 0; i < 5; i++) {
+    int x;
+    string title;
+
+    if (i < 4) {
+      x = (w - (4 * ww + 3 + X11_WIN_GAP)) / 2 + i * (ww + X11_WIN_GAP);
+      title = "Player " + to_string(i + 1);
+    }
+    else {
+      x = (w - ww) / 2;
+      title = "Spooky Scoreboard Message";
+    }
+
     int y = (h - wh) / 2;
 
-    // Create window.
-    window[i] = XCreateSimpleWindow(
-      display,
-      RootWindow(display, screen),
-      x, y, ww, wh, 0, BlackPixel(display, screen), WhitePixel(display, screen));
-
-    // Set window hints.
-    XSizeHints hints;
-    memset(&hints, 0, sizeof(XSizeHints));
-    hints.flags = PSize | PMinSize | PMaxSize | PPosition;
-    hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
-    hints.height = hints.base_height = hints.min_height = hints.max_height = wh;
-    hints.x = x;
-    hints.y = y;
-    XSetWMNormalHints(display, window[i], &hints);
-
-    // Set window title.
-    XStoreName(display, window[i], ("Player " + to_string(i + 1)).c_str());
-
-    // Set window to stay on top when it is mapped to screen.
-    Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
-    Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-    XChangeProperty(
-      display,
-      window[i],
-      wm_state,
-      XA_ATOM,
-      32,
-      PropModeReplace,
-      (unsigned char*)&wm_state_above,
-      1);
+    window[i] = createWindow(x, y, ww, wh, title, screen);
+    if (window[i] == None) {
+      cerr << "Failed to create window " << i << endl;
+      exit(EXIT_FAILURE);
+    }
 
     // Create graphics context for this window.
     gc[i] = XCreateGC(display, window[i], 0, NULL);
@@ -543,75 +563,6 @@ void openWindows()
       cerr << "Failed to create XftDraw for pixmap buffer " << i << endl;
       exit(EXIT_FAILURE);
     }
-
-    // Force a sync to ensure window creation is complete.
-    XSync(display, False);
-  }
-
-  // todo: Refactor all this later
-  // Create message window.
-  int x = 0;
-  int y = (h - wh) / 2;
-
-  // Create window.
-  window[4] = XCreateSimpleWindow(
-    display, RootWindow(display, screen),
-    x, y, ww, wh, 0, BlackPixel(display, screen), WhitePixel(display, screen));
-
-  // Set window hints.
-  XSizeHints hints;
-  memset(&hints, 0, sizeof(XSizeHints));
-  hints.flags = PSize | PMinSize | PMaxSize | PPosition;
-  hints.width = hints.base_width = hints.min_width = hints.max_width = ww;
-  hints.height = hints.base_height = hints.min_height = hints.max_height = wh;
-  hints.x = x;
-  hints.y = y;
-  XSetWMNormalHints(display, window[4], &hints);
-
-  // Set window title.
-  XStoreName(display, window[4], string("Spooky Scoreboard Message").c_str());
-
-  // Set window to stay on top when it is mapped to screen.
-  Atom wm_state = XInternAtom(display, "_NET_WM_STATE", False);
-  Atom wm_state_above = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
-  XChangeProperty(
-    display,
-    window[4],
-    wm_state,
-    XA_ATOM,
-    32,
-    PropModeReplace,
-    (unsigned char*)&wm_state_above,
-    1);
-
-  // Create graphics context for this window.
-  gc[4] = XCreateGC(display, window[4], 0, NULL);
-  if (!gc[4]) {
-    cerr << "Failed to create GC for window 4" << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  // Setup pixmap buffer for this window.
-  // This will act as a double-buffer for drawing text and QR code.
-  pixmap_buf[4] = XCreatePixmap(display, window[4],
-    X11_WIN_WIDTH, X11_WIN_HEIGHT,
-    DefaultDepth(display, screen));
-
-  if (pixmap_buf[4] == None) {
-    cerr << "Failed to create pixmap buffer window 4" << endl;
-    exit(EXIT_FAILURE);
-  }
-
-  // Create XftDraw for this window.
-  xft_draw[4] = XftDrawCreate(
-    display,
-    pixmap_buf[4],
-    visual,
-    colormap);
-
-  if (!xft_draw[4]) {
-    cerr << "Failed to create XftDraw for pixmap buffer 4" << endl;
-    exit(EXIT_FAILURE);
   }
 
   // Force a sync to ensure window creation is complete.
