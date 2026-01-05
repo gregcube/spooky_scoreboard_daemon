@@ -21,24 +21,21 @@
 
 class TotalNuclearAnnihilation: public GameBase
 {
-private:
-  inline static const std::string gameName = "Total Nuclear Annihilation";
-  inline static const std::string tmpPath = "/tna/game/tmp";
-  inline static const std::string gamePath = "/tna/game";
-  inline static const std::string scoresPath = "/tna/game/config";
-  inline static const std::string highScoresFile = "tna.yaml";
-  inline static const std::string lastScoresFile = "tna.yaml";
-  inline static const std::string auditsFile = "tna.yaml";
-
 public:
+  TotalNuclearAnnihilation() : GameBase(
+    "Total Nuclear Annihilation",
+    "/tna/game",
+    "/tna/game/config",
+    "/tna/game/tmp",
+    "tna.yaml",
+    "tna.yaml",
+    "tna.yaml"
+  ) {}
+
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  const std::string& getGameName() override { return gameName; }
-  const std::string& getGamePath() override { return gamePath; }
-  const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return highScoresFile; }
-  const std::string& getLastScoresFile() override { return lastScoresFile; }
 };
+
+// vim: set ts=2 sw=2 expandtab:
+

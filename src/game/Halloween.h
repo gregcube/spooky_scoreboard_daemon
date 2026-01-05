@@ -21,25 +21,21 @@
 
 class Halloween: public GameBase
 {
-private:
-  inline static const std::string gameName = "Halloween";
-  inline static const std::string gamePath = "/game";
-  inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string scoresPath = "/game";
-  inline static const std::string highScoresFile = "highscores.config";
-  inline static const std::string lastScoresFile = "highscores.config";
-  inline static const std::string auditsFile = "_game_audits.json";
-
 public:
+  Halloween() : GameBase(
+    "Halloween",
+    "/game",
+    "/game",
+    "/game/tmp",
+    "highscores.config",
+    "highscores.config",
+    "_game_audits.json"
+  ) {}
+
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  const std::string& getGameName() override { return gameName; }
-  const std::string& getGamePath() override { return gamePath; }
-  const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return highScoresFile; }
-  const std::string& getLastScoresFile() override { return lastScoresFile; }
 };
+
+// vim: set ts=2 sw=2 expandtab:
 

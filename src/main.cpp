@@ -154,7 +154,7 @@ static void watch()
   }
 
   if ((wd = inotify_add_watch(
-    fd, game->getGamePath().c_str(), IN_CLOSE_WRITE)) == -1) {
+    fd, game->getScoresPath().c_str(), IN_CLOSE_WRITE)) == -1) {
 
     cerr << "Failed inotify_add_watch()." << endl;
     exit(EXIT_FAILURE);

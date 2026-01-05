@@ -17,14 +17,25 @@
 
 #pragma once
 
-#include "game/Halloween.h"
+#include "GameBase.h"
 
-class Ultraman: public Halloween
+class Ultraman: public GameBase
 {
-private:
-  inline static const std::string gameName = "Ultraman";
-
 public:
-  const std::string& getGameName() override { return gameName; }
+  Ultraman() : GameBase(
+    "Ultraman",
+    "/game",
+    "/game",
+    "/game/tmp",
+    "highscores.config",
+    "highscores.config",
+    "_game_audits.json"
+  ) {}
+
+  const Json::Value processHighScores() override;
+  const Json::Value processLastGameScores() override;
+  uint32_t getGamesPlayed() override;
 };
+
+// vim: set ts=2 sw=2 expandtab:
 

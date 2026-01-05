@@ -21,26 +21,20 @@
 
 class EvilDead: public GameBase
 {
-private:
-  inline static const std::string gameName = "Evil Dead";
-  inline static const std::string gamePath = "/game";
-  inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string scoresPath = "/game/audits";
-  inline static const std::string highScoresFile = "highscores.json";
-  inline static const std::string lastScoresFile = "lastscores.json";
-  inline static const std::string auditsFile = "_game_audits.json";
-
 public:
+  EvilDead() : GameBase(
+    "Evil Dead",
+    "/game",
+    "/game/audits",
+    "/game/tmp",
+    "highscores.json",
+    "lastscores.json",
+    "_game_audits.json"
+  ) {}
+
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  const std::string& getGameName() override { return gameName; }
-  const std::string& getGamePath() override { return gamePath; }
-  const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return highScoresFile; }
-  const std::string& getLastScoresFile() override { return lastScoresFile; }
 
   /**
    * @brief Overrides the base class method to send sway commands.
@@ -51,3 +45,6 @@ public:
    */
   int sendswaycmd() override;
 };
+
+// vim: set ts=2 sw=2 expandtab:
+

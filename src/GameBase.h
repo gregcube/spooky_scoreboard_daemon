@@ -28,7 +28,32 @@
 
 class GameBase
 {
+protected:
+  const std::string gameName;
+  const std::string gamePath;
+  const std::string scoresPath;
+  const std::string tmpPath;
+  const std::string highScoresFile;
+  const std::string lastScoresFile;
+  const std::string auditsFile;
+
 public:
+  GameBase(
+    const std::string& name,
+    const std::string& gPath,
+    const std::string& sPath,
+    const std::string& tPath,
+    const std::string& hsFile,
+    const std::string& lsFile,
+    const std::string& aFile
+  ) : gameName(name),
+      gamePath(gPath),
+      scoresPath(sPath),
+      tmpPath(tPath),
+      highScoresFile(hsFile),
+      lastScoresFile(lsFile),
+      auditsFile(aFile) {}
+
   virtual ~GameBase() = default;
 
   static std::unique_ptr<GameBase> create(const std::string& gameName);
@@ -61,61 +86,52 @@ public:
   /**
    * @brief Retrieves the game name.
    *
-   * The derived game class must override this function, returning the game name.
-   *
    * @return A constant reference to a string containing the game name.
    */
-  virtual const std::string& getGameName() = 0;
+  const std::string& getGameName() const { return gameName; }
 
   /**
-   * @brief Retrieves a file system path to game data files.
-   *
-   * The derived game class must override this function, returning the file
-   * system path to where game data is stored. This should be a directory where
-   * highscores are saved.
+   * @brief Retrieves a file system path to the main game directory.
    *
    * @return A constant reference to a string containing a file system path.
    */
-  virtual const std::string& getGamePath() = 0;
+  const std::string& getGamePath() const { return gamePath; }
+
+  /**
+   * @brief Retrieves a file system path to where highscores are saved.
+   *
+   * @return A constant reference to a string containing a file system path.
+   */
+  const std::string& getScoresPath() const { return scoresPath; }
 
   /**
    * @brief Retrieves a file system path for temporary files.
    *
-   * The derived game class must override this function, returning the file
-   * system path to a temporary folder.  The games QR code is stored here for
-   * example.
-   *
    * @return A constant reference to a string containing a file system path.
    */
-  virtual const std::string& getTmpPath() = 0;
+  const std::string& getTmpPath() const { return tmpPath; }
 
   /**
    * @brief Retrieves the filename for game audits.
    *
-   * The derived game class must override this function, returning the
-   * filename containing game audits, typically a json or yaml file.
-   *
    * @return A constant reference to a string containing the filename.
    */
-  virtual const std::string& getAuditsFile() = 0;
+  const std::string& getAuditsFile() const { return auditsFile; }
 
   /**
    * @brief Retrieves the highscores filename.
    *
-   * The derived game class must override this function, returning the
-   * highscores filename.
-   *
-   * @return A constant reference to a string containing the filename.
+   * @return A filename containing high scores.
    */
-  virtual const std::string& getHighScoresFile() = 0;
+  const std::string& getHighScoresFile() const { return highScoresFile; }
 
   /**
    * @brief Retrieves the filename where last game scores are stored.
    *
-   * The derived game class must override this function, returning the
-   * last games scores file. Often times it's the same as the high scores file.
+   * @return A filename containing last game scores.
+   *
    */
-  virtual const std::string& getLastScoresFile() = 0;
+  const std::string& getLastScoresFile() const { return lastScoresFile; }
 
   /**
    * @brief Sends an i3 command for the specified window.

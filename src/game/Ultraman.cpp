@@ -23,5 +23,83 @@
 
 #include "game/Ultraman.h"
 
+const Json::Value Ultraman::processHighScores()
+{
+  std::ifstream ifs((scoresPath + "/" + highScoresFile).c_str());
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to process highscores");
+  }
+
+  std::string line;
+  Json::Value scores;
+
+  // Skip the first line.
+  std::getline(ifs, line);
+
+  // There are 6 scores.
+  for (int i = 0; i < 6; i++) {
+    Json::Value score;
+
+    std::getline(ifs, line);
+    score["initials"] = line;
+
+    if (std::getline(ifs, line)) {
+      score["score"] = line;
+    }
+
+    scores.append(score);
+    score.clear();
+  }
+
+  // TODO: Implement mode scores.
+
+  ifs.close();
+  return scores;
+}
+
+const Json::Value Ultraman::processLastGameScores()
+{
+  std::ifstream ifs((scoresPath + "/" + lastScoresFile).c_str());
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to process last game scores");
+  }
+
+  std::string line;
+  Json::Value scores;
+
+  // Skip first 14 lines.
+  for (int i = 0; i < 14 && std::getline(ifs, line); ++i) {}
+
+  // 4 next lines are last player scores.
+  for (int i = 0; i < 4; i++) {
+    std::getline(ifs, line);
+    scores.append(line);
+  }
+
+  ifs.close();
+  return scores;
+}
+
+uint32_t Ultraman::getGamesPlayed()
+{
+  std::ifstream ifs("/game/_game_audits.json");
+
+  if (!ifs.is_open()) {
+    throw std::runtime_error("Failed to open game audits file");
+  }
+
+  Json::Value root;
+  Json::CharReaderBuilder builder;
+  JSONCPP_STRING errs;
+
+  if (!parseFromStream(builder, ifs, &root, &errs)) {
+    ifs.close();
+    throw std::runtime_error("Failed to read audits file");
+  }
+
+  ifs.close();
+  return root["games_played"]["value"].asUInt();
+}
+
 // vim: set ts=2 sw=2 expandtab:
 

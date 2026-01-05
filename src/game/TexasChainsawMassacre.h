@@ -21,26 +21,20 @@
 
 class TexasChainsawMassacre: public GameBase
 {
-private:
-  inline static const std::string gameName = "Texas Chainsaw Massacre";
-  inline static const std::string gamePath = "/game";
-  inline static const std::string tmpPath = "/game/tmp";
-  inline static const std::string scoresPath = "/game/audits";
-  inline static const std::string highScoresFile = "highscores.tcm";
-  inline static const std::string lastScoresFile = "highscores.tcm";
-  inline static const std::string auditsFile = "_game_audits.json";
-
 public:
+  TexasChainsawMassacre() : GameBase(
+    "Texas Chainsaw Massacre",
+    "/game",
+    "/game/audits",
+    "/game/tmp",
+    "highscores.tcm",
+    "highscores.tcm",
+    "_game_audits.json"
+  ) {}
+
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  const std::string& getGameName() override { return gameName; }
-  const std::string& getGamePath() override { return gamePath; }
-  const std::string& getTmpPath() override { return tmpPath; }
-  const std::string& getAuditsFile() override { return auditsFile; }
-  const std::string& getHighScoresFile() override { return highScoresFile; }
-  const std::string& getLastScoresFile() override { return lastScoresFile; }
 
   /**
    * @brief Overrides the base class method to send i3 commands.
@@ -55,3 +49,6 @@ public:
    */
   int sendi3cmd() override;
 };
+
+// vim: set ts=2 sw=2 expandtab:
+
