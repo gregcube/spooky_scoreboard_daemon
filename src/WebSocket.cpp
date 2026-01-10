@@ -235,11 +235,11 @@ void WebSocket::startPing()
   if (pingThreadRunning.exchange(true)) return;
 
   pingThread = std::thread([this]() {
-    while (pingThreadRunning.load() && connected.load()) {
-      Json::Value req;
-      req["path"] = "/api/v1/ping";
-      req["method"] = "POST";
+    Json::Value req;
+    req["path"] = "/api/v1/ping";
+    req["method"] = "POST";
 
+    while (pingThreadRunning.load() && connected.load()) {
       this->send(req, [this](const Json::Value& response) {
         if (response["status"].asInt() != 200) {
           cerr << "Ping failed." << endl;
@@ -260,9 +260,7 @@ void WebSocket::stopPing()
 {
   pingThreadRunning.store(false);
   pingCv.notify_one();
-  if (pingThread.joinable() && pingThread.get_id() != this_thread::get_id()) {
-    pingThread.join();
-  }
+  if (pingThread.joinable() && pingThread.get_id() != this_thread::get_id()) pingThread.join();
 }
 
 // vim: set ts=2 sw=2 expandtab:

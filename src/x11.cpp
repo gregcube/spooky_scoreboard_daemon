@@ -215,12 +215,8 @@ void drawWindow(int index)
  * @param secs Number of seconds to count down
  * @param index The index of the window/player (0-3)
  */
-void runTimer(int secs, int index)
+static void runTimer(int secs, int index)
 {
-  if (index < 0 || index > 4 || window[index] == None) {
-    return;
-  }
-
   struct timeval start_time, current_time, update_time;
   gettimeofday(&start_time, NULL);
   update_time = start_time;
@@ -301,11 +297,51 @@ static void repositionPlayerWindows(int index = -1)
 }
 
 /**
+ * Show a player window by mapping it and raising it above other windows.
+ * Also sends an i3 command for games that require it.
+ *
+ * @param index The index of the window to show (0-4)
+ */
+static void showWindow(int index)
+{
+  cout << "Showing window: " << index << endl;
+
+  {
+    lock_guard<mutex> lock(timer_mtx);
+    XMapWindow(display, window[index]);
+    repositionPlayerWindows(index);
+    XRaiseWindow(display, window[index]);
+  }
+
+  XSync(display, False);
+}
+
+/**
+ * Hide a player window by unmapping it from the screen.
+ *
+ * @param index The index of the window to hide (0-4)
+ */
+static void hideWindow(int index)
+{
+  cout << "Hiding window: " << index << endl;
+
+  {
+    lock_guard<mutex> lock(timer_mtx);
+    XUnmapWindow(display, window[index]);
+    repositionPlayerWindows();
+  }
+
+  XSync(display, False);
+}
+
+/**
  * Run each window in a separate thread.
  * Each window has its own countdown timer.
  */
 void startWindowThread(int index)
 {
+  if (index < 0 || index > 4 || window[index] == None) return;
+
   {
     lock_guard<mutex> lock(thread_mtx);
 
@@ -318,58 +354,16 @@ void startWindowThread(int index)
   }
 
   thread([index]() {
-    showWindow(index);
-    runTimer(TIMER_DEFAULT, index);
-    hideWindow(index);
-    {
-      lock_guard<mutex> lock(thread_mtx);
-      windowThread[index] = false;
+    if (game->sendWindowCommands() == 0) {
+      showWindow(index);
+      runTimer(TIMER_DEFAULT, index);
+      hideWindow(index);
+      {
+        lock_guard<mutex> lock(thread_mtx);
+        windowThread[index] = false;
+      }
     }
   }).detach();
-}
-
-/**
- * Show a player window by mapping it and raising it above other windows.
- * Also sends an i3 command for games that require it.
- *
- * @param index The index of the window to show (0-4)
- */
-void showWindow(int index)
-{
-  if (index < 0 || index > 4 || window[index] == None) return;
-
-  cout << "Showing window: " << index + 1 << endl;
-
-  {
-    lock_guard<mutex> lock(timer_mtx);
-    XMapWindow(display, window[index]);
-    repositionPlayerWindows(index);
-    XRaiseWindow(display, window[index]);
-  }
-
-  XSync(display, False);
-  game->sendi3cmd();
-  game->sendswaycmd();
-}
-
-/**
- * Hide a player window by unmapping it from the screen.
- *
- * @param index The index of the window to hide (0-4)
- */
-void hideWindow(int index)
-{
-  if (index < 0 || index > 4 || window[index] == None) return;
-
-  cout << "Hiding window: " << index << endl;
-
-  {
-    lock_guard<mutex> lock(timer_mtx);
-    XUnmapWindow(display, window[index]);
-    repositionPlayerWindows();
-  }
-
-  XSync(display, False);
 }
 
 /**

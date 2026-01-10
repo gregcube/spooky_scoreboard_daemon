@@ -60,9 +60,19 @@ void Player::login(const vector<char>& uuid, int position)
       if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
         Json::Value user_data;
         Json::Reader().parse(response["body"].asString(), user_data);
-        playerList.player[position - 1] = user_data["message"]["username"].asString();
-        ++playerList.numPlayers;
-        startWindowThread(position - 1);
+
+        if (user_data.isMember("message") &&
+            user_data["message"].isMember("username") &&
+            user_data["message"]["username"].isString()) {
+
+          cout << "Player " << position << " logging in." << endl;
+          playerList.player[position - 1] = user_data["message"]["username"].asString();
+          ++playerList.numPlayers;
+          startWindowThread(position - 1);
+        }
+        else {
+          cerr << "Invalid player login." << std::endl;
+        }
       }
     }
     else {

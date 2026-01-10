@@ -35,15 +35,7 @@ public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  /**
-   * @brief Overrides the base class method to send sway commands.
-   *
-   * @return An integer status code.
-   *
-   * @see GameBase::sendswaycmd
-   */
-  int sendswaycmd() override;
+  int sendWindowCommands() override;
 };
 
 // vim: set ts=2 sw=2 expandtab:

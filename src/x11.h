@@ -23,9 +23,6 @@ void x11Init();
 void drawWindow(int index);
 void openWindows();
 void closeWindows();
-void showWindow(int index);
-void hideWindow(int index);
-void runTimer(int secs, int index);
 void startWindowThread(int index);
 
 // vim: set ts=2 sw=2 expandtab:

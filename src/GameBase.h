@@ -134,23 +134,15 @@ public:
   const std::string& getLastScoresFile() const { return lastScoresFile; }
 
   /**
-   * @brief Sends an i3 command for the specified window.
+   * @brief Sends configuration commands to the game's window manager.
    *
-   * Some games (like TCM) may need to send extra commands if they're
-   * using the i3 window manager.
+   * Subclasses override this to handle game-specific window managers
+   * (e.g. i3 or sway) for tasks like floating windows or setting
+   * focus.
    *
-   * @return An integer status code.
+   * @return 0 on success, negative value on failure.
    */
-  virtual int sendi3cmd() { return 0; }
-
-  /**
-   * @brief Sends a sway command for the specified window.
-   *
-   * Some games (like Evil Dead) use sway to manage Xwayland windows.
-   *
-   * @return An integer status code.
-   */
-  virtual int sendswaycmd() { return 0; }
+  virtual int sendWindowCommands() { return 0; }
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

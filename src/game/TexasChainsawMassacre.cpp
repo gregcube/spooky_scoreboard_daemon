@@ -104,12 +104,12 @@ uint32_t TexasChainsawMassacre::getGamesPlayed()
   return root["games_played"]["value"].asUInt();
 }
 
-int TexasChainsawMassacre::sendi3cmd()
+int TexasChainsawMassacre::sendWindowCommands()
 {
   int sd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sd < 0) {
     std::cerr << "Failed to create socket" << std::endl;
-    return -1;
+    return sd;
   }
 
   struct sockaddr_un addr;
@@ -133,10 +133,10 @@ int TexasChainsawMassacre::sendi3cmd()
 
   std::vector<std::string> cmds = {
     "[title=\"TCM\"] border none",
-    "[title=\"^Player [1-4]$\"] floating enable",
-    "[title=\"^Player [1-4]$\"] sticky enable",
-    "[title=\"^Player [1-4]$\"] border none",
-    "[title=\"^Player [1-4]$\"] focus"
+    "[title=\"^(Player [1-4]|Spooky Scoreboard Message)$\"] floating enable",
+    "[title=\"^(Player [1-4]|Spooky Scoreboard Message)$\"] sticky enable",
+    "[title=\"^(Player [1-4]|Spooky Scoreboard Message)$\"] border none",
+    "[title=\"^(Player [1-4]|Spooky Scoreboard Message)$\"] focus"
   };
 
   for (const auto& cmd : cmds) {

@@ -35,19 +35,7 @@ public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-
-  /**
-   * @brief Overrides the base class method to send i3 commands.
-   *
-   * TCM uses the i3 window manager.
-   * This function sends two commands, focus & floating enable, to ensure
-   * the player login window is displayed on screen.
-   *
-   * @return An integer status code.
-   *
-   * @see GameBase::sendi3cmd
-   */
-  int sendi3cmd() override;
+  int sendWindowCommands() override;
 };
 
 // vim: set ts=2 sw=2 expandtab:
