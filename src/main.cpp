@@ -19,6 +19,7 @@
 #include <csignal>
 #include <iostream>
 
+#include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
 #include <json/json.h>
