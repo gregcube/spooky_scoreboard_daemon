@@ -49,6 +49,12 @@ void Player::login(const vector<char>& uuid, int position)
     return;
   }
 
+  // All spots are occupied.
+  if (playerList.numPlayers == 4) {
+    cerr << "All player spots are occupied." << endl;
+    return;
+  }
+
   Json::Value req;
   req["path"] = "/api/v1/login";
   req["method"] = "POST";
@@ -56,28 +62,27 @@ void Player::login(const vector<char>& uuid, int position)
   req["body"].append(position);
 
   webSocket->send(req, [this, position](const Json::Value& response) {
-    if (response["status"].asInt() == 200) {
-      if (playerList.numPlayers < 4 && position >= 1 && position <= 4) {
-        Json::Value user_data;
-        Json::Reader().parse(response["body"].asString(), user_data);
-
-        if (user_data.isMember("message") &&
-            user_data["message"].isMember("username") &&
-            user_data["message"]["username"].isString()) {
-
-          cout << "Player " << position << " logging in." << endl;
-          playerList.player[position - 1] = user_data["message"]["username"].asString();
-          ++playerList.numPlayers;
-          startWindowThread(position - 1);
-        }
-        else {
-          cerr << "Invalid player login." << std::endl;
-        }
-      }
+    if (response["status"].asInt() != 200) {
+      cerr << "Failed to login player " << position << endl;
+      cerr << "Server returned code " << response["status"].asInt() << endl;
+      return;
     }
-    else {
-      cerr << "Failed to login." << endl;
+
+    Json::Value user_data;
+    Json::Reader().parse(response["body"].asString(), user_data);
+
+    if (!user_data.isMember("message") ||
+        !user_data["message"].isMember("username") ||
+        !user_data["message"]["username"].isString()) {
+
+      cerr << "Invalid login response data for player " << position << endl;
+      return;
     }
+
+    cout << "Player " << position << " logging in" << endl;
+    playerList.player[position - 1] = user_data["message"]["username"].asString();
+    ++playerList.numPlayers;
+    startWindowThread(position - 1);
   });
 }
 
