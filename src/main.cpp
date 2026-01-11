@@ -19,7 +19,6 @@
 #include <csignal>
 #include <iostream>
 
-#include <unistd.h>
 #include <signal.h>
 #include <sys/inotify.h>
 #include <json/json.h>
@@ -44,16 +43,15 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
+// todo: Add Message class/ implement some sort of message queue system.
 string serverMessage;
 
 /**
  * Performs cleanup of all resources and threads.
- * This function is called both on normal exit and when handling signals.
+ * Called both on normal exit and when handling signals.
  */
 static void cleanup()
 {
-  cout << "Exiting." << endl << "Cleaning up..." << endl;
-
   // Signal all threads to stop.
   isRunning.store(false);
 
@@ -71,8 +69,6 @@ static void cleanup()
   if (qrCode) qrCode.reset();
   if (playerHandler) playerHandler.reset();
   if (webSocket) webSocket.reset();
-
-  cout << "Done." << endl;
 }
 
 /**
@@ -141,7 +137,7 @@ static void processEvent(char* buf, ssize_t bytes)
 }
 
 /**
- * Sets up file watching for the game directory.
+ * Sets up file watching to act on certain file changes.
  */
 static void watch()
 {
@@ -174,33 +170,61 @@ static void watch()
   }
 }
 
-/**
- * Prints a list of all supported games to the console.
- */
+static void uploadHighScores()
+{
+  try {
+    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket->connect();
+    Json::Value scores = game->processHighScores();
+    game->uploadScores(scores, game->ScoreType::High);
+  }
+  catch (const runtime_error& e) {
+    cerr << e.what() << endl;
+    exit(EXIT_FAILURE);
+  }
+  exit(EXIT_SUCCESS);
+}
+
+static void registerGame(const string& code, const string& path)
+{
+  try {
+    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket->connect();
+    Register(webSocket).registerMachine(code, path).get();
+  }
+  catch (const runtime_error& e) {
+    cerr << e.what() << endl;
+    exit(EXIT_FAILURE);
+  }
+  exit(EXIT_SUCCESS);
+}
+
 static void printSupportedGames()
 {
+  cout << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n";
   for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
     cout << "  " << it->first << ":\t" << it->second()->getGameName() << "\n";
   }
+  exit(EXIT_SUCCESS);
 }
 
-/**
- * Prints usage information for the program.
- */
-static void printUsage()
+static void printUsage(const char* argv0)
 {
-  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n\n";
-  cerr << " -g <game> Game name.\n";
-  cerr << "           Use -l to list supported games.\n\n";
-  cerr << " -r <code> Register pinball machine.\n";
-  cerr << "           Obtain registration code at spookyscoreboard.com.\n";
-  cerr << "           Use with -g <game>.\n\n";
-  cerr << " -o <dir>  Specify path to save configuration file.\n";
-  cerr << "           Use with -r <code>.\n\n";
-  cerr << " -u        Upload high scores and exit.\n\n";
-  cerr << " -d        Fork to background (daemon mode).\n\n";
-  cerr << " -l        List supported games.\n\n";
-  cerr << " -h        Displays usage.\n" << endl;
+  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n";
+  cerr << "Usage: " << argv0 << " [OPTIONS]" << "\n\n";
+  cerr << "Options:" << endl;
+  cerr << "  -g GAME   Game name\n";
+  cerr << "            Use -l to list supported games\n\n";
+  cerr << "  -r CODE   Register pinball machine\n";
+  cerr << "            Use with -g GAME\n";
+  cerr << "            Obtain registration code at spookyscoreboard.com\n\n";
+  cerr << "  -o PATH   Specify path to save configuration file\n";
+  cerr << "            Use with -r CODE\n\n";
+  cerr << "  -u        Upload high scores and exit\n";
+  cerr << "            Use with -g GAME\n\n";
+  cerr << "  -l        List supported games\n\n";
+  cerr << "  -h        Displays usage\n" << endl;
+  exit(EXIT_SUCCESS);
 }
 
 /**
@@ -215,165 +239,108 @@ static void signalHandler(int signum)
   exit(signum);
 }
 
-/**
- * Main entry point for the Spooky Scoreboard Daemon.
- *
- * @param argc Number of command line arguments
- * @param argv Array of command line arguments
- * @return Exit status code
- */
 int main(int argc, char** argv)
 {
-  int opt, reg = 0, run = 0, upload = 0;
-  string gameName, regCode, configPath;
-  pid_t pid;
+  string reg_code, game_name, config_path;
+  bool upload = false, help = false, list = false;
 
-  if (argc < 2) {
-    cerr << "Missing parameters: -r <code> and/or -g <game>" << endl;
-    printUsage();
-    return 1;
-  }
-
-  for (optind = 1;;) {
-    if ((opt = getopt(argc, argv, "r:g:o:ldhu")) == -1) break;
-
+  int opt;
+  while ((opt = getopt(argc, argv, "hlr:uo:g:")) != -1) {
     switch (opt) {
     case 'h':
-      printUsage();
-      return 0;
-
+      help = true;
+      break;
     case 'l':
-      printSupportedGames();
-      return 0;
-
+      list = true;
+      break;
     case 'r':
-      reg = 1;
-      regCode = optarg;
+      reg_code = optarg;
       break;
-
-    case 'g':
-      if (auto it = gameFactories.find(optarg); it != gameFactories.end()) {
-        run = 1;
-        gameName = optarg;
-      }
-      else {
-        cerr << "Invalid game.\n";
-        printSupportedGames();
-      }
-      break;
-
     case 'u':
-      run = 1;
-      upload = 1;
+      upload = true;
       break;
-
-    case 'd':
-      pid = fork();
-
-      if (pid < 0) {
-        cerr << "Failed to fork" << endl;
-        exit(EXIT_FAILURE);
-      }
-
-      if (pid > 0) exit(0);
-      break;
-
     case 'o':
-      configPath = optarg;
+      config_path = optarg;
+      break;
+    case 'g':
+      game_name = optarg;
       break;
     }
+  }
+
+  if (help) {
+    printUsage(argv[0]);
+  }
+
+  if (list) {
+    printSupportedGames();
   }
 
   atexit(cleanup);
   signal(SIGINT, signalHandler);
   signal(SIGTERM, signalHandler);
 
-  // If we're registering a machine, the game must be specified, too.
-  // We need to know where to write the ssbd.json config file, and the rootfs is read-only.
-  // Config can be updated from the server so we need r/w.
-  if (reg && !run) {
-    cerr << "Specify the game you are registering with -g <game>." << endl;
+  if (game_name.empty()) {
+    printUsage(argv[0]);
+  }
+
+  game = GameBase::create(game_name);
+  if (!game) {
+    cerr << "Invalid game name: " << game_name << endl;
     exit(EXIT_FAILURE);
   }
 
-  // Create game pointer.
-  // Create websocket connection.
-  // if we are registering or running.
-  if (reg || run) {
-    try {
-      game = GameBase::create(gameName);
-      if (!game) throw runtime_error("Failed to load game.");
-      cout << game->getGameName() << " - SSBd v" << Version::FULL << endl;
-      if (run && !reg) Config::load();
+  cout << game->getGameName() << " - SSBd v" << Version::FULL << endl;
 
-      webSocket = make_shared<WebSocket>(WS_URL);
-      webSocket->connect();
-    }
-    catch (const runtime_error& e) {
-      cerr << e.what() << endl;
-      exit(EXIT_FAILURE);
-    }
+  if (!reg_code.empty()) {
+    const string path = config_path.empty() ? Config::getDefaultPath() : config_path;
+    registerGame(reg_code, path);
   }
 
-  if (reg && run) {
-    cout << "Registering machine..." << endl;
+  Config::load();
 
-    try {
-      if (configPath.empty()) configPath = Config::getDefaultPath();
-      Register(webSocket).registerMachine(regCode, configPath).get();
-    }
-    catch (const runtime_error& e) {
-      cerr << e.what() << endl;
-      exit(EXIT_FAILURE);
-    }
-
-    exit(EXIT_SUCCESS);
+  if (upload) {
+    uploadHighScores();
   }
 
-  if (run && !reg) {
-    // Upload high scores and exit immediately if requested.
-    if (upload) {
-      Json::Value scores = game->processHighScores();
-      game->uploadScores(scores, game->ScoreType::High);
-      exit(EXIT_SUCCESS);
-    }
+  try {
+    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket->connect();
 
-    try {
-      isRunning.store(true);
+    isRunning.store(true);
 
-      // Instantiate player class.
-      playerHandler = make_shared<Player>(webSocket);
+    // Instantiate player class.
+    playerHandler = make_shared<Player>(webSocket);
 
-      // Start QR scanner.
-      qrScanner = make_unique<QrScanner>("/dev/ttyQR");
-      qrScanner->start();
+    // Start QR scanner.
+    qrScanner = make_unique<QrScanner>("/dev/ttyQR");
+    qrScanner->start();
 
-      // Fetch the machine's QR code.
-      // The code is displayed when a user logs in,
-      // which redirects to leaderboard page.
-      qrCode = make_unique<QrCode>(webSocket);
-      qrCode->download().get();
+    // Fetch the machine's QR code.
+    // The code is displayed when a user logs in,
+    // which redirects to leaderboard page.
+    qrCode = make_unique<QrCode>(webSocket);
+    qrCode->download().get();
 
-      // Initialize player windows.
-      // Player windows are opened, but remain hidden
-      // off screen until a user logs in.
-      openWindows();
+    // Initialize player windows.
+    // Player windows are opened, but remain hidden
+    // off screen until a user logs in or a message is received.
+    openWindows();
 
-      // Start main loop and watch for action.
-      watch();
-    }
-    catch (const system_error& e) {
-      cerr << e.what() << endl;
-      exit(EXIT_FAILURE);
-    }
-    catch (const runtime_error& e) {
-      cerr << e.what() << endl;
-      exit(EXIT_FAILURE);
-    }
-    catch (const future_error& e) {
-      cerr << e.what() << endl;
-      exit(EXIT_FAILURE);
-    }
+    // Start main loop and watch for action.
+    watch();
+  }
+  catch (const system_error& e) {
+    cerr << e.what() << endl;
+    exit(EXIT_FAILURE);
+  }
+  catch (const runtime_error& e) {
+    cerr << e.what() << endl;
+    exit(EXIT_FAILURE);
+  }
+  catch (const future_error& e) {
+    cerr << e.what() << endl;
+    exit(EXIT_FAILURE);
   }
 
   return 0;
