@@ -354,14 +354,13 @@ void startWindowThread(int index)
   }
 
   thread([index]() {
-    if (game->sendWindowCommands() == 0) {
-      showWindow(index);
-      runTimer(TIMER_DEFAULT, index);
-      hideWindow(index);
-      {
-        lock_guard<mutex> lock(thread_mtx);
-        windowThread[index] = false;
-      }
+    showWindow(index);
+    game->sendWindowCommands();
+    runTimer(TIMER_DEFAULT, index);
+    hideWindow(index);
+    {
+      lock_guard<mutex> lock(thread_mtx);
+      windowThread[index] = false;
     }
   }).detach();
 }
