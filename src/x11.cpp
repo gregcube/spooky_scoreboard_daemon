@@ -42,6 +42,9 @@
 #define X11_WIN_HEIGHT 480
 #define X11_WIN_GAP 10
 
+#define MESSAGE_WIN_WIDTH 700
+#define MESSAGE_WIN_HEIGHT 400
+
 using namespace std;
 
 Window window[5] = {None, None, None, None, None};
@@ -136,6 +139,41 @@ static Window createWindow(int x, int y, int w, int h, const string& title, int 
   return win;
 }
 
+static vector<string> wrapText(const string& text, XftFont* font, int max_pixel_width)
+{
+  vector<string> lines;
+  if (text.empty()) return lines;
+
+  istringstream stream(text);
+  string word, current;
+
+  while (stream >> word) {
+    string test = current.empty() ? word : current + " " + word;
+
+    XGlyphInfo gi;
+    XftTextExtents8(display, font, (FcChar8*)test.c_str(), test.length(), &gi);
+
+    if (gi.xOff > max_pixel_width) {
+      if (!current.empty()) {
+        lines.push_back(move(current));
+        current = move(word);
+      }
+      else {
+        lines.push_back(move(word));
+      }
+    }
+    else {
+      current = move(test);
+    }
+  }
+
+  if (!current.empty()) {
+    lines.push_back(move(current));
+  }
+
+  return lines;
+}
+
 /**
  * Draws the content for a specific window.
  *
@@ -153,7 +191,13 @@ void drawWindow(int index)
   if (index < 4 && playerList.player[index].empty()) return;
 
   int screen = DefaultScreen(display);
-  int center_x = X11_WIN_WIDTH / 2;
+
+  XWindowAttributes attr;
+  XGetWindowAttributes(display, window[index], &attr);
+
+  int width = attr.width;
+  int height = attr.height;
+  int center_x = width / 2;
 
   // Create a white rectangle for centered content
   // and the version number in bottom right corner.
@@ -181,6 +225,9 @@ void drawWindow(int index)
     X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
     (const FcChar8*)Version::FULL, strlen(Version::FULL));
 
+  XGlyphInfo ext;
+  int line_height = xft_std_font->height;
+
   if (index < 4) {
     // Draw "Player <num>" text.
     string position = "Player " + to_string(index + 1);
@@ -196,13 +243,19 @@ void drawWindow(int index)
   }
   else {
     // Draw server message.
-    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-      center_x - static_cast<int>(serverMessage.length() * 10), 370,
-      (const FcChar8*)serverMessage.c_str(), static_cast<int>(serverMessage.length()));
+    vector<string> msg_lines = wrapText(serverMessage, xft_std_font, width - 20);
+    int msg_y = 370 - (msg_lines.size() - 1) * line_height / 2;
+    for (const string& line : msg_lines) {
+      XftTextExtents8(display, xft_std_font, (const FcChar8*)line.c_str(), line.length(), &ext);
+      XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+        center_x - ext.width / 2, msg_y,
+        (const FcChar8*)line.c_str(), line.length());
+      msg_y += line_height;
+    }
   }
 
   // Copy pixmap buffer to the window.
-  XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, X11_WIN_WIDTH, X11_WIN_HEIGHT, 0, 0);
+  XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, width, height, 0, 0);
 
   // Display it all.
   XFlush(display);
