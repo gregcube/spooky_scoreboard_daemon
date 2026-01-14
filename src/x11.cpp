@@ -151,7 +151,8 @@ static vector<string> wrapText(const string& text, XftFont* font, int max_pixel_
     string test = current.empty() ? word : current + " " + word;
 
     XGlyphInfo gi;
-    XftTextExtents8(display, font, (FcChar8*)test.c_str(), test.length(), &gi);
+    XftTextExtents8(display, font,
+      (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
 
     if (gi.xOff > max_pixel_width) {
       if (!current.empty()) {
@@ -244,12 +245,16 @@ void drawWindow(int index)
   else {
     // Draw server message.
     vector<string> msg_lines = wrapText(serverMessage, xft_std_font, width - 20);
-    int msg_y = 370 - (msg_lines.size() - 1) * line_height / 2;
+    int msg_y = 370 - (static_cast<int>(msg_lines.size()) - 1) * line_height / 2;
+
     for (const string& line : msg_lines) {
-      XftTextExtents8(display, xft_std_font, (const FcChar8*)line.c_str(), line.length(), &ext);
+      XftTextExtents8(display, xft_std_font,
+        (const FcChar8*)line.c_str(), static_cast<int>(line.length()), &ext);
+
       XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
         center_x - ext.width / 2, msg_y,
-        (const FcChar8*)line.c_str(), line.length());
+        (const FcChar8*)line.c_str(), static_cast<int>(line.length()));
+
       msg_y += line_height;
     }
   }
