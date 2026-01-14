@@ -142,29 +142,54 @@ static Window createWindow(int x, int y, int w, int h, const string& title, int 
 static vector<string> wrapText(const string& text, XftFont* font, int max_pixel_width)
 {
   vector<string> lines;
-  if (text.empty()) return lines;
+  if (text.empty() || max_pixel_width <= 0) return lines;
 
   istringstream stream(text);
   string word, current;
 
   while (stream >> word) {
-    string test = current.empty() ? word : current + " " + word;
-
     XGlyphInfo gi;
-    XftTextExtents8(display, font,
-      (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
+    XftTextExtents8(display, font, (FcChar8*)word.c_str(), static_cast<int>(word.length()), &gi);
 
+    // Check if single word is too long, such as a player username.
     if (gi.xOff > max_pixel_width) {
       if (!current.empty()) {
         lines.push_back(move(current));
+        current.clear();
+      }
+
+      // Break single word into individual chars.
+      string sub;
+      for (char c : word) {
+        string test = sub + c;
+        XftTextExtents8(display, font, (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
+
+        if (gi.xOff > max_pixel_width && !sub.empty()) {
+          lines.push_back(move(sub));
+          sub.clear();
+        }
+
+        sub += c;
+      }
+
+      current = move(sub);
+    }
+    // Normal word-based wrap.
+    else {
+      string test = current.empty() ? word : current + " " + word;
+      XftTextExtents8(display, font, (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
+
+      if (gi.xOff > max_pixel_width) {
+        if (!current.empty()) {
+          lines.push_back(move(current));
+          current.clear();
+        }
+
         current = move(word);
       }
       else {
-        lines.push_back(move(word));
+        current = move(test);
       }
-    }
-    else {
-      current = move(test);
     }
   }
 
@@ -193,12 +218,14 @@ void drawWindow(int index)
 
   int screen = DefaultScreen(display);
 
+  XGlyphInfo ext;
   XWindowAttributes attr;
   XGetWindowAttributes(display, window[index], &attr);
 
   int width = attr.width;
   int height = attr.height;
   int center_x = width / 2;
+  int header_y;
 
   // Create a white rectangle for centered content
   // and the version number in bottom right corner.
@@ -210,12 +237,18 @@ void drawWindow(int index)
   XSetForeground(display, gc[index], BlackPixel(display, screen));
 
   // Draw "Spooky" text.
+  const char* spooky = "Spooky";
+  header_y = xft_hdr_font->ascent;
+  XftTextExtents8(display, xft_hdr_font, (FcChar8*)spooky, 6, &ext);
   XftDrawString8(xft_draw[index], &xft_color, xft_hdr_font,
-    center_x - 90, 50, (const FcChar8*)"Spooky", 6);
+    center_x - ext.width / 2, header_y, (const FcChar8*)spooky, 6);
 
   // Draw "Scoreboard" text.
+  const char* scoreboard = "Scoreboard";
+  header_y += xft_hdr_font->height;
+  XftTextExtents8(display, xft_hdr_font, (FcChar8*)scoreboard, 10, &ext);
   XftDrawString8(xft_draw[index], &xft_color, xft_hdr_font,
-    center_x - 140, 90, (const FcChar8*)"Scoreboard", 10);
+    center_x - ext.width / 2, header_y, (const FcChar8*)scoreboard, 10);
 
   // Copy QR code pixmap to pixmap buffer.
   XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145,
@@ -226,21 +259,33 @@ void drawWindow(int index)
     X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
     (const FcChar8*)Version::FULL, strlen(Version::FULL));
 
-  XGlyphInfo ext;
   int line_height = xft_std_font->height;
 
   if (index < 4) {
     // Draw "Player <num>" text.
     string position = "Player " + to_string(index + 1);
+    XftTextExtents8(display, xft_std_font,
+      (const FcChar8*)position.c_str(), static_cast<int>(position.length()), &ext);
+
     XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-      center_x - static_cast<int>(position.length() * 10), 370,
+      center_x - ext.width / 2, 325,
       (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
 
     // Draw player's online name.
+    int name_y = 325 + line_height;
     const string& playerName = playerList.player[index];
-    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-      center_x - static_cast<int>(static_cast<double>(playerName.length()) * 10.5), 410,
-      (const FcChar8*)playerName.c_str(), static_cast<int>(playerName.length()));
+    vector<string> name_lines = wrapText(playerName, xft_std_font, width - 20);
+
+    for (const string& line : name_lines) {
+      XftTextExtents8(display, xft_std_font,
+        (const FcChar8*)line.c_str(), static_cast<int>(line.length()), &ext);
+
+      XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+        center_x - ext.width / 2, name_y,
+        (const FcChar8*)line.c_str(), static_cast<int>(line.length()));
+
+      name_y += line_height;
+    }
   }
   else {
     // Draw server message.
