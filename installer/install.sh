@@ -59,7 +59,7 @@ install() {
 
   echo "Installing dependencies..."
   case "$game" in
-    hwn)
+    hwn|acnc)
       for url in "${depends[@]}"; do
         file=$(basename "${url}")
         echo ">> Downloading ${file}..."
@@ -311,6 +311,14 @@ case "$game" in
     dist=debian
     iface=wlp2s0
     depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
+    ;;
+  acnc)
+    label="Alice Cooper Nightmare Castle"
+    rootfs=/dev/mmcblk0p3
+    gamefs=/dev/mmcblk0p4
+    dist=arch
+    iface=enp1s0
+    depends+=("https://archive.archlinux.org/packages/l/libxpm/libxpm-3.5.12-2-x86_64.pkg.tar.xz")
     ;;
 esac
 
