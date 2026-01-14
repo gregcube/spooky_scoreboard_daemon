@@ -141,60 +141,65 @@ static Window createWindow(int x, int y, int w, int h, const string& title, int 
 
 static vector<string> wrapText(const string& text, XftFont* font, int max_pixel_width)
 {
-  vector<string> lines;
-  if (text.empty() || max_pixel_width <= 0) return lines;
+  if (text.empty() || max_pixel_width <= 0) return {};
 
+  vector<string> lines;
   istringstream stream(text);
   string word, current;
 
-  while (stream >> word) {
-    XGlyphInfo gi;
-    XftTextExtents8(display, font, (FcChar8*)word.c_str(), static_cast<int>(word.length()), &gi);
+  auto width_of = [&](const string& s) -> int {
+    if (s.empty()) return 0;
 
-    // Check if single word is too long, such as a player username.
-    if (gi.xOff > max_pixel_width) {
+    XGlyphInfo gi;
+    XftTextExtents8(display,
+                    font,
+                    reinterpret_cast<const FcChar8*>(s.c_str()),
+                    static_cast<int>(s.length()),
+                    &gi);
+
+    return gi.xOff;
+  };
+
+  while (stream >> word) {
+    // Single long word wrap.
+    if (width_of(word) > max_pixel_width) {
       if (!current.empty()) {
-        lines.push_back(move(current));
+        lines.emplace_back(move(current));
         current.clear();
       }
 
-      // Break single word into individual chars.
-      string sub;
+      string frag;
       for (char c : word) {
-        string test = sub + c;
-        XftTextExtents8(display, font, (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
-
-        if (gi.xOff > max_pixel_width && !sub.empty()) {
-          lines.push_back(move(sub));
-          sub.clear();
+        string test = frag + c;
+        if (width_of(test) > max_pixel_width && !frag.empty()) {
+          lines.emplace_back(move(frag));
+          frag = c;
         }
-
-        sub += c;
+        else {
+          frag = move(test);
+        }
       }
 
-      current = move(sub);
+      current = move(frag);
+      continue;
     }
+
     // Normal word-based wrap.
+    string test = current.empty() ? word : current + " " + word;
+    if (width_of(test) > max_pixel_width) {
+      if (!current.empty()) {
+        lines.emplace_back(move(current));
+        current.clear();
+      }
+      current = move(word);
+    }
     else {
-      string test = current.empty() ? word : current + " " + word;
-      XftTextExtents8(display, font, (FcChar8*)test.c_str(), static_cast<int>(test.length()), &gi);
-
-      if (gi.xOff > max_pixel_width) {
-        if (!current.empty()) {
-          lines.push_back(move(current));
-          current.clear();
-        }
-
-        current = move(word);
-      }
-      else {
-        current = move(test);
-      }
+      current = move(test);
     }
   }
 
   if (!current.empty()) {
-    lines.push_back(move(current));
+    lines.emplace_back(move(current));
   }
 
   return lines;
