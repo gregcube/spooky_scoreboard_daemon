@@ -30,7 +30,7 @@ const Json::Value AliceCooperNightmareCastle::processHighScores()
   std::string path(scoresPath + "/" + highScoresFile);
 
   try {
-    classicHighScores = YAML::LoadFile(path)["classicHighScores"];
+    classicHighScores = YAML::LoadFile(path)["ClassicHighScores"];
   }
   catch (const YAML::Exception& e) {
     std::cerr << "Failed to load YAML: " << path << "\n" << e.what() << std::endl;
