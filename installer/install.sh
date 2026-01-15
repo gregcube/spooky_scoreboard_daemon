@@ -213,25 +213,7 @@ EOF
 
 write_ssbd_service() {
   case "$1" in
-    acnc) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
-[Unit]
-Description=Spooky Scoreboard Daemon (SSBd)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Environment=HOME=/game
-ExecStart=/usr/bin/ssbd -g acnc
-User=root
-Group=root
-Restart=on-failure
-RestartSec=15
-
-[Install]
-WantedBy=multi-user.target
-EOF
-    ;;
-    hwn) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
+    hwn|acnc) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
 [Unit]
 Description=Spooky Scoreboard Daemon (SSBd)
 After=network-online.target
@@ -240,7 +222,7 @@ Wants=network-online.target
 [Service]
 Environment=HOME=/game
 ExecStartPre=/usr/bin/find /tmp -name 'serverauth.*' -type f -exec cp {} /game/.Xauthority \;
-ExecStart=/usr/bin/ssbd -g hwn
+ExecStart=/usr/bin/ssbd -g $1
 User=root
 Group=root
 Restart=on-failure
