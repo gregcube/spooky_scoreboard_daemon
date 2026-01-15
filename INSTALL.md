@@ -28,6 +28,7 @@ plug QR scanner into hub, and hub into USB port.*
   - Halloween
   - Ultraman
   - Texas Chainsaw Massacre
+  - Alice Cooper Nightmare Castle
 
 - "miniPC"-supported games:
   - Evil Dead
