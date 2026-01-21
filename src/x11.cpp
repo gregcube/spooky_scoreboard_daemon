@@ -235,8 +235,7 @@ void drawWindow(int index)
   // Create a white rectangle for centered content
   // and the version number in bottom right corner.
   XSetForeground(display, gc[index], WhitePixel(display, screen));
-  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, X11_WIN_WIDTH, X11_WIN_HEIGHT - 30);
-  XFillRectangle(display, pixmap_buf[index], gc[index], center_x, X11_WIN_HEIGHT - 30, center_x, 30);
+  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, width, height - 60);
 
   // Set foreground for black text.
   XSetForeground(display, gc[index], BlackPixel(display, screen));
@@ -246,68 +245,73 @@ void drawWindow(int index)
   header_y = xft_hdr_font->ascent;
   XftTextExtents8(display, xft_hdr_font, (FcChar8*)spooky, 6, &ext);
   XftDrawString8(xft_draw[index], &xft_color, xft_hdr_font,
-    center_x - ext.width / 2, header_y, (const FcChar8*)spooky, 6);
+                 center_x - ext.width / 2, header_y,
+                 (const FcChar8*)spooky, 6);
 
   // Draw "Scoreboard" text.
   const char* scoreboard = "Scoreboard";
   header_y += xft_hdr_font->height;
   XftTextExtents8(display, xft_hdr_font, (FcChar8*)scoreboard, 10, &ext);
   XftDrawString8(xft_draw[index], &xft_color, xft_hdr_font,
-    center_x - ext.width / 2, header_y, (const FcChar8*)scoreboard, 10);
+                 center_x - ext.width / 2, header_y,
+                 (const FcChar8*)scoreboard, 10);
 
-  // Copy QR code pixmap to pixmap buffer.
-  XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145,
-    (X11_WIN_WIDTH - 145) / 2, (X11_WIN_HEIGHT - 200) / 2);
+  // Draw QR code.
+  int qr_x = center_x - 72; // 145/2 = 72
+  int qr_y = header_y + 10;
+  XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145, qr_x, qr_y);
 
-  // Draw version number in bottom right corner.
-  XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-    X11_WIN_WIDTH - 70, X11_WIN_HEIGHT - 10,
-    (const FcChar8*)Version::FULL, strlen(Version::FULL));
+  // Main text area.
+  int text_margin_x = 40;
+  int max_text_w = width - 2 * text_margin_x;
+  int text_area_top = qr_y + 145 + 40;
+  int text_area_h = height - text_area_top - 60; // Leave room for version and timer.
 
-  int line_height = xft_std_font->height;
+  string text = (index < 4) ? playerList.player[index] : serverMessage;
+  auto lines = wrapText(text, xft_std_font, max_text_w);
+
+  int line_h = xft_std_font->height + 10;
+  int block_h = static_cast<int>(lines.size()) * line_h - 10;
+  int block_y = text_area_top + (text_area_h - block_h) / 2 + xft_std_font->ascent;
 
   if (index < 4) {
-    // Draw "Player <num>" text.
     string position = "Player " + to_string(index + 1);
     XftTextExtents8(display, xft_std_font,
-      (const FcChar8*)position.c_str(), static_cast<int>(position.length()), &ext);
+                    (const FcChar8*)position.c_str(),
+                    static_cast<int>(position.length()), &ext);
+
+    int label_y = block_y - 50;
+    XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
+                   center_x - ext.width / 2, label_y,
+                   (const FcChar8*)position.c_str(),
+                   static_cast<int>(position.length()));
+
+    block_y += 40;
+  }
+
+  int cur_y = block_y;
+  for (const auto& line : lines) {
+    XftTextExtents8(display, xft_std_font,
+                   (FcChar8*)line.c_str(),
+                   static_cast<int>(line.length()), &ext);
 
     XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-      center_x - ext.width / 2, 325,
-      (const FcChar8*)position.c_str(), static_cast<int>(position.length()));
+                   center_x - ext.width / 2, cur_y,
+                   (FcChar8*)line.c_str(),
+                   static_cast<int>(line.length()));
 
-    // Draw player's online name.
-    int name_y = 325 + line_height;
-    const string& playerName = playerList.player[index];
-    vector<string> name_lines = wrapText(playerName, xft_std_font, width - 20);
-
-    for (const string& line : name_lines) {
-      XftTextExtents8(display, xft_std_font,
-        (const FcChar8*)line.c_str(), static_cast<int>(line.length()), &ext);
-
-      XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-        center_x - ext.width / 2, name_y,
-        (const FcChar8*)line.c_str(), static_cast<int>(line.length()));
-
-      name_y += line_height;
-    }
+    cur_y += line_h;
   }
-  else {
-    // Draw server message.
-    vector<string> msg_lines = wrapText(serverMessage, xft_std_font, width - 20);
-    int msg_y = 370 - (static_cast<int>(msg_lines.size()) - 1) * line_height / 2;
 
-    for (const string& line : msg_lines) {
-      XftTextExtents8(display, xft_std_font,
-        (const FcChar8*)line.c_str(), static_cast<int>(line.length()), &ext);
+  string ver = Version::FULL;
+  XftTextExtents8(display, xft_sub_font,
+                  (FcChar8*)ver.c_str(),
+                  static_cast<int>(ver.length()), &ext);
 
-      XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-        center_x - ext.width / 2, msg_y,
-        (const FcChar8*)line.c_str(), static_cast<int>(line.length()));
-
-      msg_y += line_height;
-    }
-  }
+  XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
+                 width - ext.width - 3, height - 20,
+                 (FcChar8*)ver.c_str(),
+                 static_cast<int>(ver.length()));
 
   // Copy pixmap buffer to the window.
   XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, width, height, 0, 0);
@@ -325,45 +329,41 @@ void drawWindow(int index)
  */
 static void runTimer(int secs, int index)
 {
-  struct timeval start_time, current_time, update_time;
-  gettimeofday(&start_time, NULL);
-  update_time = start_time;
+  XWindowAttributes attr;
+  if (!XGetWindowAttributes(display, window[index], &attr)) return;
+
+  struct timeval start, now;
+  gettimeofday(&start, nullptr);
 
   while (isRunning.load()) {
-    // Check and exit if timer has expired.
-    gettimeofday(&current_time, NULL);
-    int remaining = static_cast<int>(secs - (current_time.tv_sec - start_time.tv_sec));
+    gettimeofday(&now, nullptr);
+    int remaining = static_cast<int>(secs - (now.tv_sec - start.tv_sec));
     if (remaining <= 0) break;
 
-    // Timer hasn't expired.
-    // Setup and display count down timer.
-    if (remaining > 0) {
-      string ct = to_string(remaining);
+    string ct = to_string(remaining);
 
-      {
-        // Aquire lock to ensure thread-safe access to X11 resources.
-        lock_guard<mutex> lock(timer_mtx);
+    {
+      lock_guard<mutex> lock(timer_mtx);
 
-        // Create a white rectangle area for count down timer.
-        XSetForeground(display, gc[index], WhitePixel(display, DefaultScreen(display)));
-        XFillRectangle(display, pixmap_buf[index], gc[index], 0, X11_WIN_HEIGHT - 60, X11_WIN_WIDTH / 2, 60);
+      if (!XGetWindowAttributes(display, window[index], &attr)) break;
 
-        // Set foreground to black.
-        XSetForeground(display, gc[index], BlackPixel(display, DefaultScreen(display)));
+      int width = attr.width;
+      int height = attr.height;
+      int timer_area_h = xft_sub_font->height + 40;
 
-        // Draw count down timer in bottom, left corner.
-        XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-          5, X11_WIN_HEIGHT - 10, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()));
+      XSetForeground(display, gc[index], WhitePixel(display, DefaultScreen(display)));
+      XFillRectangle(display, pixmap_buf[index], gc[index], 0, height - timer_area_h, width, timer_area_h);
 
-        // Copy pixmap buffer to window.
-        XCopyArea(display, pixmap_buf[index], window[index], gc[index],
-          0, X11_WIN_HEIGHT - 60, X11_WIN_WIDTH / 2, 60, 0, X11_WIN_HEIGHT - 60);
+      XSetForeground(display, gc[index], BlackPixel(display, DefaultScreen(display)));
 
-        // Update window.
-        drawWindow(index);
-      }
+      XGlyphInfo ext;
+      XftTextExtents8(display, xft_sub_font, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()), &ext);
+      int tx = 3;
+      int ty = height - timer_area_h / 2 + xft_sub_font->ascent / 2;
+      XftDrawString8(xft_draw[index], &xft_color, xft_sub_font, tx, ty, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()));
 
-      update_time = current_time;
+      XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, height - timer_area_h, width, timer_area_h, 0, height - timer_area_h);
+      drawWindow(index);
     }
 
     this_thread::sleep_for(chrono::milliseconds(250));
