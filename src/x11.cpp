@@ -227,15 +227,14 @@ void drawWindow(int index)
   XWindowAttributes attr;
   XGetWindowAttributes(display, window[index], &attr);
 
-  int width = attr.width;
-  int height = attr.height;
-  int center_x = width / 2;
+  int w = attr.width;
+  int h = attr.height;
+  int center_x = w / 2;
   int header_y;
 
-  // Create a white rectangle for centered content
-  // and the version number in bottom right corner.
+  // Create a white rectangle for centered content.
   XSetForeground(display, gc[index], WhitePixel(display, screen));
-  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, width, height - 60);
+  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, w, h - xft_sub_font->height);
 
   // Set foreground for black text.
   XSetForeground(display, gc[index], BlackPixel(display, screen));
@@ -263,9 +262,9 @@ void drawWindow(int index)
 
   // Main text area.
   int text_margin_x = 40;
-  int max_text_w = width - 2 * text_margin_x;
+  int max_text_w = w - 2 * text_margin_x;
   int text_area_top = qr_y + 145 + 40;
-  int text_area_h = height - text_area_top - 60; // Leave room for version and timer.
+  int text_area_h = h - text_area_top - 60;
 
   string text = (index < 4) ? playerList.player[index] : serverMessage;
   auto lines = wrapText(text, xft_std_font, max_text_w);
@@ -303,18 +302,19 @@ void drawWindow(int index)
     cur_y += line_h;
   }
 
+  // Version string.
   string ver = Version::FULL;
   XftTextExtents8(display, xft_sub_font,
                   (FcChar8*)ver.c_str(),
                   static_cast<int>(ver.length()), &ext);
 
   XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
-                 width - ext.width - 3, height - 20,
+                 w - ext.width - 3, h - 10,
                  (FcChar8*)ver.c_str(),
                  static_cast<int>(ver.length()));
 
   // Copy pixmap buffer to the window.
-  XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, width, height, 0, 0);
+  XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, 0, w, h, 0, 0);
 
   // Display it all.
   XFlush(display);
@@ -347,22 +347,24 @@ static void runTimer(int secs, int index)
 
       if (!XGetWindowAttributes(display, window[index], &attr)) break;
 
-      int width = attr.width;
-      int height = attr.height;
-      int timer_area_h = xft_sub_font->height + 40;
+      int w = attr.width;
+      int h = attr.height;
 
       XSetForeground(display, gc[index], WhitePixel(display, DefaultScreen(display)));
-      XFillRectangle(display, pixmap_buf[index], gc[index], 0, height - timer_area_h, width, timer_area_h);
+      XFillRectangle(display, pixmap_buf[index], gc[index], 0, h - xft_sub_font->height, w, h);
 
       XSetForeground(display, gc[index], BlackPixel(display, DefaultScreen(display)));
 
       XGlyphInfo ext;
-      XftTextExtents8(display, xft_sub_font, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()), &ext);
-      int tx = 3;
-      int ty = height - timer_area_h / 2 + xft_sub_font->ascent / 2;
-      XftDrawString8(xft_draw[index], &xft_color, xft_sub_font, tx, ty, (FcChar8*)ct.c_str(), static_cast<int>(ct.length()));
+      XftTextExtents8(display, xft_sub_font,
+                      (FcChar8*)ct.c_str(),
+                      static_cast<int>(ct.length()), &ext);
 
-      XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, height - timer_area_h, width, timer_area_h, 0, height - timer_area_h);
+      XftDrawString8(xft_draw[index], &xft_color, xft_sub_font, 3, h - 10,
+                     (FcChar8*)ct.c_str(),
+                     static_cast<int>(ct.length()));
+
+      XCopyArea(display, pixmap_buf[index], window[index], gc[index], 0, h, w, h, 0, h);
       drawWindow(index);
     }
 
