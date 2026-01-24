@@ -231,7 +231,7 @@ void drawWindow(int index)
 
   // Create a white rectangle for centered content.
   XSetForeground(display, gc[index], WhitePixel(display, screen));
-  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, w, h - xft_sub_font->height);
+  XFillRectangle(display, pixmap_buf[index], gc[index], 0, 0, w, h - xft_sub_font->height - 10);
 
   // Set foreground for black text.
   XSetForeground(display, gc[index], BlackPixel(display, screen));
@@ -258,16 +258,12 @@ void drawWindow(int index)
   XCopyArea(display, pixmap_qr, pixmap_buf[index], gc[index], 0, 0, 145, 145, qr_x, qr_y);
 
   // Main text area.
-  int text_margin_x = 40;
-  int max_text_w = w - 2 * text_margin_x;
-  int text_area_top = qr_y + 145;
-  int text_area_h = h - text_area_top - 60;
-
+  int text_area_top = qr_y + 145 + 45;
   string text = (index < 4) ? playerList.player[index] : serverMessage;
-  auto lines = wrapText(text, xft_std_font, max_text_w);
+  auto lines = wrapText(text, xft_std_font, w - 10);
 
   int block_h = static_cast<int>(lines.size()) * xft_std_font->height;
-  int block_y = text_area_top + (text_area_h - block_h) / 2 + xft_std_font->ascent;
+  int block_y = text_area_top + (h - text_area_top - block_h) / 2;
 
   if (index < 4) {
     string position = "Player " + to_string(index + 1);
@@ -346,8 +342,7 @@ static void runTimer(int secs, int index)
       int h = attr.height;
 
       XSetForeground(display, gc[index], WhitePixel(display, DefaultScreen(display)));
-      XFillRectangle(display, pixmap_buf[index], gc[index], 0, h - xft_sub_font->height, w, h);
-
+      XFillRectangle(display, pixmap_buf[index], gc[index], 0, h - xft_sub_font->height - 10, w, h);
       XSetForeground(display, gc[index], BlackPixel(display, DefaultScreen(display)));
 
       XGlyphInfo ext;
@@ -355,7 +350,8 @@ static void runTimer(int secs, int index)
                       (FcChar8*)ct.c_str(),
                       static_cast<int>(ct.length()), &ext);
 
-      XftDrawString8(xft_draw[index], &xft_color, xft_sub_font, 3, h - 10,
+      XftDrawString8(xft_draw[index], &xft_color, xft_sub_font,
+                     3, h - 10,
                      (FcChar8*)ct.c_str(),
                      static_cast<int>(ct.length()));
 
