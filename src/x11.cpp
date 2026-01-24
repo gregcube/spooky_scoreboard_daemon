@@ -42,9 +42,6 @@
 #define X11_WIN_HEIGHT 480
 #define X11_WIN_GAP 10
 
-#define MESSAGE_WIN_WIDTH 700
-#define MESSAGE_WIN_HEIGHT 400
-
 using namespace std;
 
 Window window[5] = {None, None, None, None, None};
@@ -263,43 +260,41 @@ void drawWindow(int index)
   // Main text area.
   int text_margin_x = 40;
   int max_text_w = w - 2 * text_margin_x;
-  int text_area_top = qr_y + 145 + 40;
+  int text_area_top = qr_y + 145;
   int text_area_h = h - text_area_top - 60;
 
   string text = (index < 4) ? playerList.player[index] : serverMessage;
   auto lines = wrapText(text, xft_std_font, max_text_w);
 
-  int line_h = xft_std_font->height + 10;
-  int block_h = static_cast<int>(lines.size()) * line_h - 10;
+  int block_h = static_cast<int>(lines.size()) * xft_std_font->height;
   int block_y = text_area_top + (text_area_h - block_h) / 2 + xft_std_font->ascent;
 
   if (index < 4) {
     string position = "Player " + to_string(index + 1);
+
     XftTextExtents8(display, xft_std_font,
                     (const FcChar8*)position.c_str(),
                     static_cast<int>(position.length()), &ext);
 
-    int label_y = block_y - 50;
     XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-                   center_x - ext.width / 2, label_y,
+                   center_x - ext.width / 2, block_y,
                    (const FcChar8*)position.c_str(),
                    static_cast<int>(position.length()));
 
-    block_y += 40;
+    block_y += xft_std_font->height;
   }
 
-  int cur_y = block_y;
   for (const auto& line : lines) {
     XftTextExtents8(display, xft_std_font,
                    (FcChar8*)line.c_str(),
                    static_cast<int>(line.length()), &ext);
 
     XftDrawString8(xft_draw[index], &xft_color, xft_std_font,
-                   center_x - ext.width / 2, cur_y,
+                   center_x - ext.width / 2, block_y,
                    (FcChar8*)line.c_str(),
                    static_cast<int>(line.length()));
 
-    cur_y += line_h;
+    block_y += xft_std_font->height;
   }
 
   // Version string.
