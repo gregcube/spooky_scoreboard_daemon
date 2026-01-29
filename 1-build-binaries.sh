@@ -31,6 +31,7 @@ readonly BUILD_MATRIX=(
   "hwn:arch"      # Halloween on Arch Linux
   "tcm:debian"    # Texas Chainsaw Massacre on Debian
   "ed:debian"     # Evil Dead on Debian
+  "acnc:arch"
 )
 
 # Color codes for output

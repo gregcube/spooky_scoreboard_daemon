@@ -26,6 +26,7 @@
 #include "game/TexasChainsawMassacre.h"
 #include "game/TotalNuclearAnnihilation.h"
 #include "game/Ultraman.h"
+#include "game/AliceCooperNightmareCastle.h"
 
 using namespace std;
 
@@ -34,7 +35,8 @@ std::map<std::string, GameFactoryFunction> gameFactories = {
   {"hwn", []() { return make_unique<Halloween>(); }},
   {"tcm", []() { return make_unique<TexasChainsawMassacre>(); }},
   {"um",  []() { return make_unique<Ultraman>(); }},
-  {"ed",  []() { return make_unique<EvilDead>(); }}
+  {"ed",  []() { return make_unique<EvilDead>(); }},
+  {"acnc",[]() { return make_unique<AliceCooperNightmareCastle>(); }}
 };
 
 std::unique_ptr<GameBase> GameBase::create(const std::string& gameName)

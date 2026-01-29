@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         dist: [arch, debian]
-        game: [hwn, tcm, ed]
+        game: [hwn, tcm, ed, acnc]
         exclude:
           - dist: arch
             game: tcm
@@ -21,6 +21,8 @@ jobs:
             game: hwn
           - dist: arch
             game: ed
+          - dist: debian
+            game: acnc
 
     steps:
       - name: Checkout code

@@ -40,11 +40,15 @@ Visit [spookyscoreboard.com](https://spookyscoreboard.com) to register your play
 Supported Games
 ---------------
 
-- Halloween (UP)
-- Ultraman (UP)
-- Texas Chainsaw Massacre (UP)
-- Evil Dead (miniPC)
-- Total Nuclear Annihilation (preliminary support)
+- "UP"-supported games:
+  - Halloween
+  - Ultraman
+  - Texas Chainsaw Massacre
+  - Alice Cooper Nightmare Castle
+  - Total Nuclear Annihilation (preliminary support)
+
+- "miniPC"-supported games:
+  - Evil Dead
 
 UP games require an ethernet connection.  
 miniPC games use the integrated wifi adapter.

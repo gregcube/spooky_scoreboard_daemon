@@ -59,7 +59,7 @@ install() {
 
   echo "Installing dependencies..."
   case "$game" in
-    hwn)
+    hwn|acnc)
       for url in "${depends[@]}"; do
         file=$(basename "${url}")
         echo ">> Downloading ${file}..."
@@ -213,7 +213,7 @@ EOF
 
 write_ssbd_service() {
   case "$1" in
-    hwn) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
+    hwn|acnc) cat <<EOF >/mnt/rootfs/etc/systemd/system/ssbd.service
 [Unit]
 Description=Spooky Scoreboard Daemon (SSBd)
 After=network-online.target
@@ -222,7 +222,7 @@ Wants=network-online.target
 [Service]
 Environment=HOME=/game
 ExecStartPre=/usr/bin/find /tmp -name 'serverauth.*' -type f -exec cp {} /game/.Xauthority \;
-ExecStart=/usr/bin/ssbd -g hwn
+ExecStart=/usr/bin/ssbd -g $1
 User=root
 Group=root
 Restart=on-failure
@@ -311,6 +311,14 @@ case "$game" in
     dist=debian
     iface=wlp2s0
     depends+=("wpasupplicant" "libnl-3-200" "libnl-genl-3-200" "libnl-route-3-200" "libpcsclite1")
+    ;;
+  acnc)
+    label="Alice Cooper Nightmare Castle"
+    rootfs=/dev/mmcblk0p3
+    gamefs=/dev/mmcblk0p4
+    dist=arch
+    iface=enp1s0
+    depends+=("https://archive.archlinux.org/packages/l/libxpm/libxpm-3.5.12-2-x86_64.pkg.tar.xz")
     ;;
 esac
 
