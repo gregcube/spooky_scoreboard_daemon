@@ -28,6 +28,7 @@ add_executable(ssbd
   src/Register.cpp
   src/Player.cpp
   src/Config.cpp
+  src/Signature.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}

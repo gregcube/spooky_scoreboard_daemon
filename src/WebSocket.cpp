@@ -22,6 +22,7 @@
 #include "x11.h"
 #include "Config.h"
 #include "WebSocket.h"
+#include "Signature.h"
 #include "version.h"
 
 using namespace std;
@@ -64,8 +65,6 @@ void WebSocket::initDispatchers()
       rotateToken(config);
     }
   };
-
-  // todo: Sign and verify payload signatures.
 }
 
 void WebSocket::setHeaders()
@@ -122,6 +121,12 @@ void WebSocket::setupCallbacks()
     case ix::WebSocketMessageType::Message: {
       Json::Value json;
       if (!Json::Reader().parse(msg->str, json)) break;
+
+      // Verify signature.
+      if (!Signature::verify(json)) {
+        cerr << "Message: invalid signature." << endl;
+        break;
+      }
 
       // API response.
       if (json.isMember("request_id")) {
@@ -223,6 +228,10 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
 
     lock_guard<mutex> lock(callbacksMtx);
     callbacks[reqid] = callback;
+  }
+
+  if (!Config::token.empty()) {
+    //sendmsg["signature"] = Signature::sign(sendmsg);
   }
 
   Json::StreamWriterBuilder writerBuilder;
