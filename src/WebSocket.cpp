@@ -217,15 +217,21 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
 
   Json::Value sendmsg = msg;
   sendmsg["version"] = Version::FULL;
+  sendmsg["uuid"] = Config::machineId;
   sendmsg["timestamp"] = static_cast<Json::Value::Int64>(time(nullptr));
 
+  uuid_t uuid;
+  char nonce[37];
+  uuid_generate_random(uuid);
+  uuid_unparse_lower(uuid, nonce);
+  sendmsg["nonce"] = nonce;
+
   if (callback) {
-    uuid_t uuid;
-    string reqid(37, '\0');
+    memset(uuid, 0, sizeof(uuid_t));
+    char reqid[37];
 
     uuid_generate_random(uuid);
-    uuid_unparse_lower(uuid, &reqid[0]);
-    reqid.resize(36);
+    uuid_unparse_lower(uuid, reqid);
     sendmsg["request_id"] = reqid;
 
     lock_guard<mutex> lock(callbacksMtx);
