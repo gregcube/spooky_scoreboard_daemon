@@ -47,15 +47,18 @@ future<void> QrCode::download()
   req["method"] = "POST"; // todo: should use GET perhaps(?)
 
   webSocket->send(req, [this, promise](const Json::Value& response) {
-    if (response["status"].asInt() == 200) {
-      try {
+    try {
+      if (response["status"].asInt() != 200) {
+        throw runtime_error(response["error"].asString());
+      }
+      else {
         this->write(response["body"].asString());
-        promise->set_value();
       }
-      catch (const runtime_error& e) {
-        cerr << "Failed to request QR code." << endl;
-        promise->set_exception(make_exception_ptr(e));
-      }
+      promise->set_value();
+    }
+    catch (const runtime_error& e) {
+      cerr << "Failed to request QR code." << endl;
+      promise->set_exception(make_exception_ptr(e));
     }
   });
 
