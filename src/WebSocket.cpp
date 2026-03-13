@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
+#include <ctime>
 #include <uuid/uuid.h>
 
 #include "main.h"
@@ -216,6 +217,7 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
 
   Json::Value sendmsg = msg;
   sendmsg["version"] = Version::FULL;
+  sendmsg["timestamp"] = static_cast<Json::Value::Int64>(time(nullptr));
 
   if (callback) {
     uuid_t uuid;
@@ -231,7 +233,7 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
   }
 
   if (!Config::token.empty()) {
-    //sendmsg["signature"] = Signature::sign(sendmsg);
+    sendmsg["signature"] = Signature::sign(sendmsg);
   }
 
   Json::StreamWriterBuilder writerBuilder;
@@ -251,7 +253,7 @@ void WebSocket::startPing()
     while (pingThreadRunning.load() && connected.load()) {
       this->send(req, [this](const Json::Value& response) {
         if (response["status"].asInt() != 200) {
-          cerr << "Ping failed." << endl;
+          cerr << "Ping failed: " << response["error"].asString() << endl;
         }
       });
 
