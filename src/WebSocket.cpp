@@ -97,6 +97,9 @@ std::future<bool> WebSocket::isTokenExpired()
         Json::Reader().parse(response["body"].asString(), body);
         promise->set_value(body["message"].asInt() <= 0);
       }
+      else {
+        throw runtime_error("Failed token check.");
+      }
     }
     catch (...) {
       promise->set_exception(current_exception());
