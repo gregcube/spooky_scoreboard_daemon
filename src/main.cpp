@@ -308,6 +308,13 @@ int main(int argc, char** argv)
     webSocket = make_shared<WebSocket>(WS_URL);
     webSocket->connect();
 
+    // Check if auth token has expired.
+    if (webSocket->isTokenExpired().get()) {
+      cout << "Token expired. Waiting for token rotation..." << endl;
+      webSocket->waitForTokenRotate().wait();
+      cout << "Token rotation complete." << endl;
+    }
+
     isRunning.store(true);
 
     // Instantiate player class.
@@ -327,6 +334,9 @@ int main(int argc, char** argv)
     // Player windows are opened, but remain hidden
     // off screen until a user logs in or a message is received.
     openWindows();
+
+    // Start ping thread.
+    webSocket->startPing();
 
     // Start main loop and watch for action.
     watch();

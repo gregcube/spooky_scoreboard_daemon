@@ -49,11 +49,6 @@ bool Signature::verify(const Json::Value& payload)
   builder["indentation"] = "";
   std::string canonical = Json::writeString(builder, copy);
 
-#ifdef DEBUG
-  std::cout << "Computed=" << computeHmac(canonical) << std::endl;
-  std::cout << "Received=" << payload["signature"].asString() << std::endl;
-#endif
-
   return computeHmac(canonical) == payload["signature"].asString();
 }
 

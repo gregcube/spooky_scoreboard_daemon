@@ -61,9 +61,10 @@ void WebSocket::initDispatchers()
   // Rotate authorization token.
   cmdDispatchers["token_rotate"] = [this](const Json::Value& payload) {
     if (payload.isMember("token") && payload.isMember("uuid")) {
-      Json::Value config = payload;
-      config.removeMember("cmd");
-      rotateToken(config);
+      Json::Value config;
+      config["token"] = payload["token"];
+      config["uuid"] = payload["uuid"];
+      tokenRotate(config);
     }
   };
 }
@@ -81,13 +82,51 @@ void WebSocket::setHeaders()
   ws.setExtraHeaders(headers);
 }
 
-void WebSocket::rotateToken(const Json::Value& config)
+std::future<bool> WebSocket::isTokenExpired()
 {
-  cout << "Updating token." << endl;
+  auto promise = make_shared<std::promise<bool>>();
+  auto future = promise->get_future();
+
+  Json::Value req;
+  req["path"] = "/api/v1/token";
+  req["method"] = "POST";
+
+  send(req, [promise](const Json::Value& response) {
+    try {
+      if (response["status"].asInt() == 200) {
+        Json::Value body;
+        Json::Reader().parse(response["body"].asString(), body);
+        promise->set_value(body["message"].asInt() <= 0);
+      }
+    }
+    catch (...) {
+      promise->set_exception(current_exception());
+    }
+  });
+
+  return future;
+}
+
+std::future<void> WebSocket::waitForTokenRotate()
+{
+  lock_guard<mutex> lock(tokenRotateMtx);
+  if (!tokenRotatePromise) tokenRotatePromise = make_shared<promise<void>>();
+  return tokenRotatePromise->get_future();
+}
+
+void WebSocket::tokenRotate(const Json::Value& config)
+{
+  cout << "Rotating token..." << endl;
   Config::save(config);
+
   thread([this]() {
-    this_thread::sleep_for(chrono::milliseconds(100));
     reconnect();
+
+    lock_guard<mutex> lock(tokenRotateMtx);
+    if (tokenRotatePromise) {
+      tokenRotatePromise->set_value();
+      tokenRotatePromise.reset();
+    }
   })
   .detach();
 }
@@ -98,6 +137,9 @@ void WebSocket::reconnect()
   Config::load();
   setHeaders();
   connect();
+  if (!Config::machineId.empty() && !Config::token.empty()) {
+    startPing();
+  }
 }
 
 void WebSocket::setupCallbacks()
@@ -105,12 +147,11 @@ void WebSocket::setupCallbacks()
   ws.setOnMessageCallback([this](const ix::WebSocketMessagePtr& msg) {
     switch (msg->type) {
     case ix::WebSocketMessageType::Error:
-      lastError = msg->errorInfo.reason.empty() ? "Connection failed." : msg->errorInfo.reason;
+      lastError = msg->errorInfo.reason.empty() ? "Error." : msg->errorInfo.reason;
       break;
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
-      if (!Config::machineId.empty() && !Config::token.empty()) startPing();
       break;
 
     case ix::WebSocketMessageType::Close:
@@ -125,7 +166,7 @@ void WebSocket::setupCallbacks()
 
       // Verify signature.
       if (!Signature::verify(json)) {
-        cerr << "Message: invalid signature." << endl;
+        cerr << "Message: invalid signature.\n" << json << endl;
         break;
       }
 
@@ -204,9 +245,8 @@ void WebSocket::connect()
     if (!lastError.empty()) break;
     this_thread::sleep_for(chrono::milliseconds(50));
   }
-
   if (!connected.load()) {
-    string error = lastError.empty() ? "timeout or unknown error." : lastError;
+    string error = lastError.empty() ? "Timeout or unknown error." : lastError;
     throw runtime_error("Socket failed to connect: " + error);
   }
 }
@@ -251,7 +291,9 @@ void WebSocket::startPing()
 {
   if (pingThreadRunning.exchange(true)) return;
 
-  pingThread = std::thread([this]() {
+  pingThread = thread([this]() {
+    cout << "Start ping thread..." << endl;
+
     Json::Value req;
     req["path"] = "/api/v1/ping";
     req["method"] = "POST";
@@ -264,7 +306,7 @@ void WebSocket::startPing()
       });
 
       {
-        unique_lock<std::mutex> lock(pingMtx);
+        unique_lock<mutex> lock(pingMtx);
         pingCv.wait_for(lock, chrono::seconds(10), [this]() {
           return !pingThreadRunning.load() || !connected.load();
         });
@@ -277,7 +319,10 @@ void WebSocket::stopPing()
 {
   pingThreadRunning.store(false);
   pingCv.notify_one();
-  if (pingThread.joinable() && pingThread.get_id() != this_thread::get_id()) pingThread.join();
+  if (pingThread.joinable() && pingThread.get_id() != this_thread::get_id()) {
+    cout << "Stop ping thread..." << endl;
+    pingThread.join();
+  }
 }
 
 // vim: set ts=2 sw=2 expandtab:

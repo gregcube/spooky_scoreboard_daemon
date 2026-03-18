@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <future>
 #include <ixwebsocket/IXWebSocket.h>
 #include <json/json.h>
 
@@ -30,6 +31,10 @@ public:
 
   void connect();
   void send(const Json::Value& msg, Callback callback = nullptr);
+  void startPing();
+
+  std::future<bool> isTokenExpired();
+  std::future<void> waitForTokenRotate();
 
 private:
   std::string baseUri;
@@ -40,20 +45,20 @@ private:
 
   std::thread pingThread;
   std::string lastError;
-  std::mutex callbacksMtx, pingMtx;
+  std::mutex callbacksMtx, pingMtx, tokenRotateMtx;
   std::map<std::string, Callback> callbacks;
   std::condition_variable pingCv;
   std::unordered_map<std::string, Callback> cmdDispatchers;
+  std::shared_ptr<std::promise<void>> tokenRotatePromise;
 
   void reconnect();
   void setupCallbacks();
   void setHeaders();
-  void startPing();
   void stopPing();
   void initDispatchers();
   void processApiResponse(const Json::Value& json);
   void processCmd(const Json::Value& payload);
-  void rotateToken(const Json::Value& config);
+  void tokenRotate(const Json::Value& config);
   int validateApiResponse(const Json::Value& response);
 };
 
