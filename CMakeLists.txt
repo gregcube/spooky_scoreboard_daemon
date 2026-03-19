@@ -29,6 +29,7 @@ add_executable(ssbd
   src/Player.cpp
   src/Config.cpp
   src/Signature.cpp
+  src/MessageQueue.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}

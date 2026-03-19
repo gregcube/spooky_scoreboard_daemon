@@ -61,7 +61,7 @@ void Player::login(const vector<char>& uuid, int position)
   req["body"].append(uuid_str);
   req["body"].append(position);
 
-  webSocket->send(req, [this, position](const Json::Value& response) {
+  webSocket->enqueueMessage(req, [this, position](const Json::Value& response) {
     if (response["status"].asInt() != 200) {
       cerr << "Failed to login player " << position << endl;
       cerr << "Server returned code " << response["status"].asInt() << endl;

@@ -21,6 +21,8 @@
 #include <ixwebsocket/IXWebSocket.h>
 #include <json/json.h>
 
+#include "MessageQueue.h"
+
 class WebSocket
 {
 public:
@@ -30,7 +32,7 @@ public:
   ~WebSocket();
 
   void connect();
-  void send(const Json::Value& msg, Callback callback = nullptr);
+  void enqueueMessage(const Json::Value& msg, Callback callback = nullptr);
   void startPing();
 
   std::future<bool> isTokenExpired();
@@ -50,6 +52,7 @@ private:
   std::condition_variable pingCv;
   std::unordered_map<std::string, Callback> cmdDispatchers;
   std::shared_ptr<std::promise<void>> tokenRotatePromise;
+  std::unique_ptr<MessageQueue> messageQueue;
 
   void reconnect();
   void setupCallbacks();
@@ -59,6 +62,7 @@ private:
   void processApiResponse(const Json::Value& json);
   void processCmd(const Json::Value& payload);
   void tokenRotate(const Json::Value& config);
+  void send(const Json::Value& msg, Callback callback = nullptr);
   int validateApiResponse(const Json::Value& response);
 };
 

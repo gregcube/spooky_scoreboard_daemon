@@ -61,7 +61,7 @@ future<void> Register::registerMachine(const string& regcode, const string& conf
   msg["method"] = "POST";
   msg["body"]["code"] = regcode;
 
-  webSocket->send(msg, [promise, configPath](const Json::Value& response) {
+  webSocket->enqueueMessage(msg, [promise, configPath](const Json::Value& response) {
     try {
       if (response["status"].asInt() != 200) {
         throw runtime_error("Registration failed.");

@@ -31,9 +31,13 @@ WebSocket::WebSocket(const string& uri) : baseUri(uri)
 {
   ws.setUrl(uri);
   ws.setPingInterval(45);
+
   setHeaders();
   setupCallbacks();
   initDispatchers();
+
+  auto sendHandler = [this](const Json::Value& msg, Callback cb) { send(msg, cb); };
+  messageQueue = std::make_unique<MessageQueue>(std::move(sendHandler));
 }
 
 WebSocket::~WebSocket()
@@ -118,17 +122,23 @@ std::future<void> WebSocket::waitForTokenRotate()
 
 void WebSocket::tokenRotate(const Json::Value& config)
 {
+  messageQueue->pause();
+
   cout << "Rotating token..." << endl;
   Config::save(config);
 
   thread([this]() {
     reconnect();
 
-    lock_guard<mutex> lock(tokenRotateMtx);
-    if (tokenRotatePromise) {
-      tokenRotatePromise->set_value();
-      tokenRotatePromise.reset();
+    {
+      lock_guard<mutex> lock(tokenRotateMtx);
+      if (tokenRotatePromise) {
+        tokenRotatePromise->set_value();
+        tokenRotatePromise.reset();
+      }
     }
+
+    messageQueue->resume();
   })
   .detach();
 }
@@ -251,6 +261,11 @@ void WebSocket::connect()
     string error = lastError.empty() ? "Timeout or unknown error." : lastError;
     throw runtime_error("Socket failed to connect: " + error);
   }
+}
+
+void WebSocket::enqueueMessage(const Json::Value& msg, Callback callback)
+{
+  messageQueue->enqueue(msg, callback);
 }
 
 void WebSocket::send(const Json::Value& msg, Callback callback)

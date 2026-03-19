@@ -46,7 +46,7 @@ future<void> QrCode::download()
   req["path"] = "/api/v1/qr";
   req["method"] = "POST"; // todo: should use GET perhaps(?)
 
-  webSocket->send(req, [this, promise](const Json::Value& response) {
+  webSocket->enqueueMessage(req, [this, promise](const Json::Value& response) {
     try {
       if (response["status"].asInt() != 200) {
         throw runtime_error(response["error"].asString());

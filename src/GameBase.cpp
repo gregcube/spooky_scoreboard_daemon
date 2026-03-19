@@ -69,7 +69,7 @@ void GameBase::uploadScores(const Json::Value& scores, ScoreType type)
     req["query"] = query;
     req["body"] = scores;
 
-    webSocket->send(req, [this](const Json::Value& response) {
+    webSocket->enqueueMessage(req, [this](const Json::Value& response) {
       if (response["status"].asInt() != 200) {
         cerr << "Failed to upload scores." << endl;
       }
