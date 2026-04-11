@@ -62,7 +62,7 @@ private:
   void processApiResponse(const Json::Value& json);
   void processCmd(const Json::Value& payload);
   void tokenRotate(const Json::Value& config);
-  void send(const Json::Value& msg, Callback callback = nullptr);
+  void send(Json::Value msg, Callback callback = nullptr);
   int validateApiResponse(const Json::Value& response);
 };
 

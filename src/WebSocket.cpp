@@ -36,7 +36,7 @@ WebSocket::WebSocket(const string& uri) : baseUri(uri)
   setupCallbacks();
   initDispatchers();
 
-  auto sendHandler = [this](const Json::Value& msg, Callback cb) { send(msg, cb); };
+  auto sendHandler = [this](const Json::Value& msg, Callback cb) { send(std::move(msg), std::move(cb)); };
   messageQueue = std::make_unique<MessageQueue>(std::move(sendHandler));
 }
 
@@ -178,7 +178,7 @@ void WebSocket::setupCallbacks()
 
       // Verify signature.
       if (!Signature::verify(json)) {
-        cerr << "Message: invalid signature.\n" << json << endl;
+        cerr << "Message: invalid signature." << endl;
         break;
       }
 
@@ -268,20 +268,19 @@ void WebSocket::enqueueMessage(const Json::Value& msg, Callback callback)
   messageQueue->enqueue(msg, callback);
 }
 
-void WebSocket::send(const Json::Value& msg, Callback callback)
+void WebSocket::send(Json::Value msg, Callback callback)
 {
   if (!connected.load()) return;
 
-  Json::Value sendmsg = msg;
-  sendmsg["version"] = Version::FULL;
-  sendmsg["uuid"] = Config::machineId;
-  sendmsg["timestamp"] = static_cast<Json::Value::Int64>(time(nullptr));
+  msg["version"] = Version::FULL;
+  msg["uuid"] = Config::machineId;
+  msg["timestamp"] = static_cast<Json::Value::Int64>(time(nullptr));
 
   uuid_t uuid;
   char nonce[37];
   uuid_generate_random(uuid);
   uuid_unparse_lower(uuid, nonce);
-  sendmsg["nonce"] = nonce;
+  msg["nonce"] = nonce;
 
   if (callback) {
     memset(uuid, 0, sizeof(uuid_t));
@@ -289,19 +288,19 @@ void WebSocket::send(const Json::Value& msg, Callback callback)
 
     uuid_generate_random(uuid);
     uuid_unparse_lower(uuid, reqid);
-    sendmsg["request_id"] = reqid;
+    msg["request_id"] = reqid;
 
     lock_guard<mutex> lock(callbacksMtx);
     callbacks[reqid] = callback;
   }
 
   if (!Config::token.empty()) {
-    sendmsg["signature"] = Signature::sign(sendmsg);
+    msg["signature"] = Signature::sign(msg);
   }
 
   Json::StreamWriterBuilder writerBuilder;
   writerBuilder["indentation"] = "";
-  ws.send(Json::writeString(writerBuilder, sendmsg));
+  ws.send(Json::writeString(writerBuilder, msg));
 }
 
 void WebSocket::startPing()
