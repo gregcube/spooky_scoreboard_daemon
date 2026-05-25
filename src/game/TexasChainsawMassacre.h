@@ -35,7 +35,6 @@ public:
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
   uint32_t getGamesPlayed() override;
-  int sendWindowCommands() override;
 };
 
 // vim: set ts=2 sw=2 expandtab:

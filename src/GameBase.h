@@ -133,16 +133,6 @@ public:
    */
   const std::string& getLastScoresFile() const { return lastScoresFile; }
 
-  /**
-   * @brief Sends configuration commands to the game's window manager.
-   *
-   * Subclasses override this to handle game-specific window managers
-   * (e.g. i3 or sway) for tasks like floating windows or setting
-   * focus.
-   *
-   * @return 0 on success, negative value on failure.
-   */
-  virtual int sendWindowCommands() { return 0; }
 };
 
 using GameFactoryFunction = std::function<std::unique_ptr<GameBase>()>;

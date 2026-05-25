@@ -105,13 +105,24 @@ static void loadFont(const char* path, const unsigned char* data, size_t size, F
  */
 static Window createWindow(int x, int y, int w, int h, const string& title, int scr)
 {
-  Window win = XCreateSimpleWindow(
+  XSetWindowAttributes attrs = {};
+  attrs.override_redirect = True;
+  attrs.save_under = True;
+  attrs.background_pixel = BlackPixel(display, scr);
+  attrs.border_pixel = 0;
+
+  Window win = XCreateWindow(
     display,
     RootWindow(display, scr),
-    x, y, w, h, 0, BlackPixel(display, scr), WhitePixel(display, scr));
+    x, y, w, h,
+    0,
+    CopyFromParent,
+    InputOutput,
+    CopyFromParent,
+    CWOverrideRedirect | CWBackPixel | CWSaveUnder | CWBorderPixel,
+    &attrs);
 
-  XSizeHints hints;
-  memset(&hints, 0, sizeof(XSizeHints));
+  XSizeHints hints = {};
   hints.flags = PSize | PMinSize | PMaxSize | PPosition;
   hints.width = hints.base_width = hints.min_width = hints.max_width = w;
   hints.height = hints.base_height = hints.min_height = hints.max_height = h;
@@ -399,7 +410,6 @@ static void repositionPlayerWindows(int index = -1)
 
 /**
  * Show a player window by mapping it and raising it above other windows.
- * Also sends an i3 command for games that require it.
  *
  * @param index The index of the window to show (0-4)
  */
@@ -456,7 +466,6 @@ void startWindowThread(int index)
 
   thread([index]() {
     showWindow(index);
-    game->sendWindowCommands();
     runTimer(TIMER_DEFAULT, index);
     hideWindow(index);
     {
