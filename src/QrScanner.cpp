@@ -26,7 +26,8 @@
 #include "main.h"
 #include "QrScanner.h"
 
-QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev) {
+QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev)
+{
   if (pipe(wakePipe) == -1) {
     throw std::runtime_error("Failed to create wake pipe.");
   }

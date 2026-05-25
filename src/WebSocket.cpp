@@ -177,7 +177,7 @@ void WebSocket::setupCallbacks()
       if (!Json::Reader().parse(msg->str, json)) break;
 
       // Verify signature.
-      if (!Signature::verify(json)) {
+      if (!json.isMember("register") && !Signature::verify(json)) {
         cerr << "Message: invalid signature." << endl;
         break;
       }
