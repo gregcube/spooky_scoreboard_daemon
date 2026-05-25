@@ -19,9 +19,6 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <json/json.h>
 
 #include "game/TexasChainsawMassacre.h"
