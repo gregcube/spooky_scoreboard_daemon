@@ -145,6 +145,7 @@ void WebSocket::tokenRotate(const Json::Value& config)
 
 void WebSocket::reconnect()
 {
+  stopPing();
   ws.stop();
   Config::load();
   setHeaders();
@@ -164,6 +165,7 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
+      startPing();
       break;
 
     case ix::WebSocketMessageType::Close:
@@ -305,6 +307,7 @@ void WebSocket::send(Json::Value msg, Callback callback)
 
 void WebSocket::startPing()
 {
+  stopPing();
   if (pingThreadRunning.exchange(true)) return;
 
   pingThread = thread([this]() {
