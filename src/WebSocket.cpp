@@ -165,7 +165,7 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
-      startPing();
+      if (!Config::machineId.empty() && !Config::token.empty()) startPing();
       break;
 
     case ix::WebSocketMessageType::Close:
