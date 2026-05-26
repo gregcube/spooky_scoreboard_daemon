@@ -240,9 +240,7 @@ Wants=network-online.target
 
 [Service]
 ExecStartPre=/usr/bin/mkdir -p /game/tmp
-ExecStartPre=/bin/sh -c 'while [ ! -e /run/user/0/i3/ipc-socket.* ]; do sleep 2; done'
-ExecStartPre=/bin/sh -c 'echo "export I3_SOCKET_PATH=\$(ls /run/user/0/i3/ipc-socket.* 2>/dev/null)" > /game/tmp/.env'
-ExecStart=/bin/sh -c '. /game/tmp/.env && exec /usr/bin/ssbd -g tcm'
+ExecStart=/bin/sh -c 'exec /usr/bin/ssbd -g tcm'
 User=root
 Group=root
 Restart=on-failure
@@ -260,9 +258,7 @@ Wants=network-online.target
 
 [Service]
 ExecStartPre=/usr/bin/mkdir -p /game/tmp
-ExecStartPre=/bin/sh -c 'while [ ! -e /run/user/1000/sway-ipc.1000.* ]; do sleep 2; done'
-ExecStartPre=/bin/sh -c 'echo "export SWAYSOCK=\$(ls /run/user/1000/sway-ipc.1000.* 2>/dev/null)" > /game/tmp/.env'
-ExecStart=/bin/sh -c '. /game/tmp/.env && exec /usr/bin/ssbd -g ed'
+ExecStart=/bin/sh -c 'exec /usr/bin/ssbd -g ed'
 User=norville
 Group=norville
 Restart=on-failure
