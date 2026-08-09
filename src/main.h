@@ -26,8 +26,6 @@
 #include "WebSocket.h"
 #include "Player.h"
 
-#define MAX_UUID_LEN 36
-
 #ifdef DEBUG
 #define WS_URL "wss://ssb.local:4444"
 #else
