@@ -16,7 +16,6 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
-#include <uuid/uuid.h>
 
 #include "main.h"
 #include "x11.h"
@@ -24,32 +23,16 @@
 
 using namespace std;
 
-void Player::login(const vector<char>& uuid, int position)
+// QR login payload version (must match Drupal QrLoginToken::VERSION).
+static constexpr int QR_LOGIN_VERSION = 1;
+
+void Player::login(const string& token)
 {
-  if (uuid.size() != MAX_UUID_LEN) {
-    cerr << "Invalid UUID packet size: " << uuid.size() << endl;
+  if (token.empty()) {
+    cerr << "Empty QR login token." << endl;
     return;
   }
 
-  uuid_t uuid_parsed;
-  string uuid_str(uuid.begin(), uuid.begin() + MAX_UUID_LEN);
-  if (uuid_parse(uuid_str.c_str(), uuid_parsed) != 0) {
-    cerr << "Invalid UUID format: " << uuid_str << endl;
-    return;
-  }
-
-  if (position < 1 || position > 4) {
-    cerr << "Invalid player position: " << position << endl;
-    return;
-  }
-
-  // Show player window if position is already occupied.
-  if (!playerList.player[position - 1].empty()) {
-    startWindowThread(position - 1);
-    return;
-  }
-
-  // All spots are occupied.
   if (playerList.numPlayers == 4) {
     cerr << "All player spots are occupied." << endl;
     return;
@@ -58,12 +41,12 @@ void Player::login(const vector<char>& uuid, int position)
   Json::Value req;
   req["path"] = "/api/v1/login";
   req["method"] = "POST";
-  req["body"].append(uuid_str);
-  req["body"].append(position);
+  req["body"]["v"] = QR_LOGIN_VERSION;
+  req["body"]["token"] = token;
 
-  webSocket->enqueueMessage(req, [this, position](const Json::Value& response) {
+  webSocket->enqueueMessage(req, [this](const Json::Value& response) {
     if (response["status"].asInt() != 200) {
-      cerr << "Failed to login player " << position << endl;
+      cerr << "Failed to login player" << endl;
       cerr << "Server returned code " << response["status"].asInt() << endl;
       return;
     }
@@ -73,9 +56,23 @@ void Player::login(const vector<char>& uuid, int position)
 
     if (!user_data.isMember("message") ||
         !user_data["message"].isMember("username") ||
-        !user_data["message"]["username"].isString()) {
+        !user_data["message"]["username"].isString() ||
+        !user_data["message"].isMember("position") ||
+        !user_data["message"]["position"].isInt()) {
 
-      cerr << "Invalid login response data for player " << position << endl;
+      cerr << "Invalid login response data." << endl;
+      return;
+    }
+
+    const int position = user_data["message"]["position"].asInt();
+    if (position < 1 || position > 4) {
+      cerr << "Invalid player position from server: " << position << endl;
+      return;
+    }
+
+    // Already occupied locally (race / re-scan).
+    if (!playerList.player[position - 1].empty()) {
+      startWindowThread(position - 1);
       return;
     }
 
@@ -96,4 +93,3 @@ void Player::logout(int position)
 }
 
 // vim: set ts=2 sw=2 expandtab:
-

@@ -17,14 +17,20 @@
 
 #include <iostream>
 #include <cstring>
-#include <vector>
+#include <string>
 #include <thread>
+#include <algorithm>
+#include <cctype>
 
 #include <unistd.h>
 #include <fcntl.h>
 
 #include "main.h"
 #include "QrScanner.h"
+
+// Signed QR login tokens (JWT) are ~200-300 bytes. HID/serial scanners
+// typically append CR/LF after the payload.
+static constexpr size_t MAX_QR_TOKEN_LEN = 1024;
 
 QrScanner::QrScanner(const char* qrdev) : qrDevice(qrdev)
 {
@@ -63,9 +69,26 @@ void QrScanner::stop()
   }
 }
 
+static std::string trimToken(std::string token)
+{
+  // Strip CR/LF and surrounding whitespace scanners often append.
+  while (!token.empty() && (token.back() == '\n' || token.back() == '\r' || std::isspace(static_cast<unsigned char>(token.back())))) {
+    token.pop_back();
+  }
+
+  size_t start = 0;
+  while (start < token.size() && std::isspace(static_cast<unsigned char>(token[start]))) {
+    ++start;
+  }
+
+  return token.substr(start);
+}
+
 void QrScanner::scan()
 {
-  char buf[MAX_UUID_LEN + 1];
+  char buf[256];
+  std::string token;
+  token.reserve(256);
 
   while (run.load()) {
     fd_set readfds;
@@ -82,19 +105,36 @@ void QrScanner::scan()
     // Data not ready on QR device, loop to next select.
     if (!FD_ISSET(ttyQR, &readfds)) continue;
 
-    // Read QR data.
-    memset(buf, 0, sizeof(buf));
     ssize_t n = read(ttyQR, buf, sizeof(buf));
-    if (n < 0 || n != sizeof(buf)) continue;
+    if (n <= 0) continue;
 
-    std::vector<char> uuid(buf, buf + MAX_UUID_LEN);
-    int position = buf[MAX_UUID_LEN] - '0';
+    for (ssize_t i = 0; i < n; ++i) {
+      char c = buf[i];
+      if (c == '\n' || c == '\r') {
+        std::string payload = trimToken(std::move(token));
+        token.clear();
+        token.reserve(256);
 
-    std::cout << "QR code detected." << std::endl;
-    playerHandler->login(uuid, position);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+        // JWT compact form has two dots (header.payload.sig).
+        if (payload.size() < 20 || std::count(payload.begin(), payload.end(), '.') != 2) {
+          continue;
+        }
+
+        std::cout << "QR code detected..." << std::endl;
+        playerHandler->login(payload);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        continue;
+      }
+
+      if (token.size() >= MAX_QR_TOKEN_LEN) {
+        // Overflow/ noise - discard and resync on next terminator.
+        token.clear();
+        continue;
+      }
+
+      token.push_back(c);
+    }
   }
 }
 
 // vim: set ts=2 sw=2 expandtab:
-

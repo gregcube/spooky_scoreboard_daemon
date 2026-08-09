@@ -17,13 +17,14 @@
 
 #pragma once
 
+#include <string>
 #include "WebSocket.h"
 
 class Player {
 public:
   Player(const std::shared_ptr<WebSocket>& ws) : webSocket(ws) {};
 
-  void login(const std::vector<char>& uuid, int position);
+  void login(const std::string& token);
   void logout(int position);
 
 private:
@@ -31,4 +32,3 @@ private:
 };
 
 // vim: set ts=2 sw=2 expandtab:
-
