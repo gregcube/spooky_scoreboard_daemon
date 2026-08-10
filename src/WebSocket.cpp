@@ -165,7 +165,8 @@ void WebSocket::setupCallbacks()
 
     case ix::WebSocketMessageType::Open:
       connected.store(true);
-      if (!Config::machineId.empty() && !Config::token.empty()) startPing();
+      // Only resume ping if it was intentionally started (not during token gate).
+      if (pingEnabled.load()) startPing();
       break;
 
     case ix::WebSocketMessageType::Close:
@@ -307,6 +308,7 @@ void WebSocket::send(Json::Value msg, Callback callback)
 
 void WebSocket::startPing()
 {
+  pingEnabled.store(true);
   stopPing();
   if (pingThreadRunning.exchange(true)) return;
 

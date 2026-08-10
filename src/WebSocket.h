@@ -44,6 +44,9 @@ private:
 
   std::atomic<bool> connected{false};
   std::atomic<bool> pingThreadRunning{false};
+  // When true, Open restarts the app ping after reconnects.
+  // Stays false until startPing() so startup token rotation is not raced by pings.
+  std::atomic<bool> pingEnabled{false};
 
   std::thread pingThread;
   std::string lastError;

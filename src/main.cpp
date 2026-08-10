@@ -308,10 +308,14 @@ int main(int argc, char** argv)
     webSocket = make_shared<WebSocket>(WS_URL);
     webSocket->connect();
 
-    // Check if auth token has expired.
+    // Arm before the expiry check so an early token_rotate cannot be missed.
+    auto tokenRotateFuture = webSocket->waitForTokenRotate();
+
+    // Check if auth token has expired. Do not start app ping until this passes;
+    // Open will only resume ping after startPing() has set pingEnabled.
     if (webSocket->isTokenExpired().get()) {
       cout << "Token expired. Waiting for token rotation..." << endl;
-      webSocket->waitForTokenRotate().wait();
+      tokenRotateFuture.wait();
       cout << "Token rotation complete." << endl;
     }
 
