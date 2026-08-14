@@ -20,9 +20,10 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <algorithm>
+#include <chrono>
 #include <cstring>
 
-#include <sys/time.h>
 #include <fontconfig/fontconfig.h>
 
 #include <X11/Xatom.h>
@@ -59,7 +60,16 @@ XftColor xft_color = {0, 0, 0, 0, 0};
 
 mutex timer_mtx, thread_mtx, message_mtx;
 vector<bool> windowThread = vector<bool>(5, false);
-string serverMessage;
+
+struct ServerNotice {
+  string text;
+  int timeoutSec = TIMER_DEFAULT;
+  int width = X11_WIN_WIDTH;
+  int height = X11_WIN_HEIGHT;
+  chrono::steady_clock::time_point deadline{};
+};
+
+ServerNotice serverNotice;
 
 /**
  * Initializes the X11 display connection and set up the display environment.
@@ -277,7 +287,7 @@ void drawWindow(int index)
   }
   else {
     lock_guard<mutex> lock(message_mtx);
-    text = serverMessage;
+    text = serverNotice.text;
   }
   auto lines = wrapText(text, xft_std_font, w - 10);
 
@@ -342,12 +352,19 @@ static void runTimer(int secs, int index)
   XWindowAttributes attr;
   if (!XGetWindowAttributes(display, window[index], &attr)) return;
 
-  struct timeval start, now;
-  gettimeofday(&start, nullptr);
+  const auto started = chrono::steady_clock::now();
 
   while (isRunning.load()) {
-    gettimeofday(&now, nullptr);
-    int remaining = static_cast<int>(secs - (now.tv_sec - start.tv_sec));
+    int remaining = 0;
+    if (index == 4) {
+      lock_guard<mutex> lock(message_mtx);
+      remaining = static_cast<int>(chrono::duration_cast<chrono::seconds>(
+        serverNotice.deadline - chrono::steady_clock::now()).count());
+    }
+    else {
+      remaining = secs - static_cast<int>(
+        chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - started).count());
+    }
     if (remaining <= 0) break;
 
     string ct = to_string(remaining);
@@ -389,30 +406,33 @@ static void runTimer(int secs, int index)
  */
 static void repositionPlayerWindows(int index = -1)
 {
-  int windows_open = 0;
-  int w = DisplayWidth(display, DefaultScreen(display));
-  int h = DisplayHeight(display, DefaultScreen(display));
+  int screen_w = DisplayWidth(display, DefaultScreen(display));
+  int screen_h = DisplayHeight(display, DefaultScreen(display));
   XWindowAttributes attr;
 
-  // Count visible windows including the one about to be shown.
+  int widths[5] = {};
+  int heights[5] = {};
+  bool visible[5] = {};
+  int windows_open = 0;
+  int total_width = 0;
+
   for (int i = 0; i < 5; i++) {
-    if (XGetWindowAttributes(display, window[i], &attr)) {
-      if (attr.map_state == IsViewable || i == index) windows_open++;
-    }
+    if (!XGetWindowAttributes(display, window[i], &attr)) continue;
+    if (attr.map_state != IsViewable && i != index) continue;
+    visible[i] = true;
+    widths[i] = attr.width;
+    heights[i] = attr.height;
+    total_width += attr.width;
+    windows_open++;
   }
 
-  // Calculate total width and starting x position.
-  int total_width = (windows_open * X11_WIN_WIDTH) + ((windows_open - 1) * X11_WIN_GAP);
-  int current_x = (w - total_width) / 2;
+  if (windows_open > 1) total_width += (windows_open - 1) * X11_WIN_GAP;
+  int current_x = (screen_w - total_width) / 2;
 
-  // Position each open window.
   for (int i = 0; i < 5; i++) {
-    if (XGetWindowAttributes(display, window[i], &attr)) {
-      if (attr.map_state == IsViewable || i == index) {
-        XMoveWindow(display, window[i], current_x, (h - X11_WIN_HEIGHT) / 2);
-        current_x += X11_WIN_WIDTH + X11_WIN_GAP;
-      }
-    }
+    if (!visible[i]) continue;
+    XMoveWindow(display, window[i], current_x, (screen_h - heights[i]) / 2);
+    current_x += widths[i] + X11_WIN_GAP;
   }
 }
 
@@ -453,16 +473,77 @@ static void hideWindow(int index)
   XSync(display, False);
 }
 
-/**
- * Run each window in a separate thread.
- * Each window has its own countdown timer.
- */
-void showServerMessage(const string& text)
+static void resizeMessageWindow(int w, int h)
 {
+  if (display == nullptr || window[4] == None) return;
+
+  XWindowAttributes attr;
+  if (XGetWindowAttributes(display, window[4], &attr) && attr.width == w && attr.height == h) {
+    return;
+  }
+
+  XResizeWindow(display, window[4], static_cast<unsigned int>(w), static_cast<unsigned int>(h));
+
+  if (xft_draw[4] != nullptr) {
+    XftDrawDestroy(xft_draw[4]);
+    xft_draw[4] = nullptr;
+  }
+
+  if (pixmap_buf[4] != None) {
+    XFreePixmap(display, pixmap_buf[4]);
+    pixmap_buf[4] = None;
+  }
+
+  int screen = DefaultScreen(display);
+
+  pixmap_buf[4] = XCreatePixmap(display, window[4],
+    static_cast<unsigned int>(w), static_cast<unsigned int>(h),
+    DefaultDepth(display, screen));
+
+  if (pixmap_buf[4] == None) {
+    cerr << "Failed to resize message pixmap." << endl;
+    return;
+  }
+
+  xft_draw[4] = XftDrawCreate(display, pixmap_buf[4], visual, colormap);
+  if (!xft_draw[4]) {
+    cerr << "Failed to recreate XftDraw for message window." << endl;
+  }
+}
+
+void showServerMessage(const string& text, int timeoutSec, int width, int height)
+{
+  if (timeoutSec <= 0) timeoutSec = TIMER_DEFAULT;
+  timeoutSec = clamp(timeoutSec, 1, 3600);
+
+  if (width <= 0) width = X11_WIN_WIDTH;
+  if (height <= 0) height = X11_WIN_HEIGHT;
+
+  if (display != nullptr) {
+    int screen = DefaultScreen(display);
+    width = clamp(width, 160, DisplayWidth(display, screen));
+    height = clamp(height, 200, DisplayHeight(display, screen));
+  }
+  else {
+    width = max(width, 160);
+    height = max(height, 200);
+  }
+
   {
     lock_guard<mutex> lock(message_mtx);
-    serverMessage = text;
+    serverNotice.text = text;
+    serverNotice.timeoutSec = timeoutSec;
+    serverNotice.width = width;
+    serverNotice.height = height;
+    serverNotice.deadline = chrono::steady_clock::now() + chrono::seconds(timeoutSec);
   }
+
+  {
+    lock_guard<mutex> lock(timer_mtx);
+    resizeMessageWindow(width, height);
+    if (window[4] != None) repositionPlayerWindows(4);
+  }
+
   startWindowThread(4);
 }
 

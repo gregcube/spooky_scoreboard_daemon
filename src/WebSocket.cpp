@@ -55,9 +55,20 @@ void WebSocket::initDispatchers()
 
   // Displays a message on the screen.
   cmdDispatchers["message"] = [](const Json::Value& payload) {
-    if (payload.isMember("message")) {
-      showServerMessage(payload["message"].asString());
-    }
+    if (!payload.isMember("message") || !payload["message"].isString()) return;
+
+    int timeout = 0, width = 0, height = 0;
+
+    if (payload.isMember("timeout") && payload["timeout"].isNumeric())
+      timeout = payload["timeout"].asInt();
+
+    if (payload.isMember("width") && payload["width"].isNumeric())
+      width = payload["width"].asInt();
+
+    if (payload.isMember("height") && payload["height"].isNumeric())
+      height = payload["height"].asInt();
+
+    showServerMessage(payload["message"].asString(), timeout, width, height);
   };
 
   // Rotate authorization token.
