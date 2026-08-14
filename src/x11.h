@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <string>
+
 #define TIMER_DEFAULT 15
 
 void x11Init();
@@ -24,6 +26,12 @@ void drawWindow(int index);
 void openWindows();
 void closeWindows();
 void startWindowThread(int index);
+
+/**
+ * Show a server notice on window 4.
+ * timeoutSec <= 0 uses TIMER_DEFAULT. width/height <= 0 use the default 320x480.
+ */
+void showServerMessage(const std::string& text, int timeoutSec = 0, int width = 0, int height = 0);
 
 // vim: set ts=2 sw=2 expandtab:
 

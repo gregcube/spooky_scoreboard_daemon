@@ -50,35 +50,6 @@ shared_ptr<Player> playerHandler = nullptr;
 
 static vector<string> savedArgv;
 
-void restartDaemon()
-{
-  static atomic<bool> requested{false};
-  if (requested.exchange(true)) return;
-
-  thread([]() {
-    // Let the websocket command handler finish sending/acking first.
-    this_thread::sleep_for(chrono::milliseconds(200));
-    cout << "Restarting daemon..." << endl;
-
-    vector<char*> args;
-    args.reserve(savedArgv.size() + 1);
-    for (auto& s : savedArgv) args.push_back(s.data());
-    args.push_back(nullptr);
-
-    char exePath[PATH_MAX];
-    ssize_t n = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
-    if (n < 0) {
-      cerr << "Restart failed: cannot resolve /proc/self/exe: " << strerror(errno) << endl;
-      _Exit(EXIT_FAILURE);
-    }
-    exePath[n] = '\0';
-
-    execv(exePath, args.data());
-    cerr << "Restart failed: execv: " << strerror(errno) << endl;
-    _Exit(EXIT_FAILURE);
-  }).detach();
-}
-
 /**
  * Performs cleanup of all resources and threads.
  * Called both on normal exit and when handling signals.
@@ -102,6 +73,40 @@ static void cleanup()
   if (qrCode) qrCode.reset();
   if (playerHandler) playerHandler.reset();
   if (webSocket) webSocket.reset();
+}
+
+void restartDaemon()
+{
+  static atomic<bool> requested{false};
+  if (requested.exchange(true)) return;
+
+  thread([]() {
+    // Let the websocket command handler finish sending/acking first.
+    this_thread::sleep_for(chrono::milliseconds(200));
+
+    char exePath[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+    if (n < 0) {
+      cerr << "Restart failed: cannot resolve /proc/self/exe: " << strerror(errno) << endl;
+      requested.store(false);
+      return;
+    }
+    exePath[n] = '\0';
+
+    vector<char*> args;
+    args.reserve(savedArgv.size() + 1);
+    for (auto& s : savedArgv) args.push_back(s.data());
+    args.push_back(nullptr);
+
+    cout << "Restarting daemon..." << endl;
+    cleanup();
+    cout.flush();
+    cerr.flush();
+
+    execv(exePath, args.data());
+    cerr << "Restart failed: execv: " << strerror(errno) << endl;
+    _Exit(EXIT_FAILURE);
+  }).detach();
 }
 
 /**
@@ -177,7 +182,7 @@ static void watch()
   int fd, wd;
   char buf[1024];
 
-  if ((fd = inotify_init()) == -1) {
+  if ((fd = inotify_init1(IN_CLOEXEC)) == -1) {
     cerr << "Failed inotify_init()." << endl;
     exit(EXIT_FAILURE);
   }
