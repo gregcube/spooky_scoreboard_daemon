@@ -48,6 +48,8 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
+static vector<string> savedArgv;
+
 void restartDaemon()
 {
   static atomic<bool> requested{false};
