@@ -48,7 +48,6 @@ extern std::unique_ptr<GameBase> game;
 extern std::unique_ptr<QrCode> qrCode;
 extern std::shared_ptr<WebSocket> webSocket;
 extern std::shared_ptr<Player> playerHandler;
-extern std::string serverMessage;
 
 // vim: set ts=2 sw=2 expandtab:
 

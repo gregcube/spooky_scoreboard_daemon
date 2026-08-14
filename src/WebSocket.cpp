@@ -54,10 +54,9 @@ void WebSocket::initDispatchers()
   };
 
   // Displays a message on the screen.
-  cmdDispatchers["message"] = [this](const Json::Value& payload) {
+  cmdDispatchers["message"] = [](const Json::Value& payload) {
     if (payload.isMember("message")) {
-      serverMessage = payload["message"].asString();
-      startWindowThread(4);
+      showServerMessage(payload["message"].asString());
     }
   };
 

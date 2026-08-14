@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include <string>
+
 #define TIMER_DEFAULT 15
 
 void x11Init();
@@ -24,6 +26,7 @@ void drawWindow(int index);
 void openWindows();
 void closeWindows();
 void startWindowThread(int index);
+void showServerMessage(const std::string& text);
 
 // vim: set ts=2 sw=2 expandtab:
 

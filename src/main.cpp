@@ -44,9 +44,6 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
-// todo: Add Message class/ implement some sort of message queue system.
-string serverMessage;
-
 /**
  * Performs cleanup of all resources and threads.
  * Called both on normal exit and when handling signals.

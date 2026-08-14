@@ -57,8 +57,9 @@ XftFont* xft_sub_font = nullptr;
 Visual* visual = nullptr;
 XftColor xft_color = {0, 0, 0, 0, 0};
 
-mutex timer_mtx, thread_mtx;
+mutex timer_mtx, thread_mtx, message_mtx;
 vector<bool> windowThread = vector<bool>(5, false);
+string serverMessage;
 
 /**
  * Initializes the X11 display connection and set up the display environment.
@@ -270,7 +271,14 @@ void drawWindow(int index)
 
   // Main text area.
   int text_area_top = qr_y + 145 + 45;
-  string text = (index < 4) ? playerList.player[index] : serverMessage;
+  string text;
+  if (index < 4) {
+    text = playerList.player[index];
+  }
+  else {
+    lock_guard<mutex> lock(message_mtx);
+    text = serverMessage;
+  }
   auto lines = wrapText(text, xft_std_font, w - 10);
 
   int block_h = static_cast<int>(lines.size()) * xft_std_font->height;
@@ -449,6 +457,15 @@ static void hideWindow(int index)
  * Run each window in a separate thread.
  * Each window has its own countdown timer.
  */
+void showServerMessage(const string& text)
+{
+  {
+    lock_guard<mutex> lock(message_mtx);
+    serverMessage = text;
+  }
+  startWindowThread(4);
+}
+
 void startWindowThread(int index)
 {
   if (index < 0 || index > 4 || window[index] == None) return;
