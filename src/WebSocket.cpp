@@ -70,6 +70,12 @@ void WebSocket::initDispatchers()
       tokenRotate(config);
     }
   };
+
+  // Restart the daemon process (re-exec). Triggered from the machine management UI.
+  cmdDispatchers["restart"] = [](const Json::Value&) {
+    cout << "Restart command received." << endl;
+    restartDaemon();
+  };
 }
 
 void WebSocket::setHeaders()

@@ -17,7 +17,11 @@
 
 #include <cstdint>
 #include <csignal>
+#include <cstring>
 #include <iostream>
+#include <limits.h>
+#include <vector>
+#include <thread>
 
 #include <unistd.h>
 #include <signal.h>
@@ -44,8 +48,34 @@ unique_ptr<QrCode> qrCode = nullptr;
 shared_ptr<WebSocket> webSocket = nullptr;
 shared_ptr<Player> playerHandler = nullptr;
 
-// todo: Add Message class/ implement some sort of message queue system.
-string serverMessage;
+void restartDaemon()
+{
+  static atomic<bool> requested{false};
+  if (requested.exchange(true)) return;
+
+  thread([]() {
+    // Let the websocket command handler finish sending/acking first.
+    this_thread::sleep_for(chrono::milliseconds(200));
+    cout << "Restarting daemon..." << endl;
+
+    vector<char*> args;
+    args.reserve(savedArgv.size() + 1);
+    for (auto& s : savedArgv) args.push_back(s.data());
+    args.push_back(nullptr);
+
+    char exePath[PATH_MAX];
+    ssize_t n = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
+    if (n < 0) {
+      cerr << "Restart failed: cannot resolve /proc/self/exe: " << strerror(errno) << endl;
+      _Exit(EXIT_FAILURE);
+    }
+    exePath[n] = '\0';
+
+    execv(exePath, args.data());
+    cerr << "Restart failed: execv: " << strerror(errno) << endl;
+    _Exit(EXIT_FAILURE);
+  }).detach();
+}
 
 /**
  * Performs cleanup of all resources and threads.
@@ -242,6 +272,8 @@ static void signalHandler(int signum)
 
 int main(int argc, char** argv)
 {
+  savedArgv.assign(argv, argv + argc);
+
   string reg_code, game_name, config_path;
   bool upload = false, help = false, list = false;
 
