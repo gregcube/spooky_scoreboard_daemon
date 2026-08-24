@@ -39,7 +39,7 @@ string trimToMaxBytes(string log)
   if (log.size() <= kMaxBytes) return log;
 
   size_t cut = log.size() - kMaxBytes;
-  const size_t nl = log.find('\n', cut)j;
+  const size_t nl = log.find('\n', cut);
   if (nl != string::npos) cut = nl + 1;
 
   log.erase(0, cut);
