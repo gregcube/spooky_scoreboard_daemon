@@ -30,7 +30,7 @@ public:
     "highscores.json",
     "lastscores.json",
     "_game_audits.json",
-    ""
+    "/game/audits/critical_error_log_ED.txt"
   ) {}
 
   const Json::Value processHighScores() override;
