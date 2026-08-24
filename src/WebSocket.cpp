@@ -23,6 +23,7 @@
 #include "Config.h"
 #include "WebSocket.h"
 #include "Signature.h"
+#include "Journal.h"
 #include "version.h"
 
 using namespace std;
@@ -95,6 +96,11 @@ void WebSocket::initDispatchers()
   // Read the local critical error log and post it back to the server.
   cmdDispatchers["critical_error_log"] = [](const Json::Value&) {
     if (game) game->uploadCriticalErrorLog();
+  };
+
+  // Read a bounded ssbd journal snapshot and post it back to the server.
+  cmdDispatchers["ssbd_log"] = [](const Json::Value&) {
+    uploadJournal();
   };
 }
 

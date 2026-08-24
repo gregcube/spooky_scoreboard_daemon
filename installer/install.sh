@@ -89,6 +89,10 @@ install() {
   write_ssbd_service "$game"
   chroot /mnt/rootfs systemctl enable ssbd >/dev/null 2>&1
 
+  if [[ "$game" == "ed" ]]; then
+    chroot /mnt/rootfs usermod -aG systemd-journal norville >/dev/null 2>&1 || err "Failed to add norville to systemd-journal group."
+  fi
+
   echo "Enter your 4-digit registration code:"
   read -r code
   if ! [[ ${#code} -eq 4 && "$code" =~ ^[a-zA-Z0-9]{4}$ ]]; then
@@ -261,6 +265,7 @@ ExecStartPre=/usr/bin/mkdir -p /game/tmp
 ExecStart=/bin/sh -c 'exec /usr/bin/ssbd -g ed'
 User=norville
 Group=norville
+SupplementaryGroups=systemd-journal
 Restart=on-failure
 RestartSec=15
 
