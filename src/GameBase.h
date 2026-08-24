@@ -26,6 +26,8 @@
 
 #include "WebSocket.h"
 
+namespace YAML { class Node; }
+
 class GameBase
 {
 protected:
@@ -36,6 +38,8 @@ protected:
   const std::string highScoresFile;
   const std::string lastScoresFile;
   const std::string auditsFile;
+
+  static Json::Value yamlToJson(const YAML::Node& node);
 
 public:
   GameBase(
@@ -60,8 +64,18 @@ public:
 
   enum class ScoreType { High, Last, Mode };
   void uploadScores(const Json::Value& scores, ScoreType type);
+  void uploadAudits();
 
   virtual uint32_t getGamesPlayed() = 0;
+
+  /**
+   * @brief Load the local JSON audits file.
+   *
+   * YAML-based games override this to convert their audits file to JSON.
+   *
+   * @return A JSON representation of the audits file.
+   */
+  virtual const Json::Value processAudits();
 
   /**
    * @brief Process highscores.

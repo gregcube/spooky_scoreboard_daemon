@@ -16,6 +16,7 @@
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <iostream>
+#include <stdexcept>
 
 #include "yaml-cpp/yaml.h"
 #include "game/TotalNuclearAnnihilation.h"
@@ -48,6 +49,19 @@ const Json::Value TotalNuclearAnnihilation::processLastGameScores()
   scores.append(lastScoresNode["Player3LastScore"].as<uint32_t>());
   scores.append(lastScoresNode["Player4LastScore"].as<uint32_t>());
   return scores;
+}
+
+const Json::Value TotalNuclearAnnihilation::processAudits()
+{
+  std::string path(scoresPath + "/" + auditsFile);
+
+  try {
+    return yamlToJson(YAML::LoadFile(path));
+  }
+  catch (const YAML::Exception& e) {
+    std::cerr << "Failed to load YAML: " << path << "\n" << e.what() << std::endl;
+    throw std::runtime_error("Failed to load audits from YAML file.");
+  }
 }
 
 uint32_t TotalNuclearAnnihilation::getGamesPlayed()

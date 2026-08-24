@@ -34,6 +34,7 @@ public:
 
   const Json::Value processHighScores() override;
   const Json::Value processLastGameScores() override;
+  const Json::Value processAudits() override;
   uint32_t getGamesPlayed() override;
 };
 

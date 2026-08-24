@@ -72,6 +72,19 @@ const Json::Value AliceCooperNightmareCastle::processLastGameScores()
   return scores;
 }
 
+const Json::Value AliceCooperNightmareCastle::processAudits()
+{
+  std::string path(scoresPath + "/" + auditsFile);
+
+  try {
+    return yamlToJson(YAML::LoadFile(path));
+  }
+  catch (const YAML::Exception& e) {
+    std::cerr << "Failed to load YAML: " << path << "\n" << e.what() << std::endl;
+    throw std::runtime_error("Failed to load audits from YAML file.");
+  }
+}
+
 uint32_t AliceCooperNightmareCastle::getGamesPlayed()
 {
   YAML::Node audits;

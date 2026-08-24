@@ -86,6 +86,11 @@ void WebSocket::initDispatchers()
     cout << "Restart command received." << endl;
     restartDaemon();
   };
+
+  // Read the local audits file (as JSON) and post it back to the server.
+  cmdDispatchers["audits"] = [](const Json::Value&) {
+    if (game) game->uploadAudits();
+  };
 }
 
 void WebSocket::setHeaders()
