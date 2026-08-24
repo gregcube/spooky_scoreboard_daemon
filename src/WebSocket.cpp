@@ -91,6 +91,11 @@ void WebSocket::initDispatchers()
   cmdDispatchers["audits"] = [](const Json::Value&) {
     if (game) game->uploadAudits();
   };
+
+  // Read the local critical error log and post it back to the server.
+  cmdDispatchers["critical_error_log"] = [](const Json::Value&) {
+    if (game) game->uploadCriticalErrorLog();
+  };
 }
 
 void WebSocket::setHeaders()

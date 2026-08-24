@@ -38,6 +38,7 @@ protected:
   const std::string highScoresFile;
   const std::string lastScoresFile;
   const std::string auditsFile;
+  const std::string criticalErrorLogFile;
 
   static Json::Value yamlToJson(const YAML::Node& node);
 
@@ -49,14 +50,16 @@ public:
     const std::string& tPath,
     const std::string& hsFile,
     const std::string& lsFile,
-    const std::string& aFile
+    const std::string& aFile,
+    const std::string& celFile
   ) : gameName(name),
       gamePath(gPath),
       scoresPath(sPath),
       tmpPath(tPath),
       highScoresFile(hsFile),
       lastScoresFile(lsFile),
-      auditsFile(aFile) {}
+      auditsFile(aFile),
+      criticalErrorLogFile(celFile) {}
 
   virtual ~GameBase() = default;
 
@@ -65,6 +68,7 @@ public:
   enum class ScoreType { High, Last, Mode };
   void uploadScores(const Json::Value& scores, ScoreType type);
   void uploadAudits();
+  void uploadCriticalErrorLog();
 
   virtual uint32_t getGamesPlayed() = 0;
 
@@ -131,6 +135,13 @@ public:
    * @return A constant reference to a string containing the filename.
    */
   const std::string& getAuditsFile() const { return auditsFile; }
+
+  /**
+   * @brief Retrieves the path to the critical error log.
+   *
+   * @return A constant reference to a string containing the file path.
+   */
+  const std::string& getCriticalErrorLogFile() const { return criticalErrorLogFile; }
 
   /**
    * @brief Retrieves the highscores filename.

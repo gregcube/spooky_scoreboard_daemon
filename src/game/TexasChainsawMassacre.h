@@ -29,7 +29,8 @@ public:
     "/game/tmp",
     "highscores.tcm",
     "highscores.tcm",
-    "_game_audits.json"
+    "_game_audits.json",
+    "/game/audits/critical_error_log_TCM.txt"
   ) {}
 
   const Json::Value processHighScores() override;

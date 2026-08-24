@@ -29,7 +29,8 @@ public:
     "/tna/game/tmp",
     "tna.yaml",
     "tna.yaml",
-    "tna.yaml"
+    "tna.yaml",
+    ""
   ) {}
 
   const Json::Value processHighScores() override;

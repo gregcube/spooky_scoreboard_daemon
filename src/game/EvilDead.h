@@ -29,7 +29,8 @@ public:
     "/game/tmp",
     "highscores.json",
     "lastscores.json",
-    "_game_audits.json"
+    "_game_audits.json",
+    ""
   ) {}
 
   const Json::Value processHighScores() override;

@@ -29,7 +29,8 @@ public:
     "/game/tmp",
     "game_user_data.yaml",
     "game_user_data.yaml",
-    "game_user_data.yaml"
+    "game_user_data.yaml",
+    ""
   ) {}
 
   const Json::Value processHighScores() override;

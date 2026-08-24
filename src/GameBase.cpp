@@ -20,6 +20,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <sstream>
 
 #include <yaml-cpp/yaml.h>
 
@@ -163,6 +164,41 @@ void GameBase::uploadAudits()
     webSocket->enqueueMessage(req, [](const Json::Value& response) {
       if (response["status"].asInt() != 200) {
         cerr << "Failed to upload audits." << endl;
+      }
+    });
+  }
+  catch (const runtime_error& e) {
+    cerr << "Exception: " << e.what() << endl;
+  }
+}
+
+void GameBase::uploadCriticalErrorLog()
+{
+  if (criticalErrorLogFile.empty()) {
+    cerr << "Critical error log path is not configured for this game." << endl;
+    return;
+  }
+
+  try {
+    cout << "Uploading critical error log..." << endl;
+
+    ifstream ifs(criticalErrorLogFile);
+    if (!ifs.is_open()) {
+      throw runtime_error("Failed to open critical error log");
+    }
+
+    ostringstream ss;
+    ss << ifs.rdbuf();
+
+    Json::Value req;
+    req["path"] = "/api/v1/log";
+    req["method"] = "POST";
+    req["query"] = "type=critical";
+    req["body"] = ss.str();
+
+    webSocket->enqueueMessage(req, [](const Json::Value& response) {
+      if (response["status"].asInt() != 200) {
+        cerr << "Failed to upload critical error log." << endl;
       }
     });
   }
