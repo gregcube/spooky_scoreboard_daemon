@@ -22,7 +22,6 @@
 
 #include "Register.h"
 #include "Config.h"
-#include "AuditEvent.h"
 
 using namespace std;
 
@@ -73,7 +72,6 @@ future<void> Register::registerMachine(const string& regcode, const string& conf
       Config::save(config["message"], configPath);
 
       cout << "Machine registered." << endl;
-      AuditEvent::record("register");
       promise->set_value();
     }
     catch (const exception& e) {
