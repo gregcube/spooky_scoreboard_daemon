@@ -61,7 +61,10 @@ void QrScanner::start()
 void QrScanner::stop()
 {
   if (!run.exchange(false)) return;
-  if (wakePipe[1] >= 0) write(wakePipe[1], "", 1);
+  if (wakePipe[1] >= 0) {
+    close(wakePipe[1]);
+    wakePipe[1] = -1;
+  }
   if (scanThread.joinable()) scanThread.join();
   if (ttyQR >= 0) {
     close(ttyQR);
@@ -99,7 +102,6 @@ void QrScanner::scan()
     int rc = select(std::max(ttyQR, wakePipe[0]) + 1, &readfds, nullptr, nullptr, nullptr);
     if (rc < 0) break;
 
-    // Break loop if wakePipe[1] is written to.
     if (FD_ISSET(wakePipe[0], &readfds)) break;
 
     // Data not ready on QR device, loop to next select.
