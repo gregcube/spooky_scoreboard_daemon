@@ -20,6 +20,7 @@
 #include "main.h"
 #include "x11.h"
 #include "Player.h"
+#include "AuditEvent.h"
 
 using namespace std;
 
@@ -80,6 +81,11 @@ void Player::login(const string& token)
     playerList.player[position - 1] = user_data["message"]["username"].asString();
     ++playerList.numPlayers;
     startWindowThread(position - 1);
+
+    Json::Value details;
+    details["username"] = playerList.player[position - 1];
+    details["position"] = position;
+    AuditEvent::record("player_login", details);
   });
 }
 

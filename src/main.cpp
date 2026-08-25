@@ -33,6 +33,7 @@
 #include "Config.h"
 #include "Register.h"
 #include "QrScanner.h"
+#include "AuditEvent.h"
 #include "version.h"
 
 using namespace std;
@@ -79,6 +80,8 @@ void restartDaemon()
 {
   static atomic<bool> requested{false};
   if (requested.exchange(true)) return;
+
+  AuditEvent::record("daemon_restart");
 
   thread([]() {
     // Let the websocket command handler finish sending/acking first.
@@ -380,6 +383,8 @@ int main(int argc, char** argv)
 
     // Start ping thread.
     webSocket->startPing();
+
+    AuditEvent::record("daemon_start");
 
     // Start main loop and watch for action.
     watch();

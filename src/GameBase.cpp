@@ -26,6 +26,7 @@
 
 #include "main.h"
 #include "GameBase.h"
+#include "AuditEvent.h"
 
 #include "game/EvilDead.h"
 #include "game/Halloween.h"
@@ -108,16 +109,16 @@ void GameBase::uploadScores(const Json::Value& scores, ScoreType type)
   try {
     Json::Value req;
 
-    string query = "type=";
+    string scoreType;
     switch (type) {
-    case ScoreType::High: query += "classic"; break;
-    case ScoreType::Last: query += "last"; break;
-    case ScoreType::Mode: query += "mode"; break;
+    case ScoreType::High: scoreType = "classic"; break;
+    case ScoreType::Last: scoreType = "last"; break;
+    case ScoreType::Mode: scoreType = "mode"; break;
     }
 
     req["path"] = "/api/v1/score";
     req["method"] = "POST";
-    req["query"] = query;
+    req["query"] = "type=" + scoreType;
     req["body"] = scores;
 
     webSocket->enqueueMessage(req, [this](const Json::Value& response) {
@@ -125,6 +126,10 @@ void GameBase::uploadScores(const Json::Value& scores, ScoreType type)
         cerr << "Failed to upload scores." << endl;
       }
     });
+
+    Json::Value details;
+    details["type"] = scoreType;
+    AuditEvent::record("score_upload", details);
   }
   catch (const runtime_error& e) {
     cerr << "Exception: " << e.what() << endl;

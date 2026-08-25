@@ -24,6 +24,7 @@
 #include "WebSocket.h"
 #include "Signature.h"
 #include "Journal.h"
+#include "AuditEvent.h"
 #include "version.h"
 
 using namespace std;
@@ -171,6 +172,7 @@ void WebSocket::tokenRotate(const Json::Value& config)
     }
 
     messageQueue->resume();
+    AuditEvent::record("token_rotate");
   })
   .detach();
 }
@@ -254,7 +256,13 @@ void WebSocket::processApiResponse(const Json::Value& json)
 
 void WebSocket::processCmd(const Json::Value& payload)
 {
-  const string& cmd = payload["cmd"].asString();
+  const string cmd = payload["cmd"].asString();
+  if (!cmd.empty()) {
+    Json::Value details;
+    details["cmd"] = cmd;
+    AuditEvent::record("command", details);
+  }
+
   auto it = cmdDispatchers.find(cmd);
   if (it != cmdDispatchers.end()) {
     it->second(payload);

@@ -31,6 +31,7 @@ add_executable(ssbd
   src/Signature.cpp
   src/MessageQueue.cpp
   src/Journal.cpp
+  src/AuditEvent.cpp
   ${GAME_SOURCES}
   ${GAME_INCLUDES}
   ${FONT_SOURCES}
