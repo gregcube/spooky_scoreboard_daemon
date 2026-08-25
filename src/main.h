@@ -26,10 +26,11 @@
 #include "WebSocket.h"
 #include "Player.h"
 
-#ifdef DEBUG
-#define WS_URL "wss://ssb.local:4444"
-#else
-#define WS_URL "wss://spookyscoreboard.com:4444"
+#ifndef SSB_ENV
+#error "SSB_ENV is not defined. Configure with -DSSB_ENV=local|stage|live"
+#endif
+#ifndef SSB_WS_URL
+#error "SSB_WS_URL is not defined. Configure with -DSSB_ENV=local|stage|live"
 #endif
 
 struct players {

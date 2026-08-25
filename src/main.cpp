@@ -214,7 +214,7 @@ static void watch()
 static void uploadHighScores()
 {
   try {
-    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket = make_shared<WebSocket>(SSB_WS_URL);
     webSocket->connect();
     Json::Value scores = game->processHighScores();
     game->uploadScores(scores, game->ScoreType::High);
@@ -229,7 +229,7 @@ static void uploadHighScores()
 static void registerGame(const string& code, const string& path)
 {
   try {
-    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket = make_shared<WebSocket>(SSB_WS_URL);
     webSocket->connect();
     Register(webSocket).registerMachine(code, path).get();
   }
@@ -242,7 +242,9 @@ static void registerGame(const string& code, const string& path)
 
 static void printSupportedGames()
 {
-  cout << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n";
+  cout << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL
+       << " (" << SSB_ENV << ")\n";
+
   for (auto it = gameFactories.begin(); it != gameFactories.end(); ++it) {
     cout << "  " << it->first << ":\t" << it->second()->getGameName() << "\n";
   }
@@ -251,7 +253,9 @@ static void printSupportedGames()
 
 static void printUsage(const char* argv0)
 {
-  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL << "\n";
+  cerr << "Spooky Scoreboard Daemon (ssbd) v" << Version::FULL
+       << " (" << SSB_ENV << ")\n";
+
   cerr << "Usage: " << argv0 << " [OPTIONS]" << "\n\n";
   cerr << "Options:" << endl;
   cerr << "  -g <game> Game name\n";
@@ -265,6 +269,7 @@ static void printUsage(const char* argv0)
   cerr << "            Use with -g <game>\n\n";
   cerr << "  -l        List supported games\n\n";
   cerr << "  -h        Displays usage\n" << endl;
+
   exit(EXIT_SUCCESS);
 }
 
@@ -333,7 +338,8 @@ int main(int argc, char** argv)
     exit(EXIT_FAILURE);
   }
 
-  cout << game->getGameName() << " - SSBd v" << Version::FULL << endl;
+  cout << game->getGameName() << " - SSBd v" << Version::FULL
+       << " (" << SSB_ENV << ")" << endl;
 
   if (!reg_code.empty()) {
     const string path = config_path.empty() ? Config::getDefaultPath() : config_path;
@@ -347,7 +353,7 @@ int main(int argc, char** argv)
   }
 
   try {
-    webSocket = make_shared<WebSocket>(WS_URL);
+    webSocket = make_shared<WebSocket>(SSB_WS_URL);
     webSocket->connect();
 
     // Arm before the expiry check so an early token_rotate cannot be missed.

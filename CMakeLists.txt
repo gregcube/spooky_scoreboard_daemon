@@ -58,3 +58,23 @@ target_link_libraries(ssbd PRIVATE
 if(CMAKE_BUILD_TYPE MATCHES Debug)
   add_compile_definitions(DEBUG)
 endif()
+
+set(SSB_ENV "live" CACHE STRING "Target environment: local, stage, live")
+set_property(CACHE SSB_ENV PROPERTY STRINGS local stage live)
+
+if(SSB_ENV STREQUAL "local")
+  set(SSB_WS_URL "wss://ssb.local:4444")
+elseif(SSB_ENV STREQUAL "stage")
+  set(SSB_WS_URL "wss://stage.spookyscoreboard.com:4444")
+elseif(SSB_ENV STREQUAL "live")
+  set(SSB_WS_URL "wss://spookyscoreboard.com:4444")
+else()
+  message(FATAL_ERROR "Unknown SSB_ENV=${SSB_ENV} (expected local, stage, or live)")
+endif()
+
+target_compile_definitions(ssbd PRIVATE
+  "SSB_ENV=\"${SSB_ENV}\""
+  "SSB_WS_URL=\"${SSB_WS_URL}\""
+)
+
+message(STATUS "SSB_ENV=${SSB_ENV} SSB_WS_URL=${SSB_WS_URL}")

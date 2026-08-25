@@ -28,8 +28,9 @@ RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
 # Build spooky scoreboard daemon.
 # Use vcpkg toolchain file to ensure all dependencies are found via vcpkg
+ARG SSB_ENV=live
 RUN cd /ssbd && mkdir build && cd build && \
-    cmake .. -DCMAKE_TOOLCHAIN_FILE=/ssbd/vcpkg/scripts/buildsystems/vcpkg.cmake && \
+    cmake .. -DSSB_ENV=${SSB_ENV} -DCMAKE_TOOLCHAIN_FILE=/ssbd/vcpkg/scripts/buildsystems/vcpkg.cmake && \
     make && strip ssbd
 
 WORKDIR /ssbd/build

@@ -11,6 +11,7 @@
 # OPTIONS:
 #   --clean     Remove .build/dist/ directory before building
 #   --test      Test all binaries after building
+#   --env ENV   Target environment: local, stage, or live (default: live)
 #   --help      Show this help message
 #
 # Output: .build/dist/ directory containing all binaries and installer
@@ -44,6 +45,7 @@ readonly NC='\033[0m' # No Color
 # Flags
 FLAG_CLEAN=false
 FLAG_TEST=false
+FLAG_ENV=live
 
 # ============================================================================
 # Helper Functions
@@ -85,6 +87,7 @@ USAGE:
 OPTIONS:
   --clean     Remove .build/dist/ directory before building
   --test      Test all binaries after building
+  --env ENV   Target environment: local, stage, or live (default: live)
   --help      Show this help message
 
 DESCRIPTION:
@@ -93,10 +96,11 @@ DESCRIPTION:
   .build/dist/ ready for USB installer creation.
 
 EXAMPLES:
-  ./build-all.sh              # Incremental build
-  ./build-all.sh --clean      # Clean build
-  ./build-all.sh --test       # Build and test
-  ./build-all.sh --clean --test  # Clean, build, and test
+  ./build-all.sh                    # Incremental live build
+  ./build-all.sh --env stage        # Stage environment
+  ./build-all.sh --clean            # Clean build
+  ./build-all.sh --test             # Build and test
+  ./build-all.sh --clean --test     # Clean, build, and test
 
 OUTPUT:
   .build/dist/
@@ -198,6 +202,18 @@ parse_arguments() {
         FLAG_TEST=true
         shift
         ;;
+      --env)
+        if [[ $# -lt 2 ]]; then
+          log_error "--env requires an argument: local, stage, or live"
+          exit 1
+        fi
+        FLAG_ENV=$2
+        if [[ "$FLAG_ENV" != "local" && "$FLAG_ENV" != "stage" && "$FLAG_ENV" != "live" ]]; then
+          log_error "Invalid environment: '$FLAG_ENV' (expected local, stage, or live)"
+          exit 1
+        fi
+        shift 2
+        ;;
       --help|-h)
         show_help
         exit 0
@@ -266,7 +282,7 @@ build_binary() {
   # Note: build.sh outputs to dist/${distro}/ssbd
   log_info "Running docker build..."
   cd "${SCRIPT_DIR}/docker"
-  if ! ./build.sh "$game" "$distro"; then
+  if ! ./build.sh "$game" "$distro" "$FLAG_ENV"; then
     log_error "Docker build failed for $game ($distro)"
     exit 1
   fi
@@ -551,6 +567,7 @@ main() {
 
   # Parse command line arguments
   parse_arguments "$@"
+  log_info "Target environment: $FLAG_ENV"
 
   # Validation phase
   validate_version_file

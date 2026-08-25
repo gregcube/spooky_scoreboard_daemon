@@ -38,7 +38,8 @@ COPY . /ssbd
 RUN cd /ssbd/vcpkg && ./bootstrap-vcpkg.sh && ./vcpkg install
 
 # Build spooky scoreboard daemon.
-RUN cd /ssbd && mkdir build && cd build && cmake .. && make && strip ssbd
+ARG SSB_ENV=live
+RUN cd /ssbd && mkdir build && cd build && cmake .. -DSSB_ENV=${SSB_ENV} && make && strip ssbd
 
 WORKDIR /ssbd/build
 CMD ["/bin/bash"]

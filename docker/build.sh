@@ -4,9 +4,10 @@
 # binary inside a Docker container for a specified game and Linux distribution
 # (e.g., Arch Linux or Debian).
 #
-# Usage: ./build.sh <game_name> <distribution>
+# Usage: ./build.sh <game_name> <distribution> [environment]
 # Example: ./build.sh hwn arch
 # Example: ./build.sh tcm debian
+# Example: ./build.sh tcm debian stage
 
 # Enable strict mode
 set -euo pipefail
@@ -32,16 +33,24 @@ if ! command -v docker &> /dev/null; then
 fi
 
 # Check if correct number of arguments are provided
-if [ $# -ne 2 ]; then
+if [ $# -lt 2 ] || [ $# -gt 3 ]; then
   log_error "Invalid number of arguments"
-  echo "Usage: $0 <game_name> <distribution>"
+  echo "Usage: $0 <game_name> <distribution> [environment]"
   echo "Example: $0 hwn arch"
   echo "Example: $0 tcm debian"
+  echo "Example: $0 tcm debian stage"
+  echo "environment: local, stage, or live (default: live)"
   exit 1
 fi
 
 readonly GAME_NAME=$1
 readonly DISTRO=$2
+readonly SSB_ENV=${3:-live}
+
+if [[ "$SSB_ENV" != "local" && "$SSB_ENV" != "stage" && "$SSB_ENV" != "live" ]]; then
+  log_error "Invalid environment: '$SSB_ENV' (expected local, stage, or live)"
+  exit 1
+fi
 
 log_info "Current branch: $(git rev-parse --abbrev-ref HEAD)"
 log_info "Current commit: $(git rev-parse HEAD)"
@@ -72,8 +81,8 @@ fi
 readonly COMMIT_SHA=$(git rev-parse --short HEAD)
 
 # Build the Docker image
-log_info "Building Docker image for $GAME_NAME using $DISTRO..."
-docker build --no-cache -t "$GAME_NAME" -f "$DISTRO/$GAME_NAME/Dockerfile" ../
+log_info "Building Docker image for $GAME_NAME using $DISTRO (env: $SSB_ENV)..."
+docker build --no-cache --build-arg SSB_ENV="$SSB_ENV" -t "$GAME_NAME" -f "$DISTRO/$GAME_NAME/Dockerfile" ../
 
 # Check if build was successful
 if [ $? -eq 0 ]; then
