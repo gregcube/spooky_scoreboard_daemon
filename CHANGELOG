@@ -1,0 +1,19 @@
+0.4.0:
+- Operators can set timeout, width, and height when sending a
+  notification to a machine.
+
+- Operators can restart the daemon from the machine admin page.
+
+- Operators can download a machine's audits file. YAML audits are
+  converted to JSON before upload.
+
+- Operators can download a machine's critical error log.
+
+- Operators can download a snapshot of the daemon journal.
+
+- Machines send an activity log to the server: player login, token
+  rotation, server commands, score uploads, and daemon
+  start/restart/shutdown. Operators can view it from the machine
+  admin page.
+
+- Builds can target local, stage, or live with -DSSB_ENV.
